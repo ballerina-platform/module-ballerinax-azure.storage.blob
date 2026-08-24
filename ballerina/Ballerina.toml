@@ -1,0 +1,22 @@
+[package]
+distribution = "2201.12.0"
+org = "ballerinax"
+name = "azure.storage.blob"
+version = "1.0.0"
+authors = ["Ballerina"]
+keywords = ["Type/Connector", "Area/Storage & File Management", "Cost/Paid", "Vendor/Microsoft"]
+icon = "icon.png"
+repository = "https://github.com/ballerina-platform/module-ballerinax-azure.storage.blob"
+license = ["Apache-2.0"]
+
+[build-options]
+observabilityIncluded = true
+
+[platform.java21]
+graalvmCompatible = true
+
+[[platform.java21.dependency]]
+groupId = "io.ballerina.lib"
+artifactId = "azure.storage.blob-native"
+version = "1.0.0"
+path = "../native/build/libs/azure.storage.blob-native-1.0.0-SNAPSHOT.jar"
