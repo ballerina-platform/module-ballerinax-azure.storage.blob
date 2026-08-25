@@ -1,0 +1,13 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Source files always use LF
+*.java text eol=lf
+*.bal text eol=lf
+*.sh text eol=lf
+
+# The Gradle start script is run by a shell, so it stays LF even on a Windows checkout
+/gradlew text eol=lf
+
+# Windows script files should use CRLF
+*.bat text eol=crlf
