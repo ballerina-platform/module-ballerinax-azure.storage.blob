@@ -16,12 +16,21 @@
  * under the License.
  */
 
+import org.gradle.process.ExecOperations
+
+import javax.inject.Inject
+
+abstract class BallerinaExecHelper {
+    @Inject abstract ExecOperations getExecOperations()
+}
+
 apply plugin: 'java'
 
 task testExamples {
+    def execHelper = project.objects.newInstance(BallerinaExecHelper)
     doLast {
         try {
-            exec {
+            execHelper.execOperations.exec {
                 workingDir project.projectDir
                 // The script is bash (shebang); running it through the interpreter works on
                 // every platform with bash on the path (Git Bash on Windows) and needs no
@@ -36,6 +45,7 @@ task testExamples {
 }
 
 task buildExamples {
+    def execHelper = project.objects.newInstance(BallerinaExecHelper)
     gradle.taskGraph.whenReady { graph ->
         if (graph.hasTask(":azure.storage.blob-examples:test")) {
             buildExamples.enabled = false
@@ -45,7 +55,7 @@ task buildExamples {
     }
     doLast {
         try {
-            exec {
+            execHelper.execOperations.exec {
                 workingDir project.projectDir
                 commandLine 'bash', './build.sh', 'build'
             }
