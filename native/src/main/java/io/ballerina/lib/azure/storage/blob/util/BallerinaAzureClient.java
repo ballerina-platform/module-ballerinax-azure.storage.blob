@@ -21,6 +21,7 @@ package io.ballerina.lib.azure.storage.blob.util;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.queue.models.QueueStorageException;
 import io.ballerina.runtime.api.Environment;
 import io.ballerina.runtime.api.values.BError;
 import io.ballerina.runtime.api.values.BObject;
@@ -83,6 +84,9 @@ public final class BallerinaAzureClient {
         for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
             if (current instanceof BlobStorageException storageException) {
                 return ErrorMapper.toBError(storageException);
+            }
+            if (current instanceof QueueStorageException queueException) {
+                return ErrorMapper.toBError(queueException);
             }
             Throwable cause = current.getCause();
             current = cause == current ? null : cause;

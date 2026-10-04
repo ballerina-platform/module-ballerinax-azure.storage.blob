@@ -856,7 +856,10 @@ parameter:
 * `laxDataBinding`: relaxes the typed content handlers' binding (section 5.5). Defaults to
   `false`.
 * `queueServiceUrl`: overrides the queue endpoint, which otherwise derives from the account
-  name as `https://{accountName}.queue.core.windows.net`.
+  name as `https://{accountName}.queue.core.windows.net`. For a SAS URL credential the queue
+  endpoint is instead the SAS URL's host with its blob service label replaced by the queue one,
+  and `queueServiceUrl` is required when that host carries none; a connection string must
+  carry a queue endpoint unless `queueServiceUrl` overrides it.
 
 Message visibility is not configuration. A received message is hidden for a fixed window, and
 the listener extends that window for as long as its handler runs, so a slow handler never
@@ -1030,8 +1033,10 @@ handler and does not satisfy the at least one handler requirement. An error retu
 `onError` itself is logged. Errors returned by the event handlers do not notify `onError`; they
 drive redelivery (section 5.7).
 
-A failed poll also logs its error, and polling keeps its backoff schedule, so the next poll
-tries again.
+A failed poll belongs to no event, so every attached service's `onError` is notified of it;
+a catch-all service's `onError` that takes a `Caller` is skipped for it, since no container
+binds one. A failed poll also logs its error, and polling keeps its backoff schedule, so the
+next poll tries again.
 
 ### 5.9 The Caller
 
@@ -1066,7 +1071,9 @@ Ballerina error's `message()`.
   `errorCode` in its `ServiceErrorDetail`. A service failure whose Azure error code maps to
   none of the subtypes below stays this generic type.
   * **`NotFoundError`**: the requested container or blob was not found (HTTP 404;
-    `BlobNotFound`, `ContainerNotFound`).
+    `BlobNotFound`, `ContainerNotFound`), or, for a `Listener`, its queue or a message on it
+    (`QueueNotFound`, `MessageNotFound`). Queue service failures reach `onError` through the
+    same mapping.
   * **`ConflictError`**: the operation conflicts with the current state of the resource, for
     example creating a container that already exists, deleting a blob whose snapshots were
     not directed, or a lease operation against the wrong lease state (HTTP 409).

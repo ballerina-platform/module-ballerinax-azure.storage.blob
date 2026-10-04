@@ -14,9 +14,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// The data binding modules are called from the native side; the imports keep their jars on
-// the package's classpath.
-import ballerina/data.csv as _;
+// The jsondata module is called from the native side only; the import keeps its jar on the
+// package's classpath.
 import ballerina/data.jsondata as _;
 import ballerina/jballerina.java;
 

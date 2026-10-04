@@ -40,12 +40,65 @@ checkstyle {
     configProperties = ["suppressionFile": file("${rootDir}/build-config/checkstyle/build/suppressions.xml")]
 }
 
+tasks.withType(Checkstyle) {
+    exclude '**/module-info.java'
+}
+
 checkstyleTest.dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
 
 spotbugsTest {
     enabled = false
 }
 
+def stripBallerinaExtensionVersion(String extVersion) {
+    if (extVersion.matches(project.ext.timestampedVersionRegex)) {
+        def splitVersion = extVersion.split('-')
+        if (splitVersion.length > 3) {
+            return splitVersion[0..-4].join('-')
+        }
+        return extVersion
+    }
+    return extVersion.replace("${project.ext.snapshotVersion}", "")
+}
+
+def fixtureBuildDir = layout.buildDirectory.dir('ballerina_sources')
+
+// The sample projects depend on the just-built, unpublished module, resolved from the bal
+// local repository (populated by publishToLocalRepo). The committed fixtures carry neither
+// that local-repository pin nor the module version; both are stamped into generated copies
+// here, so nothing machine-local or release-churning is committed.
+task prepareTestFixtures(type: Copy) {
+    from 'src/test/resources/ballerina_sources'
+    into fixtureBuildDir
+    inputs.property 'moduleVersion', "${project.version}"
+    doLast {
+        def moduleVersion = stripBallerinaExtensionVersion("${project.version}")
+        fileTree(fixtureBuildDir) { include '**/Ballerina.toml' }.each { toml ->
+            toml.append("\n[[dependency]]\norg = \"ballerinax\"\nname = \"azure.storage.blob\"\n"
+                    + "version = \"${moduleVersion}\"\nrepository = \"local\"\n")
+        }
+    }
+}
+
 test {
-    useTestNG()
+    // The sample projects import the just-built module: publishToLocalRepo pushes it to the
+    // bal local repository, prepareTestFixtures stamps that dependency into the generated
+    // fixture copies, and the project API compiles them against the installed released
+    // distribution (ballerina.home below).
+    dependsOn ':azure.storage.blob-ballerina:build'
+    useTestNG {
+        suites 'src/test/resources/testng.xml'
+    }
+    dependsOn ':azure.storage.blob-ballerina:publishToLocalRepo'
+    dependsOn prepareTestFixtures
+    // Resolve every import from the installed released distribution (plus the module
+    // itself from the local repository), never the network.
+    systemProperty 'ballerina.offline.flag', 'true'
+    systemProperty 'fixtures.dir', fixtureBuildDir.get().asFile.absolutePath
+    systemProperty 'ballerina.home',
+            "${System.getenv('BALLERINA_HOME') ?: '/Library/Ballerina'}/distributions/ballerina-${ballerinaLangVersion}"
+    testLogging {
+        events "passed", "failed", "skipped"
+        exceptionFormat "full"
+    }
 }

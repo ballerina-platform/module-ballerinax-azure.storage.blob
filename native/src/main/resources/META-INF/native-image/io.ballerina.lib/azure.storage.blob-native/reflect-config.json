@@ -1406,5 +1406,275 @@
     "name": "com.azure.storage.blob.implementation.util.ModelHelper",
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.KeyInfo",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.ListQueuesSegmentResponse",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.MessageIdsDeleteHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.MessageIdsUpdateHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.MessagesClearHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.MessagesDequeueHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.MessagesEnqueueHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.MessagesPeekHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.PeekedMessageItemInternal",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.PeekedMessageItemInternalWrapper",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.QueueMessage",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.QueueMessageItemInternal",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.QueueMessageItemInternalWrapper",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.QueueSignedIdentifierWrapper",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.QueueStorageError",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.QueueStorageExceptionInternal",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.QueuesCreateHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.QueuesDeleteHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.QueuesGetAccessPolicyHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.QueuesGetPropertiesHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.QueuesSetAccessPolicyHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.QueuesSetMetadataHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.SendMessageResultWrapper",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.ServicesGetPropertiesHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.ServicesGetStatisticsHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.ServicesGetUserDelegationKeyHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.ServicesListQueuesSegmentHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.ServicesListQueuesSegmentNextHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.ServicesSetPropertiesHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.StorageError",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.implementation.models.StorageErrorException",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.GeoReplication",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.GeoReplicationStatus",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.PeekedMessageItem",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.QueueAccessPolicy",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.QueueAnalyticsLogging",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.QueueAudience",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.QueueCorsRule",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.QueueErrorCode",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.QueueGetUserDelegationKeyOptions",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.QueueItem",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.QueueMessageDecodingError",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.QueueMessageItem",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.QueueMetrics",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.QueueProperties",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.QueueRetentionPolicy",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.QueueServiceProperties",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.QueueServiceStatistics",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.QueueSignedIdentifier",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.QueueStorageException",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.QueuesSegmentOptions",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.SendMessageResult",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.UpdateMessageResult",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.queue.models.UserDelegationKey",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
   }
 ]

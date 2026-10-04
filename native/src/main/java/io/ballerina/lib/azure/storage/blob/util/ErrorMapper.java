@@ -19,6 +19,7 @@
 package io.ballerina.lib.azure.storage.blob.util;
 
 import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.queue.models.QueueStorageException;
 import io.ballerina.runtime.api.values.BError;
 
 import java.util.Set;
@@ -31,7 +32,7 @@ import java.util.Set;
 public final class ErrorMapper {
 
     private static final Set<String> NOT_FOUND_CODES =
-            Set.of("BlobNotFound", "ContainerNotFound", "ResourceNotFound");
+            Set.of("BlobNotFound", "ContainerNotFound", "ResourceNotFound", "QueueNotFound", "MessageNotFound");
     private static final Set<String> ARCHIVED_CODES = Set.of("BlobArchived", "BlobBeingRehydrated");
     private static final Set<String> INVALID_BLOB_TYPE_CODES = Set.of("InvalidBlobType");
     private static final Set<String> CONFLICT_CODES =
@@ -62,6 +63,19 @@ public final class ErrorMapper {
      * @return the Ballerina error
      */
     public static BError toBError(BlobStorageException e) {
+        String code = e.getErrorCode() == null ? "" : e.getErrorCode().toString();
+        String message = e.getServiceMessage() == null ? e.getMessage() : e.getServiceMessage();
+        return BlobErrorCreator.storageError(typeName(code), message, e.getStatusCode(), code, e);
+    }
+
+    /**
+     * Converts a queue service exception into the matching typed Ballerina error; the queue
+     * codes share the blob catalogue's names where they overlap.
+     *
+     * @param e the Azure queue service exception
+     * @return the Ballerina error
+     */
+    public static BError toBError(QueueStorageException e) {
         String code = e.getErrorCode() == null ? "" : e.getErrorCode().toString();
         String message = e.getServiceMessage() == null ? e.getMessage() : e.getServiceMessage();
         return BlobErrorCreator.storageError(typeName(code), message, e.getStatusCode(), code, e);

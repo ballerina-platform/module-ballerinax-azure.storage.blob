@@ -57,6 +57,8 @@ import java.util.Locale;
  */
 public final class TypedReadOps {
 
+    // The Caller's private Client field.
+    private static final BString CALLER_CLIENT_FIELD = StringUtils.fromString("client");
     // The generator class backing the lazy byte stream, declared in natives.bal.
     private static final String CONTENT_STREAM_GENERATOR_CLASS = "ContentStreamGenerator";
 
@@ -74,6 +76,14 @@ public final class TypedReadOps {
 
     /** Retrieves the blob's content in the form the target typedesc selects. */
     public static Object getBlob(Environment env, BObject self, BString path, Object options, BTypedesc targetType) {
+        // A Caller carries no native client data; unwrap it to the Client it holds.
+        BObject client = self.getNativeData(BallerinaAzureClient.NATIVE_CONTAINER_CLIENT) == null
+                ? self.getObjectValue(CALLER_CLIENT_FIELD) : self;
+        return getBlobFrom(env, client, path, options, targetType);
+    }
+
+    private static Object getBlobFrom(Environment env, BObject self, BString path, Object options,
+                                      BTypedesc targetType) {
         // The declared type drives the binding, so a readonly intersection yields a readonly
         // value; the implied type (references and intersections unwrapped) drives the routing.
         Type described = TypeUtils.getReferredType(targetType.getDescribingType());

@@ -1,0 +1,4 @@
+[package]
+org = "azure_blob_test"
+name = "invalid_no_handler"
+version = "0.9.0"

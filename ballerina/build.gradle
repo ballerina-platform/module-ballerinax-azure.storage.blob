@@ -85,6 +85,7 @@ task updateTomlFiles {
             .replace("@project.version@", project.version)
             .replace("@toml.version@", tomlVersion)
             .replace("@azure.storage.blob.version@", project.azureStorageBlobVersion)
+            .replace("@azure.storage.queue.version@", project.azureStorageQueueVersion)
             .replace("@azure.storage.internal.avro.version@", project.azureStorageInternalAvroVersion)
             .replace("@azure.storage.common.version@", project.azureStorageCommonVersion)
             .replace("@azure.core.version@", project.azureCoreVersion)
@@ -172,6 +173,28 @@ test.dependsOn ":azure.storage.blob-native:build"
 
 build.dependsOn ":azure.storage.blob-compiler-plugin:build"
 test.dependsOn ":azure.storage.blob-compiler-plugin:build"
+
+// Publishes the packed module to the local repository for the compiler-plugin test fixtures,
+// which import it. The docker pack writes the bala under build/bal_build_target and bal push
+// extracts the bala's platform jars beside the bala file, so the push runs against a copy
+// staged in a host-owned directory.
+task publishToLocalRepo(type: Exec) {
+    dependsOn build
+    workingDir project.projectDir
+    doFirst {
+        def bala = fileTree("${project.projectDir}/build/bal_build_target/bala") {
+            include '*.bala'
+        }.singleFile
+        def stageDir = new File("${project.rootProject.buildDir}/local-push-stage")
+        project.delete stageDir
+        project.mkdir stageDir
+        project.copy {
+            from bala
+            into stageDir
+        }
+        commandLine 'bal', 'push', '--repository=local', new File(stageDir, bala.name).absolutePath
+    }
+}
 
 publishing {
     publications {

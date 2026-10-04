@@ -16,7 +16,11 @@ A few tests need what the emulator cannot provide and enable themselves only in 
 
 ## The emulator
 
-`tests/resources/docker/compose.yaml` runs `mcr.microsoft.com/azure-storage/azurite` pinned to 3.36.0 with `--skipApiVersionCheck`, publishing the blob endpoint on `127.0.0.1:10000`. The suite connects with Azurite's published development account (`devstoreaccount1`) through the path-style URL `http://127.0.0.1:10000/devstoreaccount1`, which also exercises the connector's explicit `serviceUrl` and port handling. The Gradle build starts and stops the container around `bal test` on its own.
+`tests/resources/docker/compose.yaml` runs `mcr.microsoft.com/azure-storage/azurite` pinned to 3.36.0 with `--skipApiVersionCheck`, publishing the blob endpoint on `127.0.0.1:10000` and the queue endpoint on `127.0.0.1:10001`. The suite connects with Azurite's published development account (`devstoreaccount1`) through the path-style URLs `http://127.0.0.1:10000/devstoreaccount1` and `http://127.0.0.1:10001/devstoreaccount1`, which also exercise the connector's explicit `serviceUrl`, `queueServiceUrl`, and port handling. The Gradle build starts and stops the container around `bal test` on its own.
+
+## The listener tests
+
+The connector has no queue client of its own, so `queue_backend.bal` talks to the queue REST API directly, authorized by an account SAS the suite mints with the connector's `AdminClient.generateAccountSas` (queue and blob services): it creates a per-run queue for each test, puts synthetic Event Grid messages on it (both the Event Grid and the CloudEvents schema, base64-encoded and raw), and peeks at what the listener left on the queue and its poison queue. The message shapes follow the published Blob Storage event samples. No Event Grid subscription is involved; the end-to-end delivery from a real subscription is a manual probe against a live account (the blob event processor example is the harness for it). Queues are swept at suite end by the run prefix, like the containers.
 
 ## Live runs
 

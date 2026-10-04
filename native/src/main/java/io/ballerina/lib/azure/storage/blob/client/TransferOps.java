@@ -204,13 +204,18 @@ public final class TransferOps {
         });
     }
 
+    /** Stores an already-open blob stream on a generator the listener created. */
+    public static void attachContentStream(BObject generator, BlobInputStream stream) {
+        generator.addNativeData(NATIVE_INPUT_STREAM, stream);
+    }
+
     /** Closes an open content stream early. */
     public static Object closeContentStream(BObject generator) {
         closeQuietly(generator);
         return null;
     }
 
-    static void closeQuietly(BObject generator) {
+    public static void closeQuietly(BObject generator) {
         BlobInputStream stream = (BlobInputStream) generator.getNativeData(NATIVE_INPUT_STREAM);
         if (stream != null) {
             generator.addNativeData(NATIVE_INPUT_STREAM, null);

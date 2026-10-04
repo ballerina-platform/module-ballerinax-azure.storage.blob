@@ -1,0 +1,4 @@
+[package]
+org = "azure_blob_test"
+name = "invalid_on_blob_stream_item"
+version = "0.9.0"
