@@ -23,4 +23,4 @@ accountKey = "<storage account key>"
 bal run
 ```
 
-The program prints the orders the tag query found and marks each one processed. A second run finds nothing pending for that region, since the first run rewrote the matching tags; delete the blobs or change the status tag back to see them again.
+The program prints the orders the tag query found and marks each one processed; the query is retried for a short while when the tag index has not yet caught up with the uploads. Every run uploads the orders afresh with their original tags, so each run finds the same pending order again; check the tags in the [Azure portal](https://portal.azure.com) between runs to see the `status` flip to `processed`.

@@ -47,15 +47,13 @@ public final class Credentials {
 
     /** The storage services an endpoint is derived for. */
     public enum Service {
-        BLOB("blob", "BlobEndpoint="),
-        QUEUE("queue", "QueueEndpoint=");
+        BLOB("blob"),
+        QUEUE("queue");
 
         private final String host;
-        private final String connectionStringKey;
 
-        Service(String host, String connectionStringKey) {
+        Service(String host) {
             this.host = host;
-            this.connectionStringKey = connectionStringKey;
         }
     }
 
@@ -140,30 +138,6 @@ public final class Credentials {
         }
         return new Resolved(requireNonEmpty(auth, ACCOUNT_NAME), serviceUrl(auth), null, null, null,
                 entraCredential(auth), null);
-    }
-
-    /**
-     * Reads the endpoint for a service out of a connection string, when it names one.
-     *
-     * @param connectionString the connection string
-     * @param service          the service
-     * @return the endpoint, or {@code null} when the string names none for that service
-     */
-    public static String connectionStringEndpoint(String connectionString, Service service) {
-        for (String pair : connectionString.split(";")) {
-            if (pair.startsWith(service.connectionStringKey)) {
-                return pair.substring(service.connectionStringKey.length());
-            }
-        }
-        return null;
-    }
-
-    /** Checks that a connection string can yield an endpoint for the service. */
-    public static void requireConnectionStringEndpoint(String connectionString, Service service) {
-        if (connectionStringEndpoint(connectionString, service) == null && !connectionString.contains("AccountName=")) {
-            throw BlobErrorCreator.clientError("the connection string must include " + service.connectionStringKey
-                    + " or AccountName= so the " + service.host + "-service endpoint can be derived", null);
-        }
     }
 
     /*

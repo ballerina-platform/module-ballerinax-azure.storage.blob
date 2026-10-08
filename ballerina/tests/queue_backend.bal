@@ -20,7 +20,6 @@
 // synthetic events on them, and to inspect what the listener left behind.
 
 import ballerina/http;
-import ballerina/lang.runtime;
 import ballerina/test;
 import ballerina/time;
 
@@ -59,7 +58,7 @@ isolated function queueSas() returns string|error {
     string sas = check admin.generateAccountSas({
         expiryTime: time:utcAddSeconds(time:utcNow(), 3600),
         permissions: {read: true, write: true, delete: true, list: true, add: true, create: true,
-            update: true, process: true},
+            update: true, process: true, tag: true, filter: true},
         services: {blob: true, queue: true},
         resourceTypes: {'service: true, container: true, 'object: true}
     });
@@ -140,26 +139,6 @@ function listQueues() returns string[]|error {
 function cleanUpQueues() returns error? {
     foreach string queue in check listQueues() {
         check deleteQueue(queue);
-    }
-}
-
-// Polls until the probe reports true, for the dispatch a listener performs asynchronously.
-function await(function () returns boolean|error probe, decimal timeoutSeconds = 30,
-        decimal intervalSeconds = 0.25) returns error? {
-    decimal waited = 0;
-    while true {
-        boolean|error met = probe();
-        if met is boolean && met {
-            return;
-        }
-        if waited >= timeoutSeconds {
-            if met is error {
-                return met;
-            }
-            return error(string `condition not met within ${timeoutSeconds}s`);
-        }
-        runtime:sleep(intervalSeconds);
-        waited += intervalSeconds;
     }
 }
 
@@ -251,4 +230,30 @@ function setupEventSource(string base) returns [Client, string, string]|error {
     check createTestContainer(admin, container);
     check createQueue(queue);
     return [check newContainerClient(container), container, queue];
+}
+
+// ---- the credential forms the listener documentation names
+
+// Azurite's published connection string, carrying both service endpoints; the live form is the
+// portal's, which names only the account and lets the endpoints derive.
+isolated function connectionStringAuth() returns ConnectionStringConfig => liveRun
+    ? {connectionString: string `DefaultEndpointsProtocol=https;AccountName=${liveAccountName};`
+        + string `AccountKey=${liveAccountKey};EndpointSuffix=core.windows.net`}
+    : {connectionString: string `DefaultEndpointsProtocol=http;AccountName=${AZURITE_ACCOUNT};`
+        + string `AccountKey=${AZURITE_KEY};BlobEndpoint=${AZURITE_URL};QueueEndpoint=${AZURITE_QUEUE_URL}`};
+
+// An account SAS spanning the queue and blob services, in the form a listener takes: a bare
+// token with the account name, or Azurite's SAS URL (whose host carries no service label, so
+// the queue endpoint is given explicitly).
+isolated function accountSasAuth(string sas) returns AuthConfig => liveRun
+    ? {accountName: liveAccountName, sasToken: sas}
+    : {sasUrl: string `${AZURITE_URL}?${sas}`};
+
+// A listener over an explicit credential, for the tests of the documented credential forms.
+isolated function newListenerWith(string queue, AuthConfig auth) returns Listener|Error {
+    ListenerConfiguration config = {auth};
+    if !liveRun {
+        config.queueServiceUrl = AZURITE_QUEUE_URL;
+    }
+    return new (queue, config);
 }

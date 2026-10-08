@@ -15,6 +15,7 @@
 // under the License.
 
 import ballerina/io;
+import ballerina/lang.runtime;
 
 import ballerinax/azure.storage.blob;
 
@@ -47,16 +48,24 @@ public function main() returns error? {
                 {tags: {region: 'order.region, status: 'order.status}});
     }
 
-    // Find the pending EU orders by their tags, without listing the container.
+    // Find the pending EU orders by their tags, without listing the container. The tag index is
+    // updated shortly after a tag is written, so the query is retried until it reflects the uploads.
     io:println("Pending EU orders:");
-    stream<blob:TaggedBlobEntry, blob:Error?> pending =
-            check orders->findBlobsByTags("\"region\" = 'eu' AND \"status\" = 'pending'");
     string[] found = [];
-    check from blob:TaggedBlobEntry entry in pending
-        do {
-            io:println(string `  ${entry.path}  ${entry.tags.toString()}`);
-            found.push(entry.path);
-        };
+    foreach int attempt in 0 ..< 15 {
+        stream<blob:TaggedBlobEntry, blob:Error?> pending =
+                check orders->findBlobsByTags("\"region\" = 'eu' AND \"status\" = 'pending'");
+        check from blob:TaggedBlobEntry entry in pending
+            do {
+                io:println(string `  ${entry.path}  ${entry.tags.toString()}`);
+                found.push(entry.path);
+            };
+        if found.length() > 0 {
+            break;
+        }
+        io:println("  (waiting for the tag index)");
+        runtime:sleep(2);
+    }
 
     // Mark them processed: index tags are replaced whole, so the full tag set is written back.
     foreach string path in found {

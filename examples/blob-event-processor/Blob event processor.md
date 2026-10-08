@@ -1,6 +1,6 @@
 # Blob event processor
 
-This example reacts to blobs as they arrive in a container. A `Listener` consumes the storage queue an Event Grid subscription delivers blob events to. A `.json` blob created in the `invoices` container is bound to an `Invoice` record, tagged, and moved under `processed/` (a copy under the new path followed by a delete, since Blob Storage has no rename); every other created blob is logged with its size and content type; deletions are logged too. Events whose content cannot be fetched or bound, and failed polls, reach `onError`.
+This example reacts to blobs as they arrive in a container. A `Listener` consumes the storage queue an Event Grid subscription delivers blob events to. A `.json` blob created in the `invoices` container is bound to an `Invoice` record and moved under `processed/` with its tags set (a copy under the new path followed by a delete, since Blob Storage has no rename); every other created blob is logged with its size and content type; deletions are logged too. Events whose content cannot be fetched or bound, and failed polls, reach `onError`.
 
 ## Prerequisites
 
@@ -44,4 +44,4 @@ To see it work, upload a file into the `invoices` container (through the [Azure 
 {"id": "inv-1001", "customer": "Contoso", "total": 250.00}
 ```
 
-Within a few seconds the invoice is logged, tagged with `status=processed`, and moved to `processed/inv-1001.json`; the delete of the original is logged as its own event. Any other file is logged with its size and content type. A `.json` file that does not match the record is reported through `onError` and acknowledged, so it is not redelivered.
+Within a few seconds the invoice is logged, tagged with `status=processed`, and moved to `processed/inv-1001.json`; the delete of the original is logged as its own event. The copy under `processed/` fires a created event of its own, which the handler ignores by its path: a handler that writes into a container the subscription covers must recognise its own output, or it processes it again. Any other file is logged with its size and content type. A `.json` file that does not match the record is reported through `onError` and acknowledged, so it is not redelivered.

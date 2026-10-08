@@ -73,18 +73,18 @@ final class QueueClients {
         Credentials.Resolved credential = Credentials.resolve(auth);
         String endpoint;
         if (credential.connectionString() != null) {
-            if (queueServiceUrl == null) {
-                Credentials.requireConnectionStringEndpoint(credential.connectionString(), Credentials.Service.QUEUE);
-            }
+            // As for the blob client: the SDK's parser validates the string, and the queue
+            // endpoint it derived is read back from a first build for the port policy.
             try {
                 builder.connectionString(credential.connectionString());
-            } catch (IllegalArgumentException e) {
+                if (queueServiceUrl != null) {
+                    builder.endpoint(queueServiceUrl);
+                    endpoint = queueServiceUrl;
+                } else {
+                    endpoint = builder.buildClient().getQueueUrl();
+                }
+            } catch (IllegalArgumentException | IllegalStateException e) {
                 throw BlobErrorCreator.clientError("invalid connection string: " + BallerinaAzureClient.describe(e), e);
-            }
-            endpoint = queueServiceUrl != null ? queueServiceUrl
-                    : Credentials.connectionStringEndpoint(credential.connectionString(), Credentials.Service.QUEUE);
-            if (queueServiceUrl != null) {
-                builder.endpoint(queueServiceUrl);
             }
         } else {
             endpoint = queueServiceUrl != null ? queueServiceUrl : queueEndpoint(credential);

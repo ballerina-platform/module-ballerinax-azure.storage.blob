@@ -37,12 +37,18 @@ listener blob:Listener invoiceListener = new (queueName, auth = {accountName, ac
 service /invoices on invoiceListener {
 
     remote function onBlobJson(Invoice invoice, blob:BlobEvent event, blob:Caller caller) returns error? {
+        // The copy below creates a blob in this same container, which fires its own created
+        // event back into this handler; the processed copies are not invoices to process.
+        if event.path.startsWith("processed/") {
+            return;
+        }
         log:printInfo("received invoice", path = event.path, id = invoice.id, customer = invoice.customer,
                 total = invoice.total);
-        check caller->setTags(event.path, {status: "processed", customer: invoice.customer});
-        // Blob Storage has no rename: copying under the new path and deleting the original moves it.
+        // Blob Storage has no rename: copying under the new path and deleting the original moves
+        // it. A copy carries no index tags, so the processed copy gets its tags with the copy.
         string processedPath = "processed/" + invoice.id + ".json";
-        _ = check caller->copyBlobFromUrl(event.url, processedPath);
+        _ = check caller->copyBlobFromUrl(event.url, processedPath,
+                {tags: {status: "processed", customer: invoice.customer}});
         check caller->deleteBlob(event.path);
         log:printInfo("moved invoice", sourcePath = event.path, destinationPath = processedPath);
     }

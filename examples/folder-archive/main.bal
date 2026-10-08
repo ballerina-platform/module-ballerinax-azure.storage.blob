@@ -44,7 +44,13 @@ public function main() returns error? {
         }
         string name = check file:basename(entry.absPath);
         string destination = string `${prefix}/${name}`;
-        check archive->uploadFromFile(entry.absPath, destination);
+        blob:Error? uploaded = archive->uploadFromFile(entry.absPath, destination);
+        if uploaded is blob:ArchivedBlobError {
+            // The service refuses to replace a blob in the archive tier until it is rehydrated.
+            io:println(string `left ${destination} as it is: already in the archive tier`);
+            continue;
+        }
+        check uploaded;
         int ageDays = <int>(time:utcDiffSeconds(time:utcNow(), entry.modifiedTime) / 86400d);
         blob:AccessTier tier = ageDays >= archiveAfterDays ? blob:ARCHIVE : blob:COOL;
         check archive->setAccessTier(destination, tier);
@@ -52,7 +58,8 @@ public function main() returns error? {
     }
 
     // List what the archive now holds under this year's prefix.
-    io:println(string `\nBlobs under ${prefix}/:`);
+    io:println("");
+    io:println(string `Blobs under ${prefix}/:`);
     stream<blob:BlobEntry, blob:Error?> listed = check archive->listBlobs({prefix: prefix + "/"});
     check from blob:BlobEntry blobEntry in listed
         do {

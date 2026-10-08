@@ -851,3 +851,62 @@ function testCallerOperations() returns error? {
     test:assertTrue(archived);
     test:assertFalse(original);
 }
+
+// ---- the credential forms the listener documentation names
+
+// Drives one created event through a listener built over the given credential.
+function assertListenerDispatches(string base, AuthConfig auth) returns error? {
+    [Client, string, string] setup = check setupEventSource(base);
+    Client origin = setup[0];
+    check origin->upload("via " + base, "cred.bin");
+    check enqueueEvent(setup[2], blobCreatedEvent(setup[1], "cred.bin"));
+    final Recorder recorder = new;
+    Listener lsn = check newListenerWith(setup[2], auth);
+    Service svc = service object {
+        remote function onBlob(byte[] content, BlobEvent event, Caller caller) returns error? {
+            recorder.put("blob", check string:fromBytes(content));
+            // The Caller shares the listener's credential; a write proves it covers the blob service.
+            check caller->setTags(event.path, {seen: "yes"});
+        }
+    };
+    check lsn.attach(svc, setup[1]);
+    check lsn.'start();
+    check await(() => recorder.count("blob") >= 1);
+    check lsn.gracefulStop();
+    test:assertEquals(recorder.payload("blob"), "via " + base);
+    map<string> tags = check origin->getTags("cred.bin");
+    test:assertEquals(tags, {seen: "yes"});
+}
+
+@test:Config {}
+function testListenerOverAccountSas() returns error? {
+    string sas = check queueSas();
+    return assertListenerDispatches("lsn-sas", accountSasAuth(sas));
+}
+
+@test:Config {}
+function testListenerOverConnectionString() returns error? {
+    return assertListenerDispatches("lsn-connstr", connectionStringAuth());
+}
+
+@test:Config {}
+function testClientsOverConnectionString() returns error? {
+    string container = testContainer("connstr");
+    AdminClient admin = check new (auth = connectionStringAuth());
+    check createTestContainer(admin, container);
+    boolean exists = check admin->hasContainer(container);
+    test:assertTrue(exists);
+    Client blobClient = check new (container, auth = connectionStringAuth());
+    check blobClient->upload("over a connection string", "cs.txt");
+    string content = check blobClient->getBlob("cs.txt");
+    test:assertEquals(content, "over a connection string");
+}
+
+// A listener over a SAS URL whose host carries no blob service label, with no queue endpoint
+// given, cannot locate its queue; the live form derives it from the blob host.
+@test:Config {enable: liveRun}
+function testListenerOverSasUrlDerivesQueueEndpoint() returns error? {
+    string sas = check queueSas();
+    string sasUrl = string `https://${liveAccountName}.blob.core.windows.net/?${sas}`;
+    return assertListenerDispatches("lsn-sasurl", {sasUrl});
+}

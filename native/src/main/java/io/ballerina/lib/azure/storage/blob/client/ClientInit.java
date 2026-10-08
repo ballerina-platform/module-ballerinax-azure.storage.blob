@@ -110,13 +110,16 @@ public final class ClientInit {
         Credentials.Resolved credential = Credentials.resolve(auth);
         String endpoint;
         if (credential.connectionString() != null) {
-            Credentials.requireConnectionStringEndpoint(credential.connectionString(), Credentials.Service.BLOB);
+            // The SDK's parser validates the string: it refuses one it cannot derive a blob
+            // endpoint from, trims the pairs, and resolves the development-storage shorthand.
+            // The endpoint it derived is read back from a first build, so an explicit port (an
+            // emulator) keeps the same port policy as an explicit serviceUrl.
             try {
                 builder.connectionString(credential.connectionString());
-            } catch (IllegalArgumentException e) {
+                endpoint = builder.buildClient().getAccountUrl();
+            } catch (IllegalArgumentException | IllegalStateException e) {
                 throw BlobErrorCreator.clientError("invalid connection string: " + BallerinaAzureClient.describe(e), e);
             }
-            endpoint = Credentials.connectionStringEndpoint(credential.connectionString(), Credentials.Service.BLOB);
         } else {
             endpoint = credential.endpoint(Credentials.Service.BLOB);
             builder.endpoint(endpoint);

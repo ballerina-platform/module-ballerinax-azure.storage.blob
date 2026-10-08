@@ -858,8 +858,8 @@ parameter:
 * `queueServiceUrl`: overrides the queue endpoint, which otherwise derives from the account
   name as `https://{accountName}.queue.core.windows.net`. For a SAS URL credential the queue
   endpoint is instead the SAS URL's host with its blob service label replaced by the queue one,
-  and `queueServiceUrl` is required when that host carries none; a connection string must
-  carry a queue endpoint unless `queueServiceUrl` overrides it.
+  and `queueServiceUrl` is required when that host carries none; a connection string derives
+  it from its queue endpoint or its account name, unless `queueServiceUrl` overrides it.
 
 Message visibility is not configuration. A received message is hidden for a fixed window, and
 the listener extends that window for as long as its handler runs, so a slow handler never
@@ -1005,7 +1005,10 @@ is made visible again after `redeliveryDelaySeconds` and redelivered. A message 
 `{queueName}-poison` and created on demand, and an error is logged; processing of other
 messages continues. Poison messages never expire; the poison queue holds them until someone
 inspects and removes them. Duplicate delivery is always possible, so handlers must be
-idempotent; the event's `sequencer` supports ignoring stale duplicates about one blob.
+idempotent; the event's `sequencer` supports ignoring stale duplicates about one blob. A
+handler that writes into a container the subscription covers fires further created and
+deleted events, which come back to the same service; such a handler must recognise its own
+output, for example by path, or the subscription's subject filter must exclude it.
 
 Delivery has two independent time bounds, and raising one does not extend the other.
 
