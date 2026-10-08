@@ -167,7 +167,8 @@ The five modes:
   override; the service principal records also require `tenantId` and `clientId`.
 
 Every auth mode is validated at `init` with local computation and no call to Azure: connection
-strings are parsed and checked for a blob endpoint, and the explicit records get non empty,
+strings are parsed by the SDK, which refuses one it cannot derive a blob endpoint from and
+accepts the development storage shorthand, and the explicit records get non empty,
 base64, and URL scheme checks. A malformed credential fails at `init` with a specific error.
 
 An Entra ID identity authorizes data operations through Azure RBAC. `Storage Blob Data Reader`
@@ -310,8 +311,9 @@ static website endpoint itself.
   resource types (`'service`, `container`, `'object`), the permissions, and the validity
   window, and optionally a start time, the permitted protocol set, and an IP range. The
   account level permissions are one boolean per account permission: `read`, `write`,
-  `delete`, `list`, `add`, `create`, `update`, and `process`; the last two are queue
-  operations. A SAS covering the queue service with `read`, `add`, `create`, `update`, and
+  `delete`, `list`, `add`, `create`, `update`, `process`, `tag`, and `filter`; `update` and
+  `process` are queue operations, and `tag` and `filter` cover the index tag operations and
+  tag queries. A SAS covering the queue service with `read`, `add`, `create`, `update`, and
   `process` is the credential a `Listener` needs (section 2.1). Rotating the account key
   revokes every SAS minted from it.
 
@@ -473,7 +475,10 @@ caller already serialized is never re-encoded. A byte stream is staged as blocks
 at the end of the stream, with no content length needed up front. Until that commit the
 destination blob does not exist, so a failed stream upload leaves no partial blob and an
 existing blob at the destination is replaced only by a successful commit. A source stream
-failure aborts with a client side `Error`, and every failure closes the source stream.
+failure aborts with a client side `Error`, and every failure closes the source stream. Each
+stream upload stages its blocks under an id of its own, so two stream uploads to one path at
+the same time never blend: the first commit wins, and the service refuses the other with
+`InvalidBlockList`, since a commit discards every block it does not list.
 
 The structured members serialize as follows:
 
@@ -531,7 +536,8 @@ public type RetrievableType byte[]|string|json|xml|record {}|record {}[]|
 * `string`: the content decoded as UTF-8 text; content that is not valid UTF-8 fails with a
   client side `Error`.
 * `json`: the content parsed as a JSON document.
-* `xml`: the content parsed as an XML document.
+* `xml`: the content parsed as an XML document. A subtype such as `xml:Element` takes only a
+  document of that shape; any other document fails with a client side `Error`.
 * `record {}` or `record {}[]`: the content bound to the record shape per a resolved format.
   The explicit `GetBlobOptions.fileFormat` override wins, else the path's extension (`.json`,
   `.xml`, `.csv`) decides. A single record binds from JSON or XML (never CSV), a record array
@@ -539,6 +545,10 @@ public type RetrievableType byte[]|string|json|xml|record {}|record {}[]|
   override nor a known extension is refused with a client side `Error`. CSV binding consumes
   the header row for field names; positional or headerless CSV is read as `string` or
   `byte[]`.
+* A union of these members binds through the JSON parser, so it serves JSON content and
+  json-shaped targets such as `json|()`; a union target with content whose format resolves
+  to XML or CSV is refused with a client side `Error`. A readonly intersection such as
+  `Person & readonly` binds as its underlying member and yields a readonly value.
 * `stream<byte[], error?>`: a lazy byte stream, so memory stays bounded for any blob size.
 * `stream<record {}, error?>`: CSV rows bound lazily, one record per pull; a row that fails to
   bind surfaces as the error entry of that pull.
@@ -559,7 +569,9 @@ stream<byte[], error?> chunks = check invoices->getBlob("2026/q1/large.bin");
 ### 4.5 Copy Operations
 
 * `copyBlob(sourcePath, destinationPath, options)`: copies a blob within the bound container
-  under this client's credentials, returning a `CopyInfo`.
+  under this client's credentials, returning a `CopyInfo`. The service authorizes the copy
+  source separately from the request, so a client authenticated with a SAS attaches that SAS
+  to the source URL; a shared key authorizes a source in the same account on its own.
 * `copyBlobFromUrl(sourceUrl, destinationPath, options)`: copies from any Azure Storage URL
   the service can read: a blob in another container or account, or a file in Azure Files. A
   source in the same storage account is authorized by this client's own credential. A source
@@ -697,7 +709,7 @@ check invoices->appendBlock("logs/2026-08.log", line2);
   snapshot.
 
 Page writes to a blob of another type fail with an `InvalidBlobTypeError`, and misaligned
-offsets or lengths fail with a `RangeNotSatisfiableError`. The `blobSequenceNumber` of
+offsets or lengths are refused with a client side `Error` before any request is made. The `blobSequenceNumber` of
 `BlobProperties` is the page blob's write sequence marker. The page write operations carry the
 lease id in their options when the blob is leased.
 
@@ -754,8 +766,8 @@ and the permissions, and optionally a start time, the permitted protocol set (HT
 HTTPS and HTTP), an IP range, and a stored access policy `identifier`. A parameter may be
 carried by the stored access policy or by the token, but not both; a parameter set in both
 places fails at use time with HTTP 400. Generation validates locally what is knowable at
-signing time, and fails with a client side `Error` when neither an `identifier` nor an
-`expiryTime` is supplied.
+signing time, and fails with a client side `Error` when no `identifier` is supplied and the
+`expiryTime` or the `permissions` are missing.
 
 The signature values and their permissions record come in two shapes, one per scope, so a
 token cannot ask for a permission its scope does not carry. The container scoped methods take
@@ -844,7 +856,10 @@ parameter:
 * `laxDataBinding`: relaxes the typed content handlers' binding (section 5.5). Defaults to
   `false`.
 * `queueServiceUrl`: overrides the queue endpoint, which otherwise derives from the account
-  name as `https://{accountName}.queue.core.windows.net`.
+  name as `https://{accountName}.queue.core.windows.net`. For a SAS URL credential the queue
+  endpoint is instead the SAS URL's host with its blob service label replaced by the queue one,
+  and `queueServiceUrl` is required when that host carries none; a connection string derives
+  it from its queue endpoint or its account name, unless `queueServiceUrl` overrides it.
 
 Message visibility is not configuration. A received message is hidden for a fixed window, and
 the listener extends that window for as long as its handler runs, so a slow handler never
@@ -902,7 +917,8 @@ name with no extension is routed by the event's content type (`text/*`, `applica
 `application/xml` or `text/xml`, `text/csv`), else to `onBlob`. A per handler
 `@blob:FunctionConfig` overrides the routing: its `namePattern` is a regular expression
 matched against the blob name (the last path segment), and its `contentTypePattern` one
-matched against the event's content type. When more than one handler matches, the winner is
+matched against the event's content type without its parameters. When more than one handler
+matches, the winner is
 fixed: handlers are checked in the order `onBlobText`, `onBlobJson`, `onBlobXml`, `onBlobCsv`,
 then `onBlob`. A blob whose routing names an undeclared typed handler falls back to `onBlob`.
 A created event whose routing finds no declared handler is acknowledged and logged at debug
@@ -990,7 +1006,10 @@ is made visible again after `redeliveryDelaySeconds` and redelivered. A message 
 `{queueName}-poison` and created on demand, and an error is logged; processing of other
 messages continues. Poison messages never expire; the poison queue holds them until someone
 inspects and removes them. Duplicate delivery is always possible, so handlers must be
-idempotent; the event's `sequencer` supports ignoring stale duplicates about one blob.
+idempotent; the event's `sequencer` supports ignoring stale duplicates about one blob. A
+handler that writes into a container the subscription covers fires further created and
+deleted events, which come back to the same service; such a handler must recognise its own
+output, for example by path, or the subscription's subject filter must exclude it.
 
 Delivery has two independent time bounds, and raising one does not extend the other.
 
@@ -1018,8 +1037,10 @@ handler and does not satisfy the at least one handler requirement. An error retu
 `onError` itself is logged. Errors returned by the event handlers do not notify `onError`; they
 drive redelivery (section 5.7).
 
-A failed poll also logs its error, and polling keeps its backoff schedule, so the next poll
-tries again.
+A failed poll belongs to no event, so every attached service's `onError` is notified of it;
+a catch-all service's `onError` that takes a `Caller` is skipped for it, since no container
+binds one. A failed poll also logs its error, and polling keeps its backoff schedule, so the
+next poll tries again.
 
 ### 5.9 The Caller
 
@@ -1054,7 +1075,9 @@ Ballerina error's `message()`.
   `errorCode` in its `ServiceErrorDetail`. A service failure whose Azure error code maps to
   none of the subtypes below stays this generic type.
   * **`NotFoundError`**: the requested container or blob was not found (HTTP 404;
-    `BlobNotFound`, `ContainerNotFound`).
+    `BlobNotFound`, `ContainerNotFound`), or, for a `Listener`, its queue or a message on it
+    (`QueueNotFound`, `MessageNotFound`). Queue service failures reach `onError` through the
+    same mapping.
   * **`ConflictError`**: the operation conflicts with the current state of the resource, for
     example creating a container that already exists, deleting a blob whose snapshots were
     not directed, or a lease operation against the wrong lease state (HTTP 409).

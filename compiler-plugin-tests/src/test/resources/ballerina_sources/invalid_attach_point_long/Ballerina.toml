@@ -1,0 +1,4 @@
+[package]
+org = "azure_blob_test"
+name = "invalid_attach_point_long"
+version = "0.9.0"

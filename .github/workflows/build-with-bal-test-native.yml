@@ -10,8 +10,63 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
+# The org's GraalVM connector template runs the host `bal test --graalvm` after the gradle build
+# has already torn the test backend down. The tests need Azurite, so this repo-local workflow
+# mirrors the template's steps and starts the emulator before that run.
 jobs:
-  call_stdlib_workflow:
-    name: Run StdLib Workflow
-    if: ${{ github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository_owner == 'ballerina-platform') }}
-    uses: ballerina-platform/ballerina-library/.github/workflows/build-with-bal-test-graalvm-connector-template.yml@main
+  build:
+    runs-on: ubuntu-22.04
+    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'Skip GraalVM Check')
+
+    steps:
+      - name: Checkout the Repository
+        uses: actions/checkout@v3
+
+      - name: Resolve Java version
+        id: resolve-java
+        uses: ballerina-platform/ballerina-library/.github/actions/resolve-java-version@main
+
+      - name: Resolve Ballerina version
+        run: |
+          BAL_VERSION="nightly"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            EXTRACTED="$(grep -E '^\s*ballerinaLangVersion\s*=' gradle.properties | head -n 1 | cut -d= -f2- | xargs || true)"
+            if [[ -n "${EXTRACTED}" && "${EXTRACTED}" != *-* ]]; then
+              BAL_VERSION="${EXTRACTED}"
+            fi
+          fi
+          echo "BAL_VERSION=${BAL_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Set Up Ballerina
+        uses: ballerina-platform/setup-ballerina@v1.1.5
+        with:
+          version: ${{ env.BAL_VERSION }}
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: ${{ steps.resolve-java.outputs.java-version }}
+          distribution: "graalvm-community"
+          set-java-home: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Package
+        run: ./gradlew build -x test
+        env:
+          packageUser: ${{ github.actor }}
+          packagePAT: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Remove Target Directory
+        run: sudo rm -rf ballerina/target
+
+      - name: Start Azurite
+        run: docker compose -p azure-storage-blob-tests -f ballerina/tests/resources/docker/compose.yaml up -d --wait --wait-timeout 120
+
+      - name: Test with GraalVM
+        run: |
+          cd ballerina
+          bal test --graalvm
+
+      - name: Stop Azurite
+        if: always()
+        run: docker compose -p azure-storage-blob-tests -f ballerina/tests/resources/docker/compose.yaml down --volumes --remove-orphans

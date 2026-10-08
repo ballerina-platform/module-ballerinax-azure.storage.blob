@@ -1,0 +1,4 @@
+[package]
+org = "azure_blob_test"
+name = "valid_on_blob_csv_record_array"
+version = "0.9.0"

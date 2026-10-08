@@ -1,0 +1,4 @@
+[package]
+org = "azure_blob_test"
+name = "invalid_on_error_narrow_error"
+version = "0.9.0"

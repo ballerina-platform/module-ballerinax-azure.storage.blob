@@ -18,32 +18,68 @@
 
 package io.ballerina.lib.azure.storage.blob.client;
 
+import com.azure.storage.blob.models.AppendBlobRequestConditions;
+import com.azure.storage.blob.models.BlobRange;
+import com.azure.storage.blob.options.AppendBlobAppendBlockFromUrlOptions;
+import com.azure.storage.blob.options.AppendBlobCreateOptions;
+import com.azure.storage.blob.specialized.AppendBlobClient;
+import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
+import io.ballerina.lib.azure.storage.blob.util.OptionsReader;
 import io.ballerina.runtime.api.Environment;
 import io.ballerina.runtime.api.values.BArray;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
 
+import java.io.ByteArrayInputStream;
+
 /**
- * Append blobs, which grow only at their end.
- *
- * <p>Every method is declared so that the Ballerina side of the API compiles against the
- * surface it expects; none of them carries an implementation yet.
+ * Native implementations of the append blob operations.
  */
 public final class AppendBlobOps {
 
     private AppendBlobOps() {
     }
 
+    /** Creates an empty append blob, replacing any existing blob at the path. */
     public static Object createAppendBlob(Environment env, BObject self, BString path, Object options) {
-        throw new UnsupportedOperationException("not implemented");
+        return BallerinaAzureClient.invoke(env, () -> {
+            appendClient(self, path).createWithResponse(new AppendBlobCreateOptions()
+                    .setHeaders(OptionsReader.contentHeadersOf(options))
+                    .setMetadata(OptionsReader.metadata(options))
+                    .setTags(OptionsReader.tags(options))
+                    .setRequestConditions(OptionsReader.leaseConditions(options)), null, null);
+            return null;
+        });
     }
 
+    /** Appends a block of bytes to an append blob. */
     public static Object appendBlock(Environment env, BObject self, BString path, BArray content, Object options) {
-        throw new UnsupportedOperationException("not implemented");
+        return BallerinaAzureClient.invoke(env, () -> {
+            byte[] bytes = content.getBytes();
+            appendClient(self, path).appendBlockWithResponse(new ByteArrayInputStream(bytes), bytes.length, null,
+                    conditions(options), null, null);
+            return null;
+        });
     }
 
+    /** Appends the content of a readable blob URL to an append blob. */
     public static Object appendBlockFromUrl(Environment env, BObject self, BString path, BString sourceUrl,
                                             Object options) {
-        throw new UnsupportedOperationException("not implemented");
+        return BallerinaAzureClient.invoke(env, () -> {
+            appendClient(self, path).appendBlockFromUrlWithResponse(
+                    new AppendBlobAppendBlockFromUrlOptions(sourceUrl.getValue())
+                            .setSourceRange(new BlobRange(0))
+                            .setDestinationRequestConditions(conditions(options)), null, null);
+            return null;
+        });
+    }
+
+    private static AppendBlobClient appendClient(BObject self, BString path) {
+        return BlobOps.blobClient(self, path).getAppendBlobClient();
+    }
+
+    private static AppendBlobRequestConditions conditions(Object options) {
+        String leaseId = OptionsReader.leaseId(options);
+        return leaseId == null ? null : new AppendBlobRequestConditions().setLeaseId(leaseId);
     }
 }

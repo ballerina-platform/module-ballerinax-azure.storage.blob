@@ -18,6 +18,12 @@
 
 package io.ballerina.lib.azure.storage.blob.client;
 
+import com.azure.storage.blob.BlobServiceClient;
+import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
+import io.ballerina.lib.azure.storage.blob.util.BlobErrorCreator;
+import io.ballerina.lib.azure.storage.blob.util.OptionsReader;
+import io.ballerina.lib.azure.storage.blob.util.RecordMapper;
+import io.ballerina.lib.azure.storage.blob.util.ValueUtils;
 import io.ballerina.runtime.api.Environment;
 import io.ballerina.runtime.api.values.BArray;
 import io.ballerina.runtime.api.values.BMap;
@@ -25,47 +31,85 @@ import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
 
 /**
- * Account-level operations: the container lifecycle, the account's blob service
- * configuration, account information, and user delegation keys.
- *
- * <p>Every method is declared so that the Ballerina side of the API compiles against the
- * surface it expects; none of them carries an implementation yet.
+ * Native implementations of the account-scoped {@code AdminClient} operations: container
+ * lifecycle, service configuration, account information, and the user delegation key.
  */
 public final class AdminOps {
 
     private AdminOps() {
     }
 
+    /** Checks whether a container exists; {@code false} only on a confirmed 404. */
     public static Object hasContainer(Environment env, BObject self, BString containerName) {
-        throw new UnsupportedOperationException("not implemented");
+        return BallerinaAzureClient.invoke(env, () -> BallerinaAzureClient.getServiceClient(self)
+                .getBlobContainerClient(containerName(containerName)).exists());
     }
 
+    /** Creates a container with optional metadata and anonymous access level. */
     public static Object createContainer(Environment env, BObject self, BString containerName, Object options) {
-        throw new UnsupportedOperationException("not implemented");
+        return BallerinaAzureClient.invoke(env, () -> {
+            BMap<BString, Object> record = OptionsReader.record(options);
+            BallerinaAzureClient.getServiceClient(self).createBlobContainerWithResponse(containerName(containerName),
+                    OptionsReader.metadata(options),
+                    record == null ? null : OptionsReader.publicAccess(record.get(OptionsReader.PUBLIC_ACCESS)),
+                    null);
+            return null;
+        });
     }
 
+    /** Deletes a container and every blob in it, honouring an active lease. */
     public static Object deleteContainer(Environment env, BObject self, BString containerName, Object options) {
-        throw new UnsupportedOperationException("not implemented");
+        return BallerinaAzureClient.invoke(env, () -> {
+            BallerinaAzureClient.getServiceClient(self).getBlobContainerClient(containerName(containerName))
+                    .deleteWithResponse(OptionsReader.leaseConditions(options), null, null);
+            return null;
+        });
     }
 
+    /** Restores a soft-deleted container by name and deleted version. */
     public static Object undeleteContainer(Environment env, BObject self, BString containerName,
                                            BString deletedContainerVersion) {
-        throw new UnsupportedOperationException("not implemented");
+        return BallerinaAzureClient.invoke(env, () -> {
+            BallerinaAzureClient.getServiceClient(self).undeleteBlobContainer(containerName(containerName),
+                    deletedContainerVersion.getValue());
+            return null;
+        });
     }
 
+    /** Reads the blob service configuration as a {@code ServiceProperties} record. */
     public static Object getServiceProperties(Environment env, BObject self) {
-        throw new UnsupportedOperationException("not implemented");
+        return BallerinaAzureClient.invoke(env,
+                () -> RecordMapper.serviceProperties(BallerinaAzureClient.getServiceClient(self).getProperties()));
     }
 
+    /** Writes the blob service configuration; groups absent from the record are left unchanged. */
     public static Object setServiceProperties(Environment env, BObject self, BMap<BString, Object> properties) {
-        throw new UnsupportedOperationException("not implemented");
+        return BallerinaAzureClient.invoke(env, () -> {
+            BallerinaAzureClient.getServiceClient(self).setProperties(OptionsReader.serviceProperties(properties));
+            return null;
+        });
     }
 
+    /** Reads the account's SKU, kind, and namespace type. */
     public static Object getAccountInfo(Environment env, BObject self) {
-        throw new UnsupportedOperationException("not implemented");
+        return BallerinaAzureClient.invoke(env,
+                () -> RecordMapper.accountInfo(BallerinaAzureClient.getServiceClient(self).getAccountInfo()));
     }
 
+    /** Obtains a user delegation key for the given validity window. */
     public static Object getUserDelegationKey(Environment env, BObject self, BArray startTime, BArray expiryTime) {
-        throw new UnsupportedOperationException("not implemented");
+        return BallerinaAzureClient.invoke(env, () -> {
+            BlobServiceClient client = BallerinaAzureClient.getServiceClient(self);
+            return RecordMapper.userDelegationKey(
+                    client.getUserDelegationKey(ValueUtils.fromUtc(startTime), ValueUtils.fromUtc(expiryTime)));
+        });
+    }
+
+    private static String containerName(BString name) {
+        String value = name.getValue().strip();
+        if (value.isEmpty()) {
+            throw BlobErrorCreator.clientError("containerName must not be empty", null);
+        }
+        return value;
     }
 }

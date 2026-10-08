@@ -1,0 +1,48 @@
+{
+  "resources": {
+    "includes": [
+      {
+        "pattern": "\\QMETA-INF/services/com.azure.core.http.HttpClientProvider\\E"
+      },
+      {
+        "pattern": "\\QMETA-INF/services/com.azure.core.http.policy.AfterRetryPolicyProvider\\E"
+      },
+      {
+        "pattern": "\\QMETA-INF/services/com.azure.core.http.policy.BeforeRetryPolicyProvider\\E"
+      },
+      {
+        "pattern": "\\QMETA-INF/services/com.azure.core.util.serializer.JsonSerializerProvider\\E"
+      },
+      {
+        "pattern": "\\QMETA-INF/services/com.azure.core.util.serializer.MemberNameConverterProvider\\E"
+      },
+      {
+        "pattern": "\\QMETA-INF/services/com.azure.core.util.tracing.Tracer\\E"
+      },
+      {
+        "pattern": "\\QMETA-INF/services/com.azure.core.util.tracing.TracerProvider\\E"
+      },
+      {
+        "pattern": "\\QMETA-INF/services/com.azure.json.JsonProvider\\E"
+      },
+      {
+        "pattern": "\\QMETA-INF/services/com.azure.xml.XmlProvider\\E"
+      },
+      {
+        "pattern": "\\QMETA-INF/services/javax.xml.parsers.DocumentBuilderFactory\\E"
+      },
+      {
+        "pattern": "\\QMETA-INF/services/javax.xml.stream.XMLInputFactory\\E"
+      },
+      {
+        "pattern": "\\QMETA-INF/services/javax.xml.stream.XMLOutputFactory\\E"
+      },
+      {
+        "pattern": "\\Qazure-identity.properties\\E"
+      },
+      {
+        "pattern": "\\Qazure-storage-blob.properties\\E"
+      }
+    ]
+  }
+}

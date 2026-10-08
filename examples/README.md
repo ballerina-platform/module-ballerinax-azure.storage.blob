@@ -1,48 +1,31 @@
 # Examples
 
-The Ballerina Azure Blob Storage connector provides practical examples illustrating usage in various scenarios.
+The `ballerinax/azure.storage.blob` connector provides practical examples illustrating usage in various scenarios. Each example is a standalone Ballerina project with its own walkthrough.
+
+1. [Folder archive](folder-archive) — upload a local folder into a container, tier each blob by its age, and list what the archive holds.
+2. [Download link](download-link) — upload a report and generate a time-limited, read-only SAS URL that can be handed to a third party.
+3. [Blob event processor](blob-event-processor) — react to blobs as they arrive with the listener, binding invoices to a record, tagging and moving them, and logging everything else.
+4. [Tag search](tag-search) — find blobs by their index tags with a tag query and mark the matches processed.
 
 ## Prerequisites
 
-1. Follow the [Setup guide](https://github.com/ballerina-platform/module-ballerinax-azure.storage.blob#setup-guide) to create a storage account, a container, and the credentials the examples use.
-
-2. For each example, create a `Config.toml` file with the credentials the example's own README lists. Here is a sample:
-
-    ```toml
-    accountName = "<storage account name>"
-    accountKey = "<storage account key>"
-    ```
+Each example needs an Azure storage account and its access key; the connector's [setup guide](../README.md#setup-guide) walks through creating them. The event processor additionally needs the storage queue and Event Grid subscription its walkthrough describes. Each example's walkthrough documents the `Config.toml` to create in the example directory.
 
 ## Running an example
 
-Execute the following commands to build an example from the source:
+Execute the following commands inside the example's directory:
 
-* To build an example:
+```bash
+bal build
+bal run
+```
 
-    ```bash
-    bal build
-    ```
+## Building the examples against the local code
 
-* To run an example:
+When changing the connector itself, build the examples against the local package rather than the released one:
 
-    ```bash
-    bal run
-    ```
+```bash
+./build.sh build
+```
 
-## Building the examples with the local module
-
-**Warning**: Because of the absence of support for reading local repositories for single Ballerina files, the bala of the module is manually written to the central repository as a workaround. Consequently, the bash script may modify your local Ballerina repositories.
-
-Execute the following commands to build all the examples against the changes you have made to the module locally:
-
-* To build all the examples:
-
-    ```bash
-    ./build.sh build
-    ```
-
-* To run all the examples:
-
-    ```bash
-    ./build.sh run
-    ```
+The script packs the `ballerina/` package into the local repository and builds every example offline against it. `./build.sh run` runs the examples the same way, which needs a `Config.toml` with credentials in each example directory.
