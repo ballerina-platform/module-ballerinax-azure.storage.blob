@@ -17,6 +17,9 @@
  */
 
 import org.apache.tools.ant.taskdefs.condition.Os
+import org.gradle.process.ExecOperations
+
+import javax.inject.Inject
 
 plugins {
     id 'io.ballerina.plugin'
@@ -56,11 +59,49 @@ ballerina {
     isConnector = true
 }
 
+configurations {
+    externalJars
+}
+
+dependencies {
+    externalJars(group: 'io.ballerina.lib', name: 'data.jsondata-native', version: "${stdlibDataJsonDataVersion}") {
+        transitive = false
+    }
+    externalJars(group: 'io.ballerina.lib', name: 'data.xmldata-native', version: "${stdlibDataXmlDataVersion}") {
+        transitive = false
+    }
+    externalJars(group: 'io.ballerina.lib', name: 'data.csv-native', version: "${stdlibDataCsvVersion}") {
+        transitive = false
+    }
+}
+
 task updateTomlFiles {
     doLast {
         def newBallerinaToml = ballerinaTomlFilePlaceHolder.text
             .replace("@project.version@", project.version)
             .replace("@toml.version@", tomlVersion)
+            .replace("@azure.storage.blob.version@", project.azureStorageBlobVersion)
+            .replace("@azure.storage.internal.avro.version@", project.azureStorageInternalAvroVersion)
+            .replace("@azure.storage.common.version@", project.azureStorageCommonVersion)
+            .replace("@azure.core.version@", project.azureCoreVersion)
+            .replace("@azure.core.http.netty.version@", project.azureCoreHttpNettyVersion)
+            .replace("@azure.identity.version@", project.azureIdentityVersion)
+            .replace("@msal4j.version@", project.msal4jVersion)
+            .replace("@msal4j.persistence.extension.version@", project.msal4jPersistenceExtensionVersion)
+            .replace("@jna.version@", project.jnaVersion)
+            .replace("@jna.platform.version@", project.jnaPlatformVersion)
+            .replace("@azure.json.version@", project.azureJsonVersion)
+            .replace("@azure.xml.version@", project.azureXmlVersion)
+            .replace("@jackson.version@", project.jacksonVersion)
+            .replace("@slf4j.version@", project.slf4jVersion)
+            .replace("@data.jsondata.version@", project.stdlibDataJsonDataVersion)
+            .replace("@data.xmldata.version@", project.stdlibDataXmlDataVersion)
+            .replace("@data.csv.version@", project.stdlibDataCsvVersion)
+            .replace("@reactor.core.version@", project.reactorCoreVersion)
+            .replace("@reactive.streams.version@", project.reactiveStreamsVersion)
+            .replace("@reactor.netty.version@", project.reactorNettyVersion)
+            .replace("@netty.version@", project.nettyVersion)
+            .replace("@netty.tcnative.version@", project.nettyTcnativeVersion)
         ballerinaTomlFile.text = newBallerinaToml
 
         def newCompilerPluginToml = compilerPluginTomlFilePlaceHolder.text
@@ -84,7 +125,47 @@ task commitTomlFiles {
 
 clean {
     delete 'build'
+    delete 'lib'
 }
+
+build.dependsOn copyToLib
+test.dependsOn copyToLib
+
+// The tests run against Azurite unless live credentials are configured. The emulator is
+// started here because the connector build runs `bal test` inside the ballerina/ballerina
+// docker image with host networking, so a container published on the host is reachable at
+// localhost. Only when the test task is in the graph, so `build -x test` starts nothing.
+interface ExecHelper {
+    @Inject
+    ExecOperations getExecOperations()
+}
+
+def execHelper = project.objects.newInstance(ExecHelper)
+def azuriteCompose = "docker compose -p azure-storage-blob-tests -f tests/resources/docker/compose.yaml"
+
+task startAzurite {
+    onlyIf { gradle.taskGraph.hasTask(":${packageName}-ballerina:test") }
+    doLast {
+        execHelper.execOperations.exec {
+            workingDir project.projectDir
+            commandLine 'sh', '-c', "${azuriteCompose} up -d --wait --wait-timeout 120"
+        }
+    }
+}
+
+task stopAzurite {
+    onlyIf { gradle.taskGraph.hasTask(":${packageName}-ballerina:test") }
+    doLast {
+        execHelper.execOperations.exec {
+            workingDir project.projectDir
+            ignoreExitValue true
+            commandLine 'sh', '-c', "${azuriteCompose} down --volumes --remove-orphans"
+        }
+    }
+}
+
+test.dependsOn startAzurite
+test.finalizedBy stopAzurite
 
 build.dependsOn ":azure.storage.blob-native:build"
 test.dependsOn ":azure.storage.blob-native:build"

@@ -1,0 +1,1410 @@
+[
+  {
+    "name": "com.azure.xml.XmlSerializable"
+  },
+  {
+    "name": "com.azure.json.JsonSerializable"
+  },
+  {
+    "name": "com.azure.core.models.ResponseError",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.core.models.ResponseInnerError",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.core.util.serializer.JacksonAdapter",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.core.http.HttpHeaderName",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.core.implementation.http.rest.SwaggerMethodParser",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.core.implementation.jackson.FlatteningSerializer",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.core.models.AzureCloud",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.core.util.polling.LongRunningOperationStatus",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.core.exception.HttpResponseException",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "com.azure.core.http.netty.implementation.AzureSdkHandler",
+    "methods": [
+      {
+        "name": "channelRead",
+        "parameterTypes": [
+          "io.netty.channel.ChannelHandlerContext",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "channelReadComplete",
+        "parameterTypes": [
+          "io.netty.channel.ChannelHandlerContext"
+        ]
+      },
+      {
+        "name": "write",
+        "parameterTypes": [
+          "io.netty.channel.ChannelHandlerContext",
+          "java.lang.Object",
+          "io.netty.channel.ChannelPromise"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "com.azure.core.http.rest.ResponseBase",
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "com.azure.core.http.HttpRequest",
+          "int",
+          "com.azure.core.http.HttpHeaders",
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "com.azure.core.implementation.AsynchronousFileChannelAdapter",
+    "fields": [
+      {
+        "name": "pendingOperation"
+      },
+      {
+        "name": "position"
+      }
+    ]
+  },
+  {
+    "name": "com.azure.core.implementation.util.FluxByteBufferContent",
+    "fields": [
+      {
+        "name": "bytes"
+      }
+    ]
+  },
+  {
+    "name": "com.azure.core.implementation.util.StringContent",
+    "fields": [
+      {
+        "name": "bytes"
+      }
+    ]
+  },
+  {
+    "name": "com.azure.core.util.FluxUtil$FileReadFlux$FileReadSubscription",
+    "fields": [
+      {
+        "name": "requested"
+      },
+      {
+        "name": "wip"
+      }
+    ]
+  },
+  {
+    "name": "com.azure.core.util.Header",
+    "fields": [
+      {
+        "name": "cachedStringValue"
+      }
+    ]
+  },
+  {
+    "name": "com.azure.core.util.QueryParameter",
+    "fields": [
+      {
+        "name": "cachedStringValue"
+      }
+    ]
+  },
+  {
+    "name": "com.azure.identity.AzureIdentityEnvVars",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "com.azure.identity.implementation.RegionalAuthority",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "com.fasterxml.jackson.core.JsonFactory",
+    "methods": [
+      {
+        "name": "setStreamReadConstraints",
+        "parameterTypes": [
+          "com.fasterxml.jackson.core.StreamReadConstraints"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "com.fasterxml.jackson.core.StreamReadConstraints",
+    "methods": [
+      {
+        "name": "builder",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "com.fasterxml.jackson.core.StreamReadConstraints$Builder",
+    "methods": [
+      {
+        "name": "build",
+        "parameterTypes": []
+      },
+      {
+        "name": "maxStringLength",
+        "parameterTypes": [
+          "int"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "com.fasterxml.jackson.databind.ext.Java7SupportImpl",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "com.azure.storage.blob.models.AccessTier",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.AccountKind",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.AppendBlobItem",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.AppendBlobRequestConditions",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.ArchiveStatus",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobAccessPolicy",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobAnalyticsLogging",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobAudience",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobBeginCopySourceRequestConditions",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobContainerAccessPolicies",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobContainerEncryptionScope",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobContainerItem",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobContainerItemProperties",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobContainerListDetails",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobContainerProperties",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobCopyInfo",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobCopySourceTagsMode",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobCorsRule",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobDownloadAsyncResponse",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobDownloadContentAsyncResponse",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobDownloadContentResponse",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobDownloadHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobDownloadResponse",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobErrorCode",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobHttpHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobImmutabilityPolicy",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobImmutabilityPolicyMode",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobItem",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobItemProperties",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobLeaseRequestConditions",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobLegalHoldResult",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobListDetails",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobMetrics",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobPrefix",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobProperties",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobQueryArrowField",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobQueryArrowFieldType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobQueryArrowSerialization",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobQueryAsyncResponse",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobQueryDelimitedSerialization",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobQueryError",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobQueryHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobQueryJsonSerialization",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobQueryParquetSerialization",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobQueryProgress",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobQueryResponse",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobQuerySerialization",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobRange",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobRequestConditions",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobRetentionPolicy",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobSeekableByteChannelReadResult",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobServiceProperties",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobServiceStatistics",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobSignedIdentifier",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobStorageException",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlobType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.Block",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlockBlobItem",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlockList",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlockListType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.BlockLookupList",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.ClearRange",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.ConsistentReadControl",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.CopyStatusType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.CpkInfo",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.CustomerProvidedKey",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.DeleteSnapshotsOptionType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.DownloadRetryOptions",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.EncryptionAlgorithmType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.FileShareTokenIntent",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.GeoReplication",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.GeoReplicationStatus",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.KeyInfo",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.LeaseDurationType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.LeaseStateType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.LeaseStatusType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.ListBlobContainersIncludeType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.ListBlobContainersOptions",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.ListBlobsIncludeItem",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.ListBlobsOptions",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.ObjectReplicationPolicy",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.ObjectReplicationRule",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.ObjectReplicationStatus",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.PageBlobCopyIncrementalRequestConditions",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.PageBlobItem",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.PageBlobRequestConditions",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.PageList",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.PageRange",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.PageRangeItem",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.ParallelTransferOptions",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.PathRenameMode",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.PublicAccessType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.RehydratePriority",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.SequenceNumberActionType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.SkuName",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.StaticWebsite",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.StorageAccountInfo",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.SyncCopyStatusType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.TaggedBlobItem",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.models.UserDelegationKey",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ArrowConfiguration",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ArrowField",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobContainersSegment",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobCopySourceTags",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobDeleteType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobExpiryOptions",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobFlatListSegment",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobHierarchyListSegment",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobItemInternal",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobItemPropertiesInternal",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobName",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobPrefixInternal",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobPropertiesInternal",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobPropertiesInternalConstructorProperties",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobPropertiesInternalDownload",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobPropertiesInternalGetProperties",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobSignedIdentifierWrapper",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobStorageError",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobTag",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobTags",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.DelimitedTextConfiguration",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.EncryptionScope",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.FilterBlobItem",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.FilterBlobSegment",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.FilterBlobsIncludeItem",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.InternalBlobLegalHoldResult",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.JsonTextConfiguration",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ListBlobsFlatSegmentResponse",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ListBlobsHierarchySegmentResponse",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.PageListCollection",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.PageListHelper",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.PageListSegment",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.PremiumPageBlobAccessTier",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.QueryFormat",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.QueryFormatType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.QueryRequest",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.QuerySerialization",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.StorageError",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.StorageErrorException",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.AppendBlobsAppendBlockFromUrlHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.AppendBlobsAppendBlockHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.AppendBlobsCreateHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.AppendBlobsSealHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsAbortCopyFromURLHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsAcquireLeaseHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsBreakLeaseHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsChangeLeaseHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsCopyFromURLHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsCreateSnapshotHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsDeleteHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsDeleteImmutabilityPolicyHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsDownloadHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsGetAccessControlHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsGetAccountInfoHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsGetPropertiesHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsGetTagsHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsQueryHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsReleaseLeaseHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsRenameHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsRenewLeaseHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsSetAccessControlHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsSetExpiryHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsSetHttpHeadersHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsSetImmutabilityPolicyHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsSetLegalHoldHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsSetMetadataHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsSetTagsHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsSetTierHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsStartCopyFromURLHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobsUndeleteHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlockBlobsCommitBlockListHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlockBlobsGetBlockListHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlockBlobsPutBlobFromUrlHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlockBlobsStageBlockFromURLHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlockBlobsStageBlockHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlockBlobsUploadHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersAcquireLeaseHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersBreakLeaseHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersChangeLeaseHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersCreateHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersDeleteHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersFilterBlobsHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersGetAccessPolicyHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersGetAccountInfoHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersGetPropertiesHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersListBlobFlatSegmentHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersListBlobHierarchySegmentHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersReleaseLeaseHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersRenameHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersRenewLeaseHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersRestoreHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersSetAccessPolicyHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersSetMetadataHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ContainersSubmitBatchHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.DirectoriesCreateHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.DirectoriesDeleteHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.DirectoriesGetAccessControlHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.DirectoriesRenameHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.DirectoriesSetAccessControlHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.DirectoryHttpHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.PageBlobsClearPagesHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.PageBlobsCopyIncrementalHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.PageBlobsCreateHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.PageBlobsGetPageRangesDiffHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.PageBlobsGetPageRangesDiffNextHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.PageBlobsGetPageRangesHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.PageBlobsGetPageRangesNextHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.PageBlobsResizeHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.PageBlobsUpdateSequenceNumberHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.PageBlobsUploadPagesFromURLHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.PageBlobsUploadPagesHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ServicesFilterBlobsHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ServicesGetAccountInfoHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ServicesGetPropertiesHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ServicesGetStatisticsHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ServicesGetUserDelegationKeyHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ServicesListBlobContainersSegmentHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ServicesListBlobContainersSegmentNextHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ServicesSetPropertiesHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.ServicesSubmitBatchHeaders",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.models.BlobStorageExceptionInternal",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.String",
+          "com.azure.core.http.HttpResponse",
+          "com.azure.storage.blob.implementation.models.BlobStorageError"
+        ]
+      },
+      {
+        "name": "getValue",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "com.azure.storage.blob.implementation.util.ModelHelper",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  }
+]

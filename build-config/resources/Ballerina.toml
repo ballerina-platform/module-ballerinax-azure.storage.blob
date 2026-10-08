@@ -20,3 +20,212 @@ groupId = "io.ballerina.lib"
 artifactId = "azure.storage.blob-native"
 version = "@toml.version@"
 path = "../native/build/libs/azure.storage.blob-native-@project.version@.jar"
+
+[[platform.java21.dependency]]
+groupId = "com.azure"
+artifactId = "azure-storage-blob"
+version = "@azure.storage.blob.version@"
+
+[[platform.java21.dependency]]
+groupId = "com.azure"
+artifactId = "azure-storage-internal-avro"
+version = "@azure.storage.internal.avro.version@"
+
+[[platform.java21.dependency]]
+groupId = "com.azure"
+artifactId = "azure-storage-common"
+version = "@azure.storage.common.version@"
+
+[[platform.java21.dependency]]
+groupId = "com.azure"
+artifactId = "azure-core"
+version = "@azure.core.version@"
+
+[[platform.java21.dependency]]
+groupId = "com.azure"
+artifactId = "azure-core-http-netty"
+version = "@azure.core.http.netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "com.azure"
+artifactId = "azure-identity"
+version = "@azure.identity.version@"
+
+[[platform.java21.dependency]]
+groupId = "com.microsoft.azure"
+artifactId = "msal4j"
+version = "@msal4j.version@"
+
+[[platform.java21.dependency]]
+groupId = "com.microsoft.azure"
+artifactId = "msal4j-persistence-extension"
+version = "@msal4j.persistence.extension.version@"
+
+[[platform.java21.dependency]]
+groupId = "net.java.dev.jna"
+artifactId = "jna"
+version = "@jna.version@"
+
+[[platform.java21.dependency]]
+groupId = "net.java.dev.jna"
+artifactId = "jna-platform"
+version = "@jna.platform.version@"
+
+[[platform.java21.dependency]]
+groupId = "org.slf4j"
+artifactId = "slf4j-api"
+version = "@slf4j.version@"
+scope="testOnly"
+
+[[platform.java21.dependency]]
+groupId = "io.ballerina.lib"
+artifactId = "data.jsondata-native"
+version = "@data.jsondata.version@"
+path = "./lib/data.jsondata-native-@data.jsondata.version@.jar"
+
+[[platform.java21.dependency]]
+groupId = "io.ballerina.lib"
+artifactId = "data.xmldata-native"
+version = "@data.xmldata.version@"
+path = "./lib/data.xmldata-native-@data.xmldata.version@.jar"
+
+[[platform.java21.dependency]]
+groupId = "io.ballerina.lib"
+artifactId = "data.csv-native"
+version = "@data.csv.version@"
+path = "./lib/data.csv-native-@data.csv.version@.jar"
+
+[[platform.java21.dependency]]
+groupId = "com.azure"
+artifactId = "azure-json"
+version = "@azure.json.version@"
+
+[[platform.java21.dependency]]
+groupId = "com.azure"
+artifactId = "azure-xml"
+version = "@azure.xml.version@"
+
+[[platform.java21.dependency]]
+groupId = "com.fasterxml.jackson.core"
+artifactId = "jackson-annotations"
+version = "@jackson.version@"
+
+[[platform.java21.dependency]]
+groupId = "com.fasterxml.jackson.core"
+artifactId = "jackson-core"
+version = "@jackson.version@"
+
+[[platform.java21.dependency]]
+groupId = "com.fasterxml.jackson.core"
+artifactId = "jackson-databind"
+version = "@jackson.version@"
+
+[[platform.java21.dependency]]
+groupId = "com.fasterxml.jackson.datatype"
+artifactId = "jackson-datatype-jsr310"
+version = "@jackson.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.projectreactor"
+artifactId = "reactor-core"
+version = "@reactor.core.version@"
+
+[[platform.java21.dependency]]
+groupId = "org.reactivestreams"
+artifactId = "reactive-streams"
+version = "@reactive.streams.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.projectreactor.netty"
+artifactId = "reactor-netty-http"
+version = "@reactor.netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.projectreactor.netty"
+artifactId = "reactor-netty-core"
+version = "@reactor.netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.netty"
+artifactId = "netty-common"
+version = "@netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.netty"
+artifactId = "netty-buffer"
+version = "@netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.netty"
+artifactId = "netty-codec"
+version = "@netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.netty"
+artifactId = "netty-codec-dns"
+version = "@netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.netty"
+artifactId = "netty-codec-http"
+version = "@netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.netty"
+artifactId = "netty-codec-http2"
+version = "@netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.netty"
+artifactId = "netty-codec-socks"
+version = "@netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.netty"
+artifactId = "netty-handler"
+version = "@netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.netty"
+artifactId = "netty-handler-proxy"
+version = "@netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.netty"
+artifactId = "netty-resolver"
+version = "@netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.netty"
+artifactId = "netty-resolver-dns"
+version = "@netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.netty"
+artifactId = "netty-resolver-dns-classes-macos"
+version = "@netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.netty"
+artifactId = "netty-transport"
+version = "@netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.netty"
+artifactId = "netty-transport-classes-epoll"
+version = "@netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.netty"
+artifactId = "netty-transport-classes-kqueue"
+version = "@netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.netty"
+artifactId = "netty-transport-native-unix-common"
+version = "@netty.version@"
+
+[[platform.java21.dependency]]
+groupId = "io.netty"
+artifactId = "netty-tcnative-classes"
+version = "@netty.tcnative.version@"

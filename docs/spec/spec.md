@@ -167,7 +167,8 @@ The five modes:
   override; the service principal records also require `tenantId` and `clientId`.
 
 Every auth mode is validated at `init` with local computation and no call to Azure: connection
-strings are parsed and checked for a blob endpoint, and the explicit records get non empty,
+strings are parsed by the SDK, which refuses one it cannot derive a blob endpoint from and
+accepts the development storage shorthand, and the explicit records get non empty,
 base64, and URL scheme checks. A malformed credential fails at `init` with a specific error.
 
 An Entra ID identity authorizes data operations through Azure RBAC. `Storage Blob Data Reader`
@@ -310,8 +311,9 @@ static website endpoint itself.
   resource types (`'service`, `container`, `'object`), the permissions, and the validity
   window, and optionally a start time, the permitted protocol set, and an IP range. The
   account level permissions are one boolean per account permission: `read`, `write`,
-  `delete`, `list`, `add`, `create`, `update`, and `process`; the last two are queue
-  operations. A SAS covering the queue service with `read`, `add`, `create`, `update`, and
+  `delete`, `list`, `add`, `create`, `update`, `process`, `tag`, and `filter`; `update` and
+  `process` are queue operations, and `tag` and `filter` cover the index tag operations and
+  tag queries. A SAS covering the queue service with `read`, `add`, `create`, `update`, and
   `process` is the credential a `Listener` needs (section 2.1). Rotating the account key
   revokes every SAS minted from it.
 
@@ -473,7 +475,10 @@ caller already serialized is never re-encoded. A byte stream is staged as blocks
 at the end of the stream, with no content length needed up front. Until that commit the
 destination blob does not exist, so a failed stream upload leaves no partial blob and an
 existing blob at the destination is replaced only by a successful commit. A source stream
-failure aborts with a client side `Error`, and every failure closes the source stream.
+failure aborts with a client side `Error`, and every failure closes the source stream. Each
+stream upload stages its blocks under an id of its own, so two stream uploads to one path at
+the same time never blend: the first commit wins, and the service refuses the other with
+`InvalidBlockList`, since a commit discards every block it does not list.
 
 The structured members serialize as follows:
 
@@ -531,7 +536,8 @@ public type RetrievableType byte[]|string|json|xml|record {}|record {}[]|
 * `string`: the content decoded as UTF-8 text; content that is not valid UTF-8 fails with a
   client side `Error`.
 * `json`: the content parsed as a JSON document.
-* `xml`: the content parsed as an XML document.
+* `xml`: the content parsed as an XML document. A subtype such as `xml:Element` takes only a
+  document of that shape; any other document fails with a client side `Error`.
 * `record {}` or `record {}[]`: the content bound to the record shape per a resolved format.
   The explicit `GetBlobOptions.fileFormat` override wins, else the path's extension (`.json`,
   `.xml`, `.csv`) decides. A single record binds from JSON or XML (never CSV), a record array
@@ -539,6 +545,10 @@ public type RetrievableType byte[]|string|json|xml|record {}|record {}[]|
   override nor a known extension is refused with a client side `Error`. CSV binding consumes
   the header row for field names; positional or headerless CSV is read as `string` or
   `byte[]`.
+* A union of these members binds through the JSON parser, so it serves JSON content and
+  json-shaped targets such as `json|()`; a union target with content whose format resolves
+  to XML or CSV is refused with a client side `Error`. A readonly intersection such as
+  `Person & readonly` binds as its underlying member and yields a readonly value.
 * `stream<byte[], error?>`: a lazy byte stream, so memory stays bounded for any blob size.
 * `stream<record {}, error?>`: CSV rows bound lazily, one record per pull; a row that fails to
   bind surfaces as the error entry of that pull.
@@ -559,7 +569,9 @@ stream<byte[], error?> chunks = check invoices->getBlob("2026/q1/large.bin");
 ### 4.5 Copy Operations
 
 * `copyBlob(sourcePath, destinationPath, options)`: copies a blob within the bound container
-  under this client's credentials, returning a `CopyInfo`.
+  under this client's credentials, returning a `CopyInfo`. The service authorizes the copy
+  source separately from the request, so a client authenticated with a SAS attaches that SAS
+  to the source URL; a shared key authorizes a source in the same account on its own.
 * `copyBlobFromUrl(sourceUrl, destinationPath, options)`: copies from any Azure Storage URL
   the service can read: a blob in another container or account, or a file in Azure Files. A
   source in the same storage account is authorized by this client's own credential. A source
@@ -697,7 +709,7 @@ check invoices->appendBlock("logs/2026-08.log", line2);
   snapshot.
 
 Page writes to a blob of another type fail with an `InvalidBlobTypeError`, and misaligned
-offsets or lengths fail with a `RangeNotSatisfiableError`. The `blobSequenceNumber` of
+offsets or lengths are refused with a client side `Error` before any request is made. The `blobSequenceNumber` of
 `BlobProperties` is the page blob's write sequence marker. The page write operations carry the
 lease id in their options when the blob is leased.
 

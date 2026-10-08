@@ -358,6 +358,10 @@ public type AccountSasPermissions record {|
     boolean update = false;
     # Get and delete queued messages; required by the `Listener`
     boolean process = false;
+    # Read and write blob index tags
+    boolean tag = false;
+    # Query blobs by their index tags
+    boolean filter = false;
 |};
 
 # The storage services an account SAS covers.

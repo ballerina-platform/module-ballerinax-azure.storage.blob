@@ -18,23 +18,28 @@
 
 package io.ballerina.lib.azure.storage.blob.client;
 
+import com.azure.storage.blob.models.AccessTier;
+import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
+import io.ballerina.lib.azure.storage.blob.util.OptionsReader;
 import io.ballerina.runtime.api.Environment;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
 
 /**
- * Access tier changes, which double as rehydration out of the archive tier.
- *
- * <p>Every method is declared so that the Ballerina side of the API compiles against the
- * surface it expects; none of them carries an implementation yet.
+ * Native implementation of the access tier operation.
  */
 public final class TierOps {
 
     private TierOps() {
     }
 
+    /** Moves a blob to an access tier, with an optional rehydration priority when leaving Archive. */
     public static Object setAccessTier(Environment env, BObject self, BString path, BString accessTier,
                                        Object options) {
-        throw new UnsupportedOperationException("not implemented");
+        return BallerinaAzureClient.invoke(env, () -> {
+            BlobOps.blobClient(self, path).setAccessTierWithResponse(AccessTier.fromString(accessTier.getValue()),
+                    OptionsReader.rehydratePriority(options), OptionsReader.leaseId(options), null, null);
+            return null;
+        });
     }
 }
