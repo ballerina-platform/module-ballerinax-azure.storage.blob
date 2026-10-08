@@ -85,6 +85,10 @@ final class Poller implements Runnable {
                     backoff = sleepBackoff(backoff);
                     continue;
                 }
+                if (!running) {
+                    // Stopped during the receive: the batch is left for its window to expire.
+                    return;
+                }
                 if (batch.isEmpty()) {
                     backoff = sleepBackoff(backoff);
                     continue;

@@ -302,7 +302,7 @@ function testListenerRoutingByExtensionContentTypeAndFallback() returns error? {
     check enqueueEvent(setup[2], blobCreatedEvent(setup[1], "notes.TXT", "application/octet-stream"));
     check enqueueEvent(setup[2], blobCreatedEvent(setup[1], "noext-json", "application/json; charset=utf-8"));
     check enqueueEvent(setup[2], blobCreatedEvent(setup[1], "image.png", "image/png"));
-    // A name whose routing names an undeclared handler (onBlobXml) falls back to onBlob.
+    // A .json name with onBlobJson declared routes there, not to onBlob.
     check enqueueEvent(setup[2], blobCreatedEvent(setup[1], "data.json", "application/json"));
 
     final Recorder recorder = new;
@@ -521,6 +521,8 @@ function testListenerAttachRules() returns error? {
     test:assertTrue(lsn.attach(third, "Invoices") is error, "an uppercase container name must be rejected");
     test:assertTrue(lsn.attach(third, ["a", "b"]) is error, "a two-segment attach point must be rejected");
     test:assertTrue(lsn.attach(third, "ab") is error, "a two-character name must be rejected");
+    string tooLong = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    test:assertTrue(lsn.attach(third, tooLong) is error, "a 64-character name must be rejected");
     check lsn.attach(third, "/$root");
     test:assertTrue(lsn.detach(third) is (), "a $root service attaches and detaches");
     test:assertTrue(lsn.detach(third) is error, "detaching a service that is not attached must fail");

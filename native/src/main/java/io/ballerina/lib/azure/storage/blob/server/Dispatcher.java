@@ -173,18 +173,23 @@ final class Dispatcher {
         }
     }
 
-    // The Caller a handler or onError receives: the named service's own, or one built for the
-    // event's container when the service is the catch-all.
+    // The Caller a handler or onError receives: the named service's own, or, for the catch-all,
+    // the one kept for the event's container, built on its first event.
     private static BObject callerFor(ListenerContext ctx, ServiceContext service, EventParser.Parsed event) {
         if (service.caller() != null) {
             return service.caller();
+        }
+        BObject cached = ctx.catchAllCallers.get(event.containerName());
+        if (cached != null) {
+            return cached;
         }
         Object built = ctx.runtime.callFunction(ModuleUtils.getModule(), NEW_CALLER_FUNCTION,
                 new StrandMetadata(true, null), StringUtils.fromString(event.containerName()), ctx.clientConfig);
         if (built instanceof BError e) {
             throw e;
         }
-        return (BObject) built;
+        BObject previous = ctx.catchAllCallers.putIfAbsent(event.containerName(), (BObject) built);
+        return previous != null ? previous : (BObject) built;
     }
 
     // Resolves a created event's handler: a routing pattern wins, then the name's extension,

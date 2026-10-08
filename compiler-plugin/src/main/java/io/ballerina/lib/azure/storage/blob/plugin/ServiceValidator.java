@@ -133,8 +133,10 @@ public class ServiceValidator {
             }
         }
         String joined = String.join("/", segments);
-        boolean valid = segments.size() == 1 && (PluginConstants.SPECIAL_CONTAINERS.contains(segments.get(0))
-                || PluginConstants.CONTAINER_NAME.matcher(segments.get(0)).matches());
+        // The pattern bounds the hyphen groups, not the total length, so the limit is checked apart.
+        String name = segments.isEmpty() ? "" : segments.get(0);
+        boolean valid = segments.size() == 1 && (PluginConstants.SPECIAL_CONTAINERS.contains(name)
+                || (name.length() <= 63 && PluginConstants.CONTAINER_NAME.matcher(name).matches()));
         if (!valid) {
             context.reportDiagnostic(getDiagnostic(INVALID_ATTACH_POINT, DiagnosticSeverity.ERROR,
                     path.get(0).location(), joined));

@@ -72,11 +72,16 @@ final class MessageHandle {
     }
 
     /** Starts renewing the visibility window while the handler runs. */
-    void keepInvisible() {
+    synchronized void keepInvisible() {
+        if (disposed.get()) {
+            return;
+        }
         renewal = RENEWALS.scheduleWithFixedDelay(this::renew, RENEWAL_SECONDS, RENEWAL_SECONDS, TimeUnit.SECONDS);
     }
 
-    private void renew() {
+    // Serialized with dispose(), so a disposition never reads a pop receipt a renewal is
+    // about to rotate, and no renewal runs once the message is disposed of.
+    private synchronized void renew() {
         if (disposed.get()) {
             return;
         }
@@ -146,7 +151,7 @@ final class MessageHandle {
     }
 
     // Marks the message disposed of; true for the first caller only.
-    private boolean dispose() {
+    private synchronized boolean dispose() {
         boolean first = disposed.compareAndSet(false, true);
         if (first) {
             cancelRenewal();

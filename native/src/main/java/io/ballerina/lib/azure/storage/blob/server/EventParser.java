@@ -151,9 +151,12 @@ final class EventParser {
             throw BlobErrorCreator.clientError("the event subject does not name a blob: " + subject, null);
         }
         String time = string(event, cloudEvents ? "time" : "eventTime");
+        if (time == null) {
+            throw BlobErrorCreator.clientError("the event carries no time", null);
+        }
         OffsetDateTime eventTime;
         try {
-            eventTime = time == null ? OffsetDateTime.now() : OffsetDateTime.parse(time);
+            eventTime = OffsetDateTime.parse(time);
         } catch (DateTimeParseException e) {
             throw BlobErrorCreator.clientError("the event time is not an ISO 8601 timestamp: " + time, e);
         }

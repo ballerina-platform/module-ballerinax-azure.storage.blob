@@ -82,10 +82,8 @@ final class CompilerPluginTestUtils {
     private static Path distributionPath() {
         String home = System.getProperty("ballerina.home");
         if (home == null || home.isBlank()) {
-            home = System.getenv("BALLERINA_HOME");
-        }
-        if (home == null || home.isBlank()) {
-            throw new IllegalStateException("set -Dballerina.home (or BALLERINA_HOME) to the Ballerina distribution");
+            throw new IllegalStateException(
+                    "set -Dballerina.home to the Ballerina distribution directory (the gradle test task does)");
         }
         Path path = Paths.get(home);
         if (!Files.exists(path)) {

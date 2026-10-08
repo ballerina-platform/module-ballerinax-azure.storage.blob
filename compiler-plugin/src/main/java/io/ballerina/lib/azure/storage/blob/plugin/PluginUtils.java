@@ -62,8 +62,16 @@ public final class PluginUtils {
     public static Diagnostic getDiagnostic(CompilationErrors error, DiagnosticSeverity severity, Location location,
                                            Object... args) {
         String message = args.length == 0 ? error.getError() : String.format(error.getError(), args);
-        DiagnosticInfo diagnosticInfo = new DiagnosticInfo(error.getErrorCode(), message, severity);
+        DiagnosticInfo diagnosticInfo = new DiagnosticInfo(error.getErrorCode(), escapeForMessageFormat(message),
+                severity);
         return DiagnosticFactory.createDiagnostic(diagnosticInfo, location);
+    }
+
+    // The diagnostic factory runs the message through java.text.MessageFormat, which treats a
+    // single quote as a quoting character and braces as argument placeholders; both occur in
+    // the messages (quoted names, record and stream type signatures), so they are escaped here.
+    private static String escapeForMessageFormat(String message) {
+        return message.replace("'", "''").replace("{", "'{'").replace("}", "'}'");
     }
 
     public static boolean validateModuleId(ModuleSymbol moduleSymbol) {

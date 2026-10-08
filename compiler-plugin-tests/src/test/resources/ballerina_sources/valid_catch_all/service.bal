@@ -18,7 +18,7 @@ import ballerinax/azure.storage.blob as blob;
 
 listener blob:Listener lsn = new ("events", auth = {accountName: "acc", accountKey: "a2V5"});
 
-service  on lsn {
+service on lsn {
     remote function onBlob(byte[] content, blob:BlobEvent event, blob:Caller caller) returns error? {
     }
 }

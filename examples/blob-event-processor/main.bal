@@ -21,7 +21,6 @@ import ballerinax/azure.storage.blob;
 configurable string accountName = ?;
 configurable string accountKey = ?;
 configurable string queueName = "blob-events";
-configurable string containerName = "invoices";
 
 // The shape an invoice blob binds to.
 type Invoice record {|

@@ -766,8 +766,8 @@ and the permissions, and optionally a start time, the permitted protocol set (HT
 HTTPS and HTTP), an IP range, and a stored access policy `identifier`. A parameter may be
 carried by the stored access policy or by the token, but not both; a parameter set in both
 places fails at use time with HTTP 400. Generation validates locally what is knowable at
-signing time, and fails with a client side `Error` when neither an `identifier` nor an
-`expiryTime` is supplied.
+signing time, and fails with a client side `Error` when no `identifier` is supplied and the
+`expiryTime` or the `permissions` are missing.
 
 The signature values and their permissions record come in two shapes, one per scope, so a
 token cannot ask for a permission its scope does not carry. The container scoped methods take
@@ -917,7 +917,8 @@ name with no extension is routed by the event's content type (`text/*`, `applica
 `application/xml` or `text/xml`, `text/csv`), else to `onBlob`. A per handler
 `@blob:FunctionConfig` overrides the routing: its `namePattern` is a regular expression
 matched against the blob name (the last path segment), and its `contentTypePattern` one
-matched against the event's content type. When more than one handler matches, the winner is
+matched against the event's content type without its parameters. When more than one handler
+matches, the winner is
 fixed: handlers are checked in the order `onBlobText`, `onBlobJson`, `onBlobXml`, `onBlobCsv`,
 then `onBlob`. A blob whose routing names an undeclared typed handler falls back to `onBlob`.
 A created event whose routing finds no declared handler is acknowledged and logged at debug

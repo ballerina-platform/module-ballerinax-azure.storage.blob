@@ -53,6 +53,9 @@ final class ListenerContext {
     final QueueClient queue;
 
     final Map<String, ServiceContext> services = new ConcurrentHashMap<>();
+    // The catch-all service's Callers, one per container seen, built on first use: each holds a
+    // client with its own connection pool, so they are kept rather than rebuilt per event.
+    final Map<String, BObject> catchAllCallers = new ConcurrentHashMap<>();
     volatile ServiceContext catchAll;
     volatile Runtime runtime;
     volatile Poller poller;
@@ -93,9 +96,5 @@ final class ListenerContext {
     // One handler: its routing patterns, parameter-list shape, and declared content type.
     record HandlerConfig(String methodName, Pattern namePattern, Pattern contentTypePattern, int arity,
                          boolean secondIsCaller, Type contentType) {
-
-        boolean needsCaller() {
-            return arity == 3 || (arity == 2 && secondIsCaller);
-        }
     }
 }

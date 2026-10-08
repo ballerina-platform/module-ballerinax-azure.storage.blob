@@ -189,7 +189,7 @@ public class ServiceValidationTest {
     public void testInvalidUnknownRemote() {
         DiagnosticResult result = loadPackage("invalid_unknown_remote");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_101", "Invalid remote method onUpload");
+        assertError(result, 0, "AZURE_BLOB_101", "Invalid remote method 'onUpload'");
     }
 
     @Test
@@ -217,84 +217,91 @@ public class ServiceValidationTest {
     public void testInvalidMissingParameter() {
         DiagnosticResult result = loadPackage("invalid_missing_parameter");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_105", "Missing parameter for onBlob");
+        assertError(result, 0, "AZURE_BLOB_105", "Missing parameter for 'onBlob'");
     }
 
     @Test
     public void testInvalidContentType() {
         DiagnosticResult result = loadPackage("invalid_content_type");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_106", "Invalid parameter type for onBlob");
+        assertError(result, 0, "AZURE_BLOB_106", "Invalid parameter type for 'onBlob'");
     }
 
     @Test
     public void testInvalidOnBlobJsonMap() {
         DiagnosticResult result = loadPackage("invalid_on_blob_json_map");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_106", "Invalid parameter type for onBlobJson");
+        assertError(result, 0, "AZURE_BLOB_106", "Invalid parameter type for 'onBlobJson'");
     }
 
     @Test
     public void testInvalidOnBlobCsvScalarArray() {
         DiagnosticResult result = loadPackage("invalid_on_blob_csv_scalar_array");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_106", "Invalid parameter type for onBlobCsv");
+        assertError(result, 0, "AZURE_BLOB_106", "Invalid parameter type for 'onBlobCsv'");
     }
 
     @Test
     public void testInvalidOnBlobStreamItem() {
         DiagnosticResult result = loadPackage("invalid_on_blob_stream_item");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_106", "Invalid parameter type for onBlob");
+        assertError(result, 0, "AZURE_BLOB_106", "Invalid parameter type for 'onBlob'");
     }
 
     @Test
     public void testInvalidSecondParameter() {
         DiagnosticResult result = loadPackage("invalid_second_parameter");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_107", "Optional second parameter must be BlobEvent");
+        assertError(result, 0, "AZURE_BLOB_107", "Optional second parameter must be 'BlobEvent'");
     }
 
     @Test
     public void testInvalidThirdParameter() {
         DiagnosticResult result = loadPackage("invalid_third_parameter");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_108", "Optional third parameter must be Caller");
+        assertError(result, 0, "AZURE_BLOB_108", "Optional third parameter must be 'Caller'");
     }
 
     @Test
     public void testInvalidTooManyParameters() {
         DiagnosticResult result = loadPackage("invalid_too_many_parameters");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_109", "Too many parameters for onBlob");
+        assertError(result, 0, "AZURE_BLOB_109", "Too many parameters for 'onBlob'");
     }
 
     @Test
     public void testInvalidReturnType() {
         DiagnosticResult result = loadPackage("invalid_return_type");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_110", "Expected error?");
+        assertError(result, 0, "AZURE_BLOB_110", "Expected 'error?'");
     }
 
     @Test
     public void testInvalidReturnRecordRef() {
         DiagnosticResult result = loadPackage("invalid_return_record_ref");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_110", "Expected error?");
+        assertError(result, 0, "AZURE_BLOB_110", "Expected 'error?'");
     }
 
     @Test
     public void testInvalidAttachPointTwoSegments() {
         DiagnosticResult result = loadPackage("invalid_attach_point_two_segments");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_111", "Invalid attach point invoices/archive");
+        assertError(result, 0, "AZURE_BLOB_111", "Invalid attach point 'invoices/archive'");
+    }
+
+    @Test
+    public void testInvalidAttachPointLong() {
+        DiagnosticResult result = loadPackage("invalid_attach_point_long");
+        assertEquals(result.errorCount(), 1, describe(result));
+        assertError(result, 0, "AZURE_BLOB_111", "Invalid attach point");
     }
 
     @Test
     public void testInvalidAttachPointName() {
         DiagnosticResult result = loadPackage("invalid_attach_point_name");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_111", "Invalid attach point Invoices");
+        assertError(result, 0, "AZURE_BLOB_111", "Invalid attach point 'Invoices'");
     }
 
     @Test
@@ -322,7 +329,7 @@ public class ServiceValidationTest {
     public void testInvalidOnErrorTooManyParams() {
         DiagnosticResult result = loadPackage("invalid_on_error_too_many_params");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_114", "Too many parameters for onError");
+        assertError(result, 0, "AZURE_BLOB_114", "Too many parameters for 'onError'");
     }
 
     @Test
@@ -336,28 +343,28 @@ public class ServiceValidationTest {
     public void testInvalidOnErrorReturnType() {
         DiagnosticResult result = loadPackage("invalid_on_error_return_type");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_110", "Expected error?");
+        assertError(result, 0, "AZURE_BLOB_110", "Expected 'error?'");
     }
 
     @Test
     public void testInvalidDeletedFirstParam() {
         DiagnosticResult result = loadPackage("invalid_deleted_first_param");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_106", "Invalid parameter type for onBlobDeleted");
+        assertError(result, 0, "AZURE_BLOB_106", "Invalid parameter type for 'onBlobDeleted'");
     }
 
     @Test
     public void testInvalidDeletedSecondParam() {
         DiagnosticResult result = loadPackage("invalid_deleted_second_param");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_115", "Optional second parameter must be Caller");
+        assertError(result, 0, "AZURE_BLOB_115", "Optional second parameter must be 'Caller'");
     }
 
     @Test
     public void testInvalidDeletedTooManyParams() {
         DiagnosticResult result = loadPackage("invalid_deleted_too_many_params");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_116", "Too many parameters for onBlobDeleted");
+        assertError(result, 0, "AZURE_BLOB_116", "Too many parameters for 'onBlobDeleted'");
     }
 
     private static void assertNoErrors(DiagnosticResult result, String fixture) {

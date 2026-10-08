@@ -67,7 +67,9 @@ public final class PluginConstants {
     public static final Set<String> SPECIAL_CONTAINERS = Set.of("$root", "$logs");
 
     /**
-     * The diagnostics the plugin can report, each paired with its stable code.
+     * The diagnostics the plugin can report, each paired with its stable code. The messages are
+     * plain text; {@code PluginUtils.getDiagnostic} escapes them for the {@code MessageFormat}
+     * pass the diagnostic factory applies.
      */
     public enum CompilationErrors {
         INVALID_REMOTE_FUNCTION("Invalid remote method '%s'. A listener service allows only handlers: "
@@ -80,8 +82,8 @@ public final class PluginConstants {
                 "AZURE_BLOB_105"),
         INVALID_CONTENT_PARAMETER_TYPE("Invalid parameter type for '%s'. Expected '%s', found '%s'.",
                 "AZURE_BLOB_106"),
-        INVALID_EVENT_PARAMETER("Invalid parameter for '%s'. Optional second parameter must be 'BlobEvent'.",
-                "AZURE_BLOB_107"),
+        INVALID_EVENT_PARAMETER("Invalid parameter for '%s'. Optional second parameter must be 'BlobEvent', "
+                + "or 'Caller' when it is the last.", "AZURE_BLOB_107"),
         INVALID_CALLER_PARAMETER("Invalid parameter for '%s'. Optional third parameter must be 'Caller'.",
                 "AZURE_BLOB_108"),
         TOO_MANY_PARAMETERS("Too many parameters for '%s'. Handlers accept at most 3 parameters: "

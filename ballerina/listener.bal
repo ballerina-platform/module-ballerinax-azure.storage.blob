@@ -80,7 +80,9 @@ public isolated class Listener {
         if newBatchThreshold < 0 || newBatchThreshold > config.batchSize {
             return error Error("newBatchThreshold must be between 0 and batchSize");
         }
-        config.newBatchThreshold = newBatchThreshold;
+        // The caller's record is left untouched; the resolved threshold goes to the native side.
+        ListenerConfiguration resolved = config.clone();
+        resolved.newBatchThreshold = newBatchThreshold;
         if config.maxPollingIntervalSeconds <= 0d {
             return error Error("maxPollingIntervalSeconds must be greater than zero");
         }
@@ -99,7 +101,7 @@ public isolated class Listener {
             clientConfig.retryConfig = retryConfig;
         }
         self.clientConfig = clientConfig.cloneReadOnly();
-        return externInit(self, queueName, config);
+        return externInit(self, queueName, resolved);
     }
 
     # Attaches a service for the container named by its attach point. A service with no attach
@@ -169,7 +171,7 @@ isolated function attachContainer(string[]|string? name) returns string?|error {
     if value == "$root" || value == "$logs" {
         return value;
     }
-    if !re `^[a-z0-9](?:-?[a-z0-9]){2,62}$`.isFullMatch(value) {
+    if value.length() > 63 || !re `^[a-z0-9](?:-?[a-z0-9]){2,62}$`.isFullMatch(value) {
         return error(string `'${value}' is not a valid container name: 3 to 63 lowercase letters, digits `
                 + "and single hyphens, starting and ending with a letter or digit");
     }
