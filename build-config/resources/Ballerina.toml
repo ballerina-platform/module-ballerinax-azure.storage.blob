@@ -1,5 +1,6 @@
 [package]
 distribution = "2201.14.0"
+include = ["metadata/**"]
 org = "ballerinax"
 name = "azure.storage.blob"
 version = "@toml.version@"

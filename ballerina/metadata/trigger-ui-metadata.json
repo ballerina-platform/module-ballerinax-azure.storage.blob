@@ -1,0 +1,4333 @@
+{
+  "version": "v1.0",
+  "metadata": {
+    "kind": "file"
+  },
+  "trigger": {
+    "displayName": "Azure Blob Storage Integration",
+    "shortDisplayName": "Azure Blobs",
+    "description": "Create a service that handles blobs created or deleted in an Azure Blob Storage container.",
+    "type": "blob"
+  },
+  "readOnlyMetadata": [
+    {
+      "key": "basePath",
+      "displayName": "Container",
+      "extractor": "SERVICE_BASE_PATH"
+    }
+  ],
+  "initForm": {
+    "fields": [
+      {
+        "target": "$listener",
+        "key": "path",
+        "placeholder": "invoices",
+        "default": "",
+        "metadata": {
+          "label": "Container",
+          "description": "The container whose blob events this service handles. Leave empty to handle the events of every container no other service claims."
+        },
+        "source": {
+          "construct": {
+            "kind": "SERVICE_BASE_PATH"
+          }
+        },
+        "state": {
+          "enabled": true,
+          "editable": true,
+          "optional": true,
+          "advanced": false
+        },
+        "widget": {
+          "alternatives": [
+            {
+              "widgetKind": "TEXT",
+              "ballerinaType": "string"
+            },
+            {
+              "widgetKind": "EXPRESSION",
+              "ballerinaType": "string"
+            }
+          ],
+          "selectedIndex": 0
+        }
+      }
+    ]
+  },
+  "listeners": [
+    {
+      "target": "$listener",
+      "form": {
+        "section": {
+          "label": "Listener",
+          "description": "Attach the service to a new or existing listener."
+        },
+        "createNew": {
+          "label": "Create new",
+          "description": "Define a new listener in the project."
+        },
+        "listenerConfig": {
+          "label": "Listener Configurations",
+          "description": "Configure the Azure Blob Storage listener."
+        },
+        "useExisting": {
+          "label": "Use existing",
+          "description": "Attach to a listener already declared in the project."
+        },
+        "existingListener": {
+          "label": "Listener",
+          "description": "Select an existing listener to attach to."
+        }
+      },
+      "formFields": {
+        "listenerVarName": {
+          "key": "listenerVarName",
+          "default": "blobListener",
+          "validations": [
+            {
+              "rule": "common.validate.identifier"
+            },
+            {
+              "rule": "ls.validate.unique.listener.name",
+              "message": "A listener with this name already exists in the project"
+            }
+          ],
+          "metadata": {
+            "label": "Listener Name",
+            "description": "Provide a name for the listener being created."
+          },
+          "source": {
+            "construct": {
+              "kind": "LISTENER_VAR_NAME"
+            },
+            "value": {
+              "preserve": true
+            }
+          },
+          "state": {
+            "enabled": true,
+            "editable": true,
+            "optional": false,
+            "advanced": false
+          },
+          "widget": {
+            "widgetKind": "IDENTIFIER",
+            "selected": true,
+            "ballerinaType": "azure.storage.blob:Listener"
+          }
+        },
+        "queueName": {
+          "key": "queueName",
+          "placeholder": "blob-events",
+          "default": "",
+          "metadata": {
+            "label": "Queue Name",
+            "description": "The storage queue the Event Grid subscription delivers blob events to"
+          },
+          "source": {
+            "argument": {
+              "kind": "LISTENER_PARAM_REQUIRED",
+              "originalName": "queueName",
+              "position": 1
+            }
+          },
+          "state": {
+            "enabled": true,
+            "editable": true,
+            "optional": false,
+            "advanced": false
+          },
+          "widget": {
+            "alternatives": [
+              {
+                "widgetKind": "TEXT",
+                "ballerinaType": "string",
+                "validations": [
+                  {
+                    "rule": "common.validate.non.empty"
+                  }
+                ]
+              },
+              {
+                "widgetKind": "EXPRESSION",
+                "ballerinaType": "string"
+              }
+            ],
+            "selectedIndex": 0
+          }
+        },
+        "auth": {
+          "key": "auth",
+          "default": "SHARED_KEY",
+          "metadata": {
+            "label": "Authentication",
+            "description": "Select the authentication method"
+          },
+          "state": {
+            "enabled": true,
+            "editable": true,
+            "optional": false,
+            "advanced": false
+          },
+          "widget": {
+            "widgetKind": "CHOICE",
+            "selected": true
+          },
+          "choices": [
+            {
+              "default": "SHARED_KEY",
+              "metadata": {
+                "label": "Shared Key",
+                "description": "Authenticate with the storage account name and one of its access keys"
+              },
+              "properties": {
+                "accountName": {
+                  "key": "accountName",
+                  "placeholder": "mystorageaccount",
+                  "default": "",
+                  "metadata": {
+                    "label": "Account Name",
+                    "description": "The storage account name, used to sign requests and to derive the service URLs"
+                  },
+                  "source": {
+                    "argument": {
+                      "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                      "originalName": "accountName"
+                    },
+                    "path": "auth.accountName"
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                },
+                "accountKey": {
+                  "key": "accountKey",
+                  "default": "",
+                  "metadata": {
+                    "label": "Account Key",
+                    "description": "A base64-encoded access key of the storage account"
+                  },
+                  "source": {
+                    "argument": {
+                      "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                      "originalName": "accountKey"
+                    },
+                    "path": "auth.accountKey"
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                }
+              },
+              "state": {
+                "enabled": true,
+                "editable": true,
+                "optional": false,
+                "advanced": false
+              },
+              "widget": {
+                "widgetKind": "FORM",
+                "selected": true
+              }
+            },
+            {
+              "default": "SAS_TOKEN",
+              "metadata": {
+                "label": "SAS Token",
+                "description": "Authenticate with an account SAS token covering the queue and blob services"
+              },
+              "properties": {
+                "accountName": {
+                  "key": "accountName",
+                  "placeholder": "mystorageaccount",
+                  "default": "",
+                  "metadata": {
+                    "label": "Account Name",
+                    "description": "The name of the storage account the token belongs to"
+                  },
+                  "source": {
+                    "argument": {
+                      "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                      "originalName": "accountName"
+                    },
+                    "path": "auth.accountName"
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                },
+                "sasToken": {
+                  "key": "sasToken",
+                  "default": "",
+                  "metadata": {
+                    "label": "SAS Token",
+                    "description": "An account SAS token spanning the queue and blob services, with the permissions the handlers need"
+                  },
+                  "source": {
+                    "argument": {
+                      "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                      "originalName": "sasToken"
+                    },
+                    "path": "auth.sasToken"
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                }
+              },
+              "state": {
+                "enabled": false,
+                "editable": true,
+                "optional": false,
+                "advanced": false
+              },
+              "widget": {
+                "widgetKind": "FORM",
+                "selected": true
+              }
+            },
+            {
+              "default": "SAS_URL",
+              "metadata": {
+                "label": "SAS URL",
+                "description": "Authenticate with a full account SAS URL, as issued by the Azure portal"
+              },
+              "properties": {
+                "sasUrl": {
+                  "key": "sasUrl",
+                  "default": "",
+                  "metadata": {
+                    "label": "SAS URL",
+                    "description": "A full blob-service SAS URL, including the scheme and the SAS query string of an account SAS spanning the queue and blob services"
+                  },
+                  "source": {
+                    "argument": {
+                      "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                      "originalName": "sasUrl"
+                    },
+                    "path": "auth.sasUrl"
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                }
+              },
+              "state": {
+                "enabled": false,
+                "editable": true,
+                "optional": false,
+                "advanced": false
+              },
+              "widget": {
+                "widgetKind": "FORM",
+                "selected": true
+              }
+            },
+            {
+              "default": "CONNECTION_STRING",
+              "metadata": {
+                "label": "Connection String",
+                "description": "Authenticate with an Azure Storage connection string"
+              },
+              "properties": {
+                "connectionString": {
+                  "key": "connectionString",
+                  "default": "",
+                  "metadata": {
+                    "label": "Connection String",
+                    "description": "An Azure Storage connection string, as issued by the Azure portal, the Azure CLI, or infrastructure tooling"
+                  },
+                  "source": {
+                    "argument": {
+                      "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                      "originalName": "connectionString"
+                    },
+                    "path": "auth.connectionString"
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                }
+              },
+              "state": {
+                "enabled": false,
+                "editable": true,
+                "optional": false,
+                "advanced": false
+              },
+              "widget": {
+                "widgetKind": "FORM",
+                "selected": true
+              }
+            },
+            {
+              "default": "ENTRA_ID",
+              "metadata": {
+                "label": "Microsoft Entra ID",
+                "description": "Authenticate with Microsoft Entra ID (Azure AD)"
+              },
+              "properties": {
+                "credential": {
+                  "key": "credential",
+                  "default": "DEFAULT",
+                  "metadata": {
+                    "label": "Entra ID Credential",
+                    "description": "Select the Microsoft Entra ID credential type"
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "widgetKind": "CHOICE",
+                    "selected": true
+                  },
+                  "choices": [
+                    {
+                      "default": "DEFAULT",
+                      "metadata": {
+                        "label": "Default Credential Chain",
+                        "description": "Authenticate through the default credential chain: the environment, a managed identity, then developer sign-ins (Azure CLI, IDE accounts), in turn"
+                      },
+                      "properties": {
+                        "accountName": {
+                          "key": "accountName",
+                          "placeholder": "mystorageaccount",
+                          "default": "",
+                          "metadata": {
+                            "label": "Account Name",
+                            "description": "The storage account name, which determines the service URLs"
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "accountName"
+                            },
+                            "path": "auth.accountName"
+                          },
+                          "state": {
+                            "enabled": true,
+                            "editable": true,
+                            "optional": false,
+                            "advanced": false
+                          },
+                          "widget": {
+                            "alternatives": [
+                              {
+                                "widgetKind": "TEXT",
+                                "ballerinaType": "string"
+                              },
+                              {
+                                "widgetKind": "EXPRESSION",
+                                "ballerinaType": "string"
+                              }
+                            ],
+                            "selectedIndex": 0
+                          }
+                        },
+                        "kind": {
+                          "key": "kind",
+                          "default": "\"default\"",
+                          "metadata": {
+                            "label": "Credential Kind",
+                            "description": "Selects the credential kind"
+                          },
+                          "state": {
+                            "editable": false,
+                            "enabled": true,
+                            "optional": false,
+                            "advanced": false
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "kind"
+                            },
+                            "path": "auth.kind"
+                          },
+                          "widget": {
+                            "widgetKind": "TEXT",
+                            "selected": true,
+                            "ballerinaType": "string"
+                          }
+                        }
+                      },
+                      "state": {
+                        "enabled": true,
+                        "editable": true,
+                        "optional": false,
+                        "advanced": false
+                      },
+                      "widget": {
+                        "widgetKind": "FORM",
+                        "selected": true
+                      }
+                    },
+                    {
+                      "default": "MANAGED_IDENTITY",
+                      "metadata": {
+                        "label": "Managed Identity",
+                        "description": "Authenticate as an Azure managed identity, for workloads on Azure compute"
+                      },
+                      "properties": {
+                        "accountName": {
+                          "key": "accountName",
+                          "placeholder": "mystorageaccount",
+                          "default": "",
+                          "metadata": {
+                            "label": "Account Name",
+                            "description": "The storage account name, which determines the service URLs"
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "accountName"
+                            },
+                            "path": "auth.accountName"
+                          },
+                          "state": {
+                            "enabled": true,
+                            "editable": true,
+                            "optional": false,
+                            "advanced": false
+                          },
+                          "widget": {
+                            "alternatives": [
+                              {
+                                "widgetKind": "TEXT",
+                                "ballerinaType": "string"
+                              },
+                              {
+                                "widgetKind": "EXPRESSION",
+                                "ballerinaType": "string"
+                              }
+                            ],
+                            "selectedIndex": 0
+                          }
+                        },
+                        "kind": {
+                          "key": "kind",
+                          "default": "\"managed-identity\"",
+                          "metadata": {
+                            "label": "Credential Kind",
+                            "description": "Selects the credential kind"
+                          },
+                          "state": {
+                            "editable": false,
+                            "enabled": true,
+                            "optional": false,
+                            "advanced": false
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "kind"
+                            },
+                            "path": "auth.kind"
+                          },
+                          "widget": {
+                            "widgetKind": "TEXT",
+                            "selected": true,
+                            "ballerinaType": "string"
+                          }
+                        },
+                        "clientId": {
+                          "key": "clientId",
+                          "default": "",
+                          "metadata": {
+                            "label": "Client ID",
+                            "description": "The client ID of a user-assigned managed identity. Omit to use the system-assigned one"
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "clientId"
+                            },
+                            "path": "auth.clientId"
+                          },
+                          "state": {
+                            "enabled": true,
+                            "editable": true,
+                            "optional": true,
+                            "advanced": false
+                          },
+                          "widget": {
+                            "alternatives": [
+                              {
+                                "widgetKind": "TEXT",
+                                "ballerinaType": "string"
+                              },
+                              {
+                                "widgetKind": "EXPRESSION",
+                                "ballerinaType": "string"
+                              }
+                            ],
+                            "selectedIndex": 0
+                          }
+                        }
+                      },
+                      "state": {
+                        "enabled": false,
+                        "editable": true,
+                        "optional": false,
+                        "advanced": false
+                      },
+                      "widget": {
+                        "widgetKind": "FORM",
+                        "selected": true
+                      }
+                    },
+                    {
+                      "default": "CLIENT_SECRET",
+                      "metadata": {
+                        "label": "Client Secret",
+                        "description": "Authenticate as a service principal with a client secret"
+                      },
+                      "properties": {
+                        "accountName": {
+                          "key": "accountName",
+                          "placeholder": "mystorageaccount",
+                          "default": "",
+                          "metadata": {
+                            "label": "Account Name",
+                            "description": "The storage account name, which determines the service URLs"
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "accountName"
+                            },
+                            "path": "auth.accountName"
+                          },
+                          "state": {
+                            "enabled": true,
+                            "editable": true,
+                            "optional": false,
+                            "advanced": false
+                          },
+                          "widget": {
+                            "alternatives": [
+                              {
+                                "widgetKind": "TEXT",
+                                "ballerinaType": "string"
+                              },
+                              {
+                                "widgetKind": "EXPRESSION",
+                                "ballerinaType": "string"
+                              }
+                            ],
+                            "selectedIndex": 0
+                          }
+                        },
+                        "tenantId": {
+                          "key": "tenantId",
+                          "default": "",
+                          "metadata": {
+                            "label": "Tenant ID",
+                            "description": "The Entra ID tenant the service principal belongs to"
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "tenantId"
+                            },
+                            "path": "auth.tenantId"
+                          },
+                          "state": {
+                            "enabled": true,
+                            "editable": true,
+                            "optional": false,
+                            "advanced": false
+                          },
+                          "widget": {
+                            "alternatives": [
+                              {
+                                "widgetKind": "TEXT",
+                                "ballerinaType": "string"
+                              },
+                              {
+                                "widgetKind": "EXPRESSION",
+                                "ballerinaType": "string"
+                              }
+                            ],
+                            "selectedIndex": 0
+                          }
+                        },
+                        "clientId": {
+                          "key": "clientId",
+                          "default": "",
+                          "metadata": {
+                            "label": "Client ID",
+                            "description": "The application (client) ID of the service principal"
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "clientId"
+                            },
+                            "path": "auth.clientId"
+                          },
+                          "state": {
+                            "enabled": true,
+                            "editable": true,
+                            "optional": false,
+                            "advanced": false
+                          },
+                          "widget": {
+                            "alternatives": [
+                              {
+                                "widgetKind": "TEXT",
+                                "ballerinaType": "string"
+                              },
+                              {
+                                "widgetKind": "EXPRESSION",
+                                "ballerinaType": "string"
+                              }
+                            ],
+                            "selectedIndex": 0
+                          }
+                        },
+                        "clientSecret": {
+                          "key": "clientSecret",
+                          "default": "",
+                          "metadata": {
+                            "label": "Client Secret",
+                            "description": "The client secret issued for the service principal"
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "clientSecret"
+                            },
+                            "path": "auth.clientSecret"
+                          },
+                          "state": {
+                            "enabled": true,
+                            "editable": true,
+                            "optional": false,
+                            "advanced": false
+                          },
+                          "widget": {
+                            "alternatives": [
+                              {
+                                "widgetKind": "TEXT",
+                                "ballerinaType": "string"
+                              },
+                              {
+                                "widgetKind": "EXPRESSION",
+                                "ballerinaType": "string"
+                              }
+                            ],
+                            "selectedIndex": 0
+                          }
+                        }
+                      },
+                      "state": {
+                        "enabled": false,
+                        "editable": true,
+                        "optional": false,
+                        "advanced": false
+                      },
+                      "widget": {
+                        "widgetKind": "FORM",
+                        "selected": true
+                      }
+                    },
+                    {
+                      "default": "CLIENT_CERTIFICATE",
+                      "metadata": {
+                        "label": "Client Certificate",
+                        "description": "Authenticate as a service principal with a client certificate"
+                      },
+                      "properties": {
+                        "accountName": {
+                          "key": "accountName",
+                          "placeholder": "mystorageaccount",
+                          "default": "",
+                          "metadata": {
+                            "label": "Account Name",
+                            "description": "The storage account name, which determines the service URLs"
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "accountName"
+                            },
+                            "path": "auth.accountName"
+                          },
+                          "state": {
+                            "enabled": true,
+                            "editable": true,
+                            "optional": false,
+                            "advanced": false
+                          },
+                          "widget": {
+                            "alternatives": [
+                              {
+                                "widgetKind": "TEXT",
+                                "ballerinaType": "string"
+                              },
+                              {
+                                "widgetKind": "EXPRESSION",
+                                "ballerinaType": "string"
+                              }
+                            ],
+                            "selectedIndex": 0
+                          }
+                        },
+                        "tenantId": {
+                          "key": "tenantId",
+                          "default": "",
+                          "metadata": {
+                            "label": "Tenant ID",
+                            "description": "The Entra ID tenant the service principal belongs to"
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "tenantId"
+                            },
+                            "path": "auth.tenantId"
+                          },
+                          "state": {
+                            "enabled": true,
+                            "editable": true,
+                            "optional": false,
+                            "advanced": false
+                          },
+                          "widget": {
+                            "alternatives": [
+                              {
+                                "widgetKind": "TEXT",
+                                "ballerinaType": "string"
+                              },
+                              {
+                                "widgetKind": "EXPRESSION",
+                                "ballerinaType": "string"
+                              }
+                            ],
+                            "selectedIndex": 0
+                          }
+                        },
+                        "clientId": {
+                          "key": "clientId",
+                          "default": "",
+                          "metadata": {
+                            "label": "Client ID",
+                            "description": "The application (client) ID of the service principal"
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "clientId"
+                            },
+                            "path": "auth.clientId"
+                          },
+                          "state": {
+                            "enabled": true,
+                            "editable": true,
+                            "optional": false,
+                            "advanced": false
+                          },
+                          "widget": {
+                            "alternatives": [
+                              {
+                                "widgetKind": "TEXT",
+                                "ballerinaType": "string"
+                              },
+                              {
+                                "widgetKind": "EXPRESSION",
+                                "ballerinaType": "string"
+                              }
+                            ],
+                            "selectedIndex": 0
+                          }
+                        },
+                        "certificatePath": {
+                          "key": "certificatePath",
+                          "default": "",
+                          "metadata": {
+                            "label": "Certificate Path",
+                            "description": "Path to the certificate file: a PEM file, or a PFX file when a certificate password is set"
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "certificatePath"
+                            },
+                            "path": "auth.certificatePath"
+                          },
+                          "state": {
+                            "enabled": true,
+                            "editable": true,
+                            "optional": false,
+                            "advanced": false
+                          },
+                          "widget": {
+                            "alternatives": [
+                              {
+                                "widgetKind": "TEXT",
+                                "ballerinaType": "string"
+                              },
+                              {
+                                "widgetKind": "EXPRESSION",
+                                "ballerinaType": "string"
+                              }
+                            ],
+                            "selectedIndex": 0
+                          }
+                        },
+                        "certificatePassword": {
+                          "key": "certificatePassword",
+                          "default": "",
+                          "metadata": {
+                            "label": "Certificate Password",
+                            "description": "The password protecting a PFX certificate. Omit for an unencrypted PEM certificate"
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "certificatePassword"
+                            },
+                            "path": "auth.certificatePassword"
+                          },
+                          "state": {
+                            "enabled": true,
+                            "editable": true,
+                            "optional": true,
+                            "advanced": false
+                          },
+                          "widget": {
+                            "alternatives": [
+                              {
+                                "widgetKind": "TEXT",
+                                "ballerinaType": "string"
+                              },
+                              {
+                                "widgetKind": "EXPRESSION",
+                                "ballerinaType": "string"
+                              }
+                            ],
+                            "selectedIndex": 0
+                          }
+                        }
+                      },
+                      "state": {
+                        "enabled": false,
+                        "editable": true,
+                        "optional": false,
+                        "advanced": false
+                      },
+                      "widget": {
+                        "widgetKind": "FORM",
+                        "selected": true
+                      }
+                    },
+                    {
+                      "default": "WORKLOAD_IDENTITY",
+                      "metadata": {
+                        "label": "Workload Identity",
+                        "description": "Authenticate as a Kubernetes workload identity federated with Entra ID"
+                      },
+                      "properties": {
+                        "accountName": {
+                          "key": "accountName",
+                          "placeholder": "mystorageaccount",
+                          "default": "",
+                          "metadata": {
+                            "label": "Account Name",
+                            "description": "The storage account name, which determines the service URLs"
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "accountName"
+                            },
+                            "path": "auth.accountName"
+                          },
+                          "state": {
+                            "enabled": true,
+                            "editable": true,
+                            "optional": false,
+                            "advanced": false
+                          },
+                          "widget": {
+                            "alternatives": [
+                              {
+                                "widgetKind": "TEXT",
+                                "ballerinaType": "string"
+                              },
+                              {
+                                "widgetKind": "EXPRESSION",
+                                "ballerinaType": "string"
+                              }
+                            ],
+                            "selectedIndex": 0
+                          }
+                        },
+                        "tenantId": {
+                          "key": "tenantId",
+                          "default": "",
+                          "metadata": {
+                            "label": "Tenant ID",
+                            "description": "The Entra ID tenant the workload identity belongs to"
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "tenantId"
+                            },
+                            "path": "auth.tenantId"
+                          },
+                          "state": {
+                            "enabled": true,
+                            "editable": true,
+                            "optional": false,
+                            "advanced": false
+                          },
+                          "widget": {
+                            "alternatives": [
+                              {
+                                "widgetKind": "TEXT",
+                                "ballerinaType": "string"
+                              },
+                              {
+                                "widgetKind": "EXPRESSION",
+                                "ballerinaType": "string"
+                              }
+                            ],
+                            "selectedIndex": 0
+                          }
+                        },
+                        "clientId": {
+                          "key": "clientId",
+                          "default": "",
+                          "metadata": {
+                            "label": "Client ID",
+                            "description": "The application (client) ID of the federated identity"
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "clientId"
+                            },
+                            "path": "auth.clientId"
+                          },
+                          "state": {
+                            "enabled": true,
+                            "editable": true,
+                            "optional": false,
+                            "advanced": false
+                          },
+                          "widget": {
+                            "alternatives": [
+                              {
+                                "widgetKind": "TEXT",
+                                "ballerinaType": "string"
+                              },
+                              {
+                                "widgetKind": "EXPRESSION",
+                                "ballerinaType": "string"
+                              }
+                            ],
+                            "selectedIndex": 0
+                          }
+                        },
+                        "tokenFilePath": {
+                          "key": "tokenFilePath",
+                          "default": "",
+                          "metadata": {
+                            "label": "Token File Path",
+                            "description": "Path to the projected service-account token file"
+                          },
+                          "source": {
+                            "argument": {
+                              "kind": "LISTENER_PARAM_INCLUDED_FIELD",
+                              "originalName": "tokenFilePath"
+                            },
+                            "path": "auth.tokenFilePath"
+                          },
+                          "state": {
+                            "enabled": true,
+                            "editable": true,
+                            "optional": false,
+                            "advanced": false
+                          },
+                          "widget": {
+                            "alternatives": [
+                              {
+                                "widgetKind": "TEXT",
+                                "ballerinaType": "string"
+                              },
+                              {
+                                "widgetKind": "EXPRESSION",
+                                "ballerinaType": "string"
+                              }
+                            ],
+                            "selectedIndex": 0
+                          }
+                        }
+                      },
+                      "state": {
+                        "enabled": false,
+                        "editable": true,
+                        "optional": false,
+                        "advanced": false
+                      },
+                      "widget": {
+                        "widgetKind": "FORM",
+                        "selected": true
+                      }
+                    }
+                  ]
+                }
+              },
+              "state": {
+                "enabled": false,
+                "editable": true,
+                "optional": false,
+                "advanced": false
+              },
+              "widget": {
+                "widgetKind": "FORM",
+                "selected": true
+              }
+            }
+          ]
+        }
+      },
+      "serviceProperties": {
+        "path": {
+          "key": "path",
+          "placeholder": "invoices",
+          "default": "",
+          "metadata": {
+            "label": "Container",
+            "description": "The container whose blob events this service handles. Leave empty to handle the events of every container no other service claims."
+          },
+          "source": {
+            "construct": {
+              "kind": "SERVICE_BASE_PATH"
+            }
+          },
+          "state": {
+            "enabled": true,
+            "editable": true,
+            "optional": true,
+            "advanced": false
+          },
+          "widget": {
+            "alternatives": [
+              {
+                "widgetKind": "TEXT",
+                "ballerinaType": "string"
+              },
+              {
+                "widgetKind": "EXPRESSION",
+                "ballerinaType": "string"
+              }
+            ],
+            "selectedIndex": 0
+          }
+        }
+      }
+    }
+  ],
+  "serviceTypes": [
+    {
+      "target": "$service",
+      "metadata": {
+        "label": "Azure Blob Storage Service",
+        "description": "Handles blobs created or deleted in the container the service is attached to. Declare at least one handler."
+      },
+      "state": {
+        "editable": false,
+        "enabled": true
+      },
+      "fields": [],
+      "handlers": [
+        {
+          "target": "$service.onBlob",
+          "metadata": {
+            "label": "On Blob Created",
+            "description": "Invoked when a blob no typed handler takes is created or replaced in the container. The content arrives as raw bytes.",
+            "addLabel": "Add On Blob Created Handler (Raw Bytes)",
+            "addDescription": "Invoked when a blob is created or replaced in the container.",
+            "badge": "onCreate"
+          },
+          "fields": [
+            {
+              "target": {
+                "kind": "recordField",
+                "owner": "onBlob",
+                "path": "routing"
+              },
+              "metadata": {
+                "label": "Routing",
+                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": true,
+                "editable": true,
+                "optional": true
+              },
+              "source": {
+                "construct": {
+                  "kind": "COMPLEX_FUNCTION_ANNOTATION"
+                },
+                "argument": {
+                  "originalName": "FunctionConfig"
+                },
+                "module": {
+                  "name": "blob"
+                }
+              },
+              "key": "routing",
+              "default": "",
+              "properties": {
+                "namePattern": {
+                  "key": "namePattern",
+                  "placeholder": ".*\\.csv",
+                  "default": "",
+                  "metadata": {
+                    "label": "Blob Name Pattern",
+                    "description": "A regular expression matched against the blob name, the last path segment"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "namePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                },
+                "contentTypePattern": {
+                  "key": "contentTypePattern",
+                  "placeholder": "text/.*",
+                  "default": "",
+                  "metadata": {
+                    "label": "Content Type Pattern",
+                    "description": "A regular expression matched against the blob's content type without its parameters"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "contentTypePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                }
+              },
+              "widget": {
+                "widgetKind": "GROUP_SECTION",
+                "selected": true
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "target": "$service.onBlob.content",
+              "metadata": {
+                "label": "Content",
+                "description": "The content arrives as raw, unparsed bytes."
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "content.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Content",
+                    "description": "The content arrives as raw, unparsed bytes."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "default": "",
+                  "properties": {
+                    "stream": {
+                      "key": "stream",
+                      "default": false,
+                      "metadata": {
+                        "label": "Stream (Large Blobs)",
+                        "description": "Process the blob content in chunks."
+                      },
+                      "widget": {
+                        "widgetKind": "FLAG",
+                        "selected": true,
+                        "template": "stream<{{type}}, error?>"
+                      },
+                      "source": {
+                        "construct": {
+                          "kind": "PAYLOAD_MODIFIER"
+                        },
+                        "argument": {
+                          "targetParam": "payload"
+                        },
+                        "payload": {
+                          "modifier": "stream",
+                          "template": "stream<{{type}}, error?>",
+                          "supersedes": [
+                            "base"
+                          ]
+                        }
+                      },
+                      "state": {
+                        "enabled": true,
+                        "editable": true,
+                        "optional": false,
+                        "advanced": false
+                      }
+                    },
+                    "payload": {
+                      "key": "payload",
+                      "default": "byte[]",
+                      "metadata": {
+                        "label": "Content",
+                        "description": "The raw blob content as bytes."
+                      },
+                      "state": {
+                        "editable": false,
+                        "enabled": false,
+                        "optional": false,
+                        "advanced": false
+                      },
+                      "source": {
+                        "construct": {
+                          "kind": "PAYLOAD_TYPE"
+                        },
+                        "payload": {
+                          "defaultType": "byte[]"
+                        },
+                        "bindable": false
+                      },
+                      "widget": {
+                        "widgetKind": "TYPE",
+                        "selected": true,
+                        "ballerinaType": "byte[]",
+                        "template": "{{type}}"
+                      }
+                    }
+                  },
+                  "widget": {
+                    "widgetKind": "COMPLEX_PAYLOAD",
+                    "selected": true
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "content.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "content",
+                    "description": "The content arrives as raw, unparsed bytes."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "content",
+                  "default": "content",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              },
+              "state": {
+                "enabled": false,
+                "editable": true,
+                "optional": false,
+                "advanced": false,
+                "hidden": false
+              }
+            },
+            {
+              "target": "$service.onBlob.event",
+              "metadata": {
+                "label": "Blob Event (event)",
+                "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": false,
+                "editable": true,
+                "optional": true,
+                "hidden": false
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "event.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Include Blob Event (event)",
+                    "description": "Tick to include the event parameter in the handler signature."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "placeholder": "blob:BlobEvent",
+                  "default": false,
+                  "widget": {
+                    "widgetKind": "FLAG",
+                    "selected": true,
+                    "ballerinaType": "blob:BlobEvent"
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "event.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "event",
+                    "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": false,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "event",
+                  "default": "event",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              }
+            },
+            {
+              "target": "$service.onBlob.caller",
+              "metadata": {
+                "label": "Azure Blob Storage Connection (caller)",
+                "description": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": false,
+                "editable": true,
+                "optional": true,
+                "hidden": false
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "caller.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Include Azure Blob Storage Connection (caller)",
+                    "description": "Tick to include the caller parameter in the handler signature."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "placeholder": "blob:Caller",
+                  "default": false,
+                  "widget": {
+                    "widgetKind": "FLAG",
+                    "selected": true,
+                    "ballerinaType": "blob:Caller"
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "caller.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "caller",
+                    "description": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": false,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "caller",
+                  "default": "caller",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              }
+            }
+          ],
+          "returnType": {
+            "target": "$service.onBlob.returns",
+            "metadata": {
+              "label": "Return Type",
+              "description": "The return type of the function."
+            },
+            "state": {
+              "editable": false,
+              "enabled": true,
+              "optional": true
+            },
+            "source": {
+              "construct": {
+                "kind": "FUNCTION_RETURN"
+              }
+            }
+          },
+          "source": {
+            "construct": {
+              "kind": "FUNCTION"
+            },
+            "argument": {
+              "originalName": "onBlob"
+            },
+            "module": {
+              "name": "blob"
+            },
+            "group": "onCreate"
+          },
+          "state": {
+            "enabled": false,
+            "editable": true,
+            "optional": true
+          },
+          "nameEditable": false,
+          "repeatable": "ONE_EACH_PER_GROUP",
+          "canAddParameters": false,
+          "variantLabel": "Raw Bytes",
+          "group": "onCreate",
+          "documentation": {
+            "default": "Handles a newly created or replaced blob as raw bytes."
+          },
+          "properties": {
+            "routing": {
+              "metadata": {
+                "label": "Routing",
+                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": true,
+                "editable": true,
+                "optional": true
+              },
+              "source": {
+                "construct": {
+                  "kind": "COMPLEX_FUNCTION_ANNOTATION"
+                },
+                "argument": {
+                  "originalName": "FunctionConfig"
+                },
+                "module": {
+                  "name": "blob"
+                }
+              },
+              "key": "routing",
+              "default": "",
+              "properties": {
+                "namePattern": {
+                  "key": "namePattern",
+                  "placeholder": ".*\\.csv",
+                  "default": "",
+                  "metadata": {
+                    "label": "Blob Name Pattern",
+                    "description": "A regular expression matched against the blob name, the last path segment"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "namePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                },
+                "contentTypePattern": {
+                  "key": "contentTypePattern",
+                  "placeholder": "text/.*",
+                  "default": "",
+                  "metadata": {
+                    "label": "Content Type Pattern",
+                    "description": "A regular expression matched against the blob's content type without its parameters"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "contentTypePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                }
+              },
+              "widget": {
+                "widgetKind": "GROUP_SECTION",
+                "selected": true
+              }
+            }
+          }
+        },
+        {
+          "target": "$service.onBlobText",
+          "metadata": {
+            "label": "On Blob Created",
+            "description": "Invoked when a .txt blob is created or replaced in the container. The content arrives as plain text.",
+            "addLabel": "Add On Blob Created Handler (Text)",
+            "addDescription": "Invoked when a blob is created or replaced in the container.",
+            "badge": "onCreate"
+          },
+          "fields": [
+            {
+              "target": {
+                "kind": "recordField",
+                "owner": "onBlobText",
+                "path": "routing"
+              },
+              "metadata": {
+                "label": "Routing",
+                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": true,
+                "editable": true,
+                "optional": true
+              },
+              "source": {
+                "construct": {
+                  "kind": "COMPLEX_FUNCTION_ANNOTATION"
+                },
+                "argument": {
+                  "originalName": "FunctionConfig"
+                },
+                "module": {
+                  "name": "blob"
+                }
+              },
+              "key": "routing",
+              "default": "",
+              "properties": {
+                "namePattern": {
+                  "key": "namePattern",
+                  "placeholder": ".*\\.csv",
+                  "default": "",
+                  "metadata": {
+                    "label": "Blob Name Pattern",
+                    "description": "A regular expression matched against the blob name, the last path segment"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "namePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                },
+                "contentTypePattern": {
+                  "key": "contentTypePattern",
+                  "placeholder": "text/.*",
+                  "default": "",
+                  "metadata": {
+                    "label": "Content Type Pattern",
+                    "description": "A regular expression matched against the blob's content type without its parameters"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "contentTypePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                }
+              },
+              "widget": {
+                "widgetKind": "GROUP_SECTION",
+                "selected": true
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "target": "$service.onBlobText.content",
+              "metadata": {
+                "label": "Content",
+                "description": "The content arrives as plain text."
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "content.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Content",
+                    "description": "The content arrives as plain text."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "default": "",
+                  "properties": {
+                    "payload": {
+                      "key": "payload",
+                      "default": "string",
+                      "metadata": {
+                        "label": "Content",
+                        "description": "The blob content as plain text."
+                      },
+                      "state": {
+                        "editable": false,
+                        "enabled": false,
+                        "optional": false,
+                        "advanced": false
+                      },
+                      "source": {
+                        "construct": {
+                          "kind": "PAYLOAD_TYPE"
+                        },
+                        "payload": {
+                          "defaultType": "string"
+                        },
+                        "bindable": false
+                      },
+                      "widget": {
+                        "widgetKind": "TYPE",
+                        "selected": true,
+                        "ballerinaType": "string",
+                        "template": "{{type}}"
+                      }
+                    }
+                  },
+                  "widget": {
+                    "widgetKind": "COMPLEX_PAYLOAD",
+                    "selected": true
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "content.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "content",
+                    "description": "The content arrives as plain text."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "content",
+                  "default": "content",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              },
+              "state": {
+                "enabled": false,
+                "editable": true,
+                "optional": false,
+                "advanced": false,
+                "hidden": false
+              }
+            },
+            {
+              "target": "$service.onBlobText.event",
+              "metadata": {
+                "label": "Blob Event (event)",
+                "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": false,
+                "editable": true,
+                "optional": true,
+                "hidden": false
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "event.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Include Blob Event (event)",
+                    "description": "Tick to include the event parameter in the handler signature."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "placeholder": "blob:BlobEvent",
+                  "default": false,
+                  "widget": {
+                    "widgetKind": "FLAG",
+                    "selected": true,
+                    "ballerinaType": "blob:BlobEvent"
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "event.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "event",
+                    "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": false,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "event",
+                  "default": "event",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              }
+            },
+            {
+              "target": "$service.onBlobText.caller",
+              "metadata": {
+                "label": "Azure Blob Storage Connection (caller)",
+                "description": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": false,
+                "editable": true,
+                "optional": true,
+                "hidden": false
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "caller.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Include Azure Blob Storage Connection (caller)",
+                    "description": "Tick to include the caller parameter in the handler signature."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "placeholder": "blob:Caller",
+                  "default": false,
+                  "widget": {
+                    "widgetKind": "FLAG",
+                    "selected": true,
+                    "ballerinaType": "blob:Caller"
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "caller.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "caller",
+                    "description": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": false,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "caller",
+                  "default": "caller",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              }
+            }
+          ],
+          "returnType": {
+            "target": "$service.onBlobText.returns",
+            "metadata": {
+              "label": "Return Type",
+              "description": "The return type of the function."
+            },
+            "state": {
+              "editable": false,
+              "enabled": true,
+              "optional": true
+            },
+            "source": {
+              "construct": {
+                "kind": "FUNCTION_RETURN"
+              }
+            }
+          },
+          "source": {
+            "construct": {
+              "kind": "FUNCTION"
+            },
+            "argument": {
+              "originalName": "onBlobText"
+            },
+            "module": {
+              "name": "blob"
+            },
+            "group": "onCreate"
+          },
+          "state": {
+            "enabled": false,
+            "editable": true,
+            "optional": true
+          },
+          "nameEditable": false,
+          "repeatable": "ONE_EACH_PER_GROUP",
+          "canAddParameters": false,
+          "variantLabel": "Text",
+          "group": "onCreate",
+          "documentation": {
+            "default": "Handles a newly created or replaced text blob."
+          },
+          "properties": {
+            "routing": {
+              "metadata": {
+                "label": "Routing",
+                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": true,
+                "editable": true,
+                "optional": true
+              },
+              "source": {
+                "construct": {
+                  "kind": "COMPLEX_FUNCTION_ANNOTATION"
+                },
+                "argument": {
+                  "originalName": "FunctionConfig"
+                },
+                "module": {
+                  "name": "blob"
+                }
+              },
+              "key": "routing",
+              "default": "",
+              "properties": {
+                "namePattern": {
+                  "key": "namePattern",
+                  "placeholder": ".*\\.csv",
+                  "default": "",
+                  "metadata": {
+                    "label": "Blob Name Pattern",
+                    "description": "A regular expression matched against the blob name, the last path segment"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "namePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                },
+                "contentTypePattern": {
+                  "key": "contentTypePattern",
+                  "placeholder": "text/.*",
+                  "default": "",
+                  "metadata": {
+                    "label": "Content Type Pattern",
+                    "description": "A regular expression matched against the blob's content type without its parameters"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "contentTypePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                }
+              },
+              "widget": {
+                "widgetKind": "GROUP_SECTION",
+                "selected": true
+              }
+            }
+          }
+        },
+        {
+          "target": "$service.onBlobJson",
+          "metadata": {
+            "label": "On Blob Created",
+            "description": "Invoked when a .json blob is created or replaced in the container. Define a content schema below to receive the content as a custom type.",
+            "addLabel": "Add On Blob Created Handler (JSON)",
+            "addDescription": "Invoked when a blob is created or replaced in the container.",
+            "badge": "onCreate"
+          },
+          "fields": [
+            {
+              "target": {
+                "kind": "recordField",
+                "owner": "onBlobJson",
+                "path": "routing"
+              },
+              "metadata": {
+                "label": "Routing",
+                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": true,
+                "editable": true,
+                "optional": true
+              },
+              "source": {
+                "construct": {
+                  "kind": "COMPLEX_FUNCTION_ANNOTATION"
+                },
+                "argument": {
+                  "originalName": "FunctionConfig"
+                },
+                "module": {
+                  "name": "blob"
+                }
+              },
+              "key": "routing",
+              "default": "",
+              "properties": {
+                "namePattern": {
+                  "key": "namePattern",
+                  "placeholder": ".*\\.csv",
+                  "default": "",
+                  "metadata": {
+                    "label": "Blob Name Pattern",
+                    "description": "A regular expression matched against the blob name, the last path segment"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "namePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                },
+                "contentTypePattern": {
+                  "key": "contentTypePattern",
+                  "placeholder": "text/.*",
+                  "default": "",
+                  "metadata": {
+                    "label": "Content Type Pattern",
+                    "description": "A regular expression matched against the blob's content type without its parameters"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "contentTypePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                }
+              },
+              "widget": {
+                "widgetKind": "GROUP_SECTION",
+                "selected": true
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "target": "$service.onBlobJson.content",
+              "metadata": {
+                "label": "Content",
+                "description": "Define a content schema below to receive the content as a custom type."
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "content.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Content",
+                    "description": "Define a content schema below to receive the content as a custom type."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "default": "",
+                  "properties": {
+                    "payload": {
+                      "key": "payload",
+                      "default": "json",
+                      "metadata": {
+                        "label": "Content Schema",
+                        "description": "Create a record type describing the blob content. Defaults to json."
+                      },
+                      "source": {
+                        "construct": {
+                          "kind": "PAYLOAD_TYPE"
+                        },
+                        "payload": {
+                          "boundType": "",
+                          "typeConstraint": "anydata",
+                          "defaultType": "json",
+                          "template": "{{type}}"
+                        },
+                        "bindable": true,
+                        "bindingKind": "USER_SELECTED"
+                      },
+                      "state": {
+                        "enabled": true,
+                        "editable": true,
+                        "optional": false,
+                        "advanced": false
+                      },
+                      "widget": {
+                        "widgetKind": "PAYLOAD_TYPE",
+                        "selected": true,
+                        "ballerinaType": "json",
+                        "template": "{{type}}",
+                        "formats": [
+                          {
+                            "supported": [
+                              "json",
+                              "schema",
+                              "browse"
+                            ],
+                            "defaultFormat": "json"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "widget": {
+                    "widgetKind": "COMPLEX_PAYLOAD",
+                    "selected": true
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "content.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "content",
+                    "description": "Define a content schema below to receive the content as a custom type."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "content",
+                  "default": "content",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              },
+              "state": {
+                "enabled": false,
+                "editable": true,
+                "optional": false,
+                "advanced": false,
+                "hidden": false
+              }
+            },
+            {
+              "target": "$service.onBlobJson.event",
+              "metadata": {
+                "label": "Blob Event (event)",
+                "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": false,
+                "editable": true,
+                "optional": true,
+                "hidden": false
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "event.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Include Blob Event (event)",
+                    "description": "Tick to include the event parameter in the handler signature."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "placeholder": "blob:BlobEvent",
+                  "default": false,
+                  "widget": {
+                    "widgetKind": "FLAG",
+                    "selected": true,
+                    "ballerinaType": "blob:BlobEvent"
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "event.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "event",
+                    "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": false,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "event",
+                  "default": "event",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              }
+            },
+            {
+              "target": "$service.onBlobJson.caller",
+              "metadata": {
+                "label": "Azure Blob Storage Connection (caller)",
+                "description": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": false,
+                "editable": true,
+                "optional": true,
+                "hidden": false
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "caller.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Include Azure Blob Storage Connection (caller)",
+                    "description": "Tick to include the caller parameter in the handler signature."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "placeholder": "blob:Caller",
+                  "default": false,
+                  "widget": {
+                    "widgetKind": "FLAG",
+                    "selected": true,
+                    "ballerinaType": "blob:Caller"
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "caller.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "caller",
+                    "description": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": false,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "caller",
+                  "default": "caller",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              }
+            }
+          ],
+          "returnType": {
+            "target": "$service.onBlobJson.returns",
+            "metadata": {
+              "label": "Return Type",
+              "description": "The return type of the function."
+            },
+            "state": {
+              "editable": false,
+              "enabled": true,
+              "optional": true
+            },
+            "source": {
+              "construct": {
+                "kind": "FUNCTION_RETURN"
+              }
+            }
+          },
+          "source": {
+            "construct": {
+              "kind": "FUNCTION"
+            },
+            "argument": {
+              "originalName": "onBlobJson"
+            },
+            "module": {
+              "name": "blob"
+            },
+            "group": "onCreate"
+          },
+          "state": {
+            "enabled": false,
+            "editable": true,
+            "optional": true
+          },
+          "nameEditable": false,
+          "repeatable": "ONE_EACH_PER_GROUP",
+          "canAddParameters": false,
+          "variantLabel": "JSON",
+          "group": "onCreate",
+          "documentation": {
+            "default": "Handles a newly created or replaced JSON blob."
+          },
+          "properties": {
+            "routing": {
+              "metadata": {
+                "label": "Routing",
+                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": true,
+                "editable": true,
+                "optional": true
+              },
+              "source": {
+                "construct": {
+                  "kind": "COMPLEX_FUNCTION_ANNOTATION"
+                },
+                "argument": {
+                  "originalName": "FunctionConfig"
+                },
+                "module": {
+                  "name": "blob"
+                }
+              },
+              "key": "routing",
+              "default": "",
+              "properties": {
+                "namePattern": {
+                  "key": "namePattern",
+                  "placeholder": ".*\\.csv",
+                  "default": "",
+                  "metadata": {
+                    "label": "Blob Name Pattern",
+                    "description": "A regular expression matched against the blob name, the last path segment"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "namePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                },
+                "contentTypePattern": {
+                  "key": "contentTypePattern",
+                  "placeholder": "text/.*",
+                  "default": "",
+                  "metadata": {
+                    "label": "Content Type Pattern",
+                    "description": "A regular expression matched against the blob's content type without its parameters"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "contentTypePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                }
+              },
+              "widget": {
+                "widgetKind": "GROUP_SECTION",
+                "selected": true
+              }
+            }
+          }
+        },
+        {
+          "target": "$service.onBlobXml",
+          "metadata": {
+            "label": "On Blob Created",
+            "description": "Invoked when an .xml blob is created or replaced in the container. Define a content schema below to receive the content as a custom type.",
+            "addLabel": "Add On Blob Created Handler (XML)",
+            "addDescription": "Invoked when a blob is created or replaced in the container.",
+            "badge": "onCreate"
+          },
+          "fields": [
+            {
+              "target": {
+                "kind": "recordField",
+                "owner": "onBlobXml",
+                "path": "routing"
+              },
+              "metadata": {
+                "label": "Routing",
+                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": true,
+                "editable": true,
+                "optional": true
+              },
+              "source": {
+                "construct": {
+                  "kind": "COMPLEX_FUNCTION_ANNOTATION"
+                },
+                "argument": {
+                  "originalName": "FunctionConfig"
+                },
+                "module": {
+                  "name": "blob"
+                }
+              },
+              "key": "routing",
+              "default": "",
+              "properties": {
+                "namePattern": {
+                  "key": "namePattern",
+                  "placeholder": ".*\\.csv",
+                  "default": "",
+                  "metadata": {
+                    "label": "Blob Name Pattern",
+                    "description": "A regular expression matched against the blob name, the last path segment"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "namePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                },
+                "contentTypePattern": {
+                  "key": "contentTypePattern",
+                  "placeholder": "text/.*",
+                  "default": "",
+                  "metadata": {
+                    "label": "Content Type Pattern",
+                    "description": "A regular expression matched against the blob's content type without its parameters"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "contentTypePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                }
+              },
+              "widget": {
+                "widgetKind": "GROUP_SECTION",
+                "selected": true
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "target": "$service.onBlobXml.content",
+              "metadata": {
+                "label": "Content",
+                "description": "Define a content schema below to receive the content as a custom type."
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "content.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Content",
+                    "description": "Define a content schema below to receive the content as a custom type."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "default": "",
+                  "properties": {
+                    "payload": {
+                      "key": "payload",
+                      "default": "xml",
+                      "metadata": {
+                        "label": "Content Schema",
+                        "description": "Create a record type describing the blob content. Defaults to xml."
+                      },
+                      "source": {
+                        "construct": {
+                          "kind": "PAYLOAD_TYPE"
+                        },
+                        "payload": {
+                          "boundType": "",
+                          "typeConstraint": "anydata",
+                          "defaultType": "xml",
+                          "template": "{{type}}"
+                        },
+                        "bindable": true,
+                        "bindingKind": "USER_SELECTED"
+                      },
+                      "state": {
+                        "enabled": true,
+                        "editable": true,
+                        "optional": false,
+                        "advanced": false
+                      },
+                      "widget": {
+                        "widgetKind": "PAYLOAD_TYPE",
+                        "selected": true,
+                        "ballerinaType": "xml",
+                        "template": "{{type}}"
+                      }
+                    }
+                  },
+                  "widget": {
+                    "widgetKind": "COMPLEX_PAYLOAD",
+                    "selected": true
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "content.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "content",
+                    "description": "Define a content schema below to receive the content as a custom type."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "content",
+                  "default": "content",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              },
+              "state": {
+                "enabled": false,
+                "editable": true,
+                "optional": false,
+                "advanced": false,
+                "hidden": false
+              }
+            },
+            {
+              "target": "$service.onBlobXml.event",
+              "metadata": {
+                "label": "Blob Event (event)",
+                "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": false,
+                "editable": true,
+                "optional": true,
+                "hidden": false
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "event.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Include Blob Event (event)",
+                    "description": "Tick to include the event parameter in the handler signature."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "placeholder": "blob:BlobEvent",
+                  "default": false,
+                  "widget": {
+                    "widgetKind": "FLAG",
+                    "selected": true,
+                    "ballerinaType": "blob:BlobEvent"
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "event.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "event",
+                    "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": false,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "event",
+                  "default": "event",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              }
+            },
+            {
+              "target": "$service.onBlobXml.caller",
+              "metadata": {
+                "label": "Azure Blob Storage Connection (caller)",
+                "description": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": false,
+                "editable": true,
+                "optional": true,
+                "hidden": false
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "caller.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Include Azure Blob Storage Connection (caller)",
+                    "description": "Tick to include the caller parameter in the handler signature."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "placeholder": "blob:Caller",
+                  "default": false,
+                  "widget": {
+                    "widgetKind": "FLAG",
+                    "selected": true,
+                    "ballerinaType": "blob:Caller"
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "caller.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "caller",
+                    "description": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": false,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "caller",
+                  "default": "caller",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              }
+            }
+          ],
+          "returnType": {
+            "target": "$service.onBlobXml.returns",
+            "metadata": {
+              "label": "Return Type",
+              "description": "The return type of the function."
+            },
+            "state": {
+              "editable": false,
+              "enabled": true,
+              "optional": true
+            },
+            "source": {
+              "construct": {
+                "kind": "FUNCTION_RETURN"
+              }
+            }
+          },
+          "source": {
+            "construct": {
+              "kind": "FUNCTION"
+            },
+            "argument": {
+              "originalName": "onBlobXml"
+            },
+            "module": {
+              "name": "blob"
+            },
+            "group": "onCreate"
+          },
+          "state": {
+            "enabled": false,
+            "editable": true,
+            "optional": true
+          },
+          "nameEditable": false,
+          "repeatable": "ONE_EACH_PER_GROUP",
+          "canAddParameters": false,
+          "variantLabel": "XML",
+          "group": "onCreate",
+          "documentation": {
+            "default": "Handles a newly created or replaced XML blob."
+          },
+          "properties": {
+            "routing": {
+              "metadata": {
+                "label": "Routing",
+                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": true,
+                "editable": true,
+                "optional": true
+              },
+              "source": {
+                "construct": {
+                  "kind": "COMPLEX_FUNCTION_ANNOTATION"
+                },
+                "argument": {
+                  "originalName": "FunctionConfig"
+                },
+                "module": {
+                  "name": "blob"
+                }
+              },
+              "key": "routing",
+              "default": "",
+              "properties": {
+                "namePattern": {
+                  "key": "namePattern",
+                  "placeholder": ".*\\.csv",
+                  "default": "",
+                  "metadata": {
+                    "label": "Blob Name Pattern",
+                    "description": "A regular expression matched against the blob name, the last path segment"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "namePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                },
+                "contentTypePattern": {
+                  "key": "contentTypePattern",
+                  "placeholder": "text/.*",
+                  "default": "",
+                  "metadata": {
+                    "label": "Content Type Pattern",
+                    "description": "A regular expression matched against the blob's content type without its parameters"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "contentTypePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                }
+              },
+              "widget": {
+                "widgetKind": "GROUP_SECTION",
+                "selected": true
+              }
+            }
+          }
+        },
+        {
+          "target": "$service.onBlobCsv",
+          "metadata": {
+            "label": "On Blob Created",
+            "description": "Invoked when a .csv blob is created or replaced in the container. Define a row schema below to receive the rows as custom types (e.g., User[], Order[]).",
+            "addLabel": "Add On Blob Created Handler (CSV)",
+            "addDescription": "Invoked when a blob is created or replaced in the container.",
+            "badge": "onCreate"
+          },
+          "fields": [
+            {
+              "target": {
+                "kind": "recordField",
+                "owner": "onBlobCsv",
+                "path": "routing"
+              },
+              "metadata": {
+                "label": "Routing",
+                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": true,
+                "editable": true,
+                "optional": true
+              },
+              "source": {
+                "construct": {
+                  "kind": "COMPLEX_FUNCTION_ANNOTATION"
+                },
+                "argument": {
+                  "originalName": "FunctionConfig"
+                },
+                "module": {
+                  "name": "blob"
+                }
+              },
+              "key": "routing",
+              "default": "",
+              "properties": {
+                "namePattern": {
+                  "key": "namePattern",
+                  "placeholder": ".*\\.csv",
+                  "default": "",
+                  "metadata": {
+                    "label": "Blob Name Pattern",
+                    "description": "A regular expression matched against the blob name, the last path segment"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "namePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                },
+                "contentTypePattern": {
+                  "key": "contentTypePattern",
+                  "placeholder": "text/.*",
+                  "default": "",
+                  "metadata": {
+                    "label": "Content Type Pattern",
+                    "description": "A regular expression matched against the blob's content type without its parameters"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "contentTypePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                }
+              },
+              "widget": {
+                "widgetKind": "GROUP_SECTION",
+                "selected": true
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "target": "$service.onBlobCsv.content",
+              "metadata": {
+                "label": "Content",
+                "description": "Define a row schema below to receive the rows as custom types (e.g., User[], Order[])."
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "content.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Content",
+                    "description": "Define a row schema below to receive the rows as custom types (e.g., User[], Order[])."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "default": "",
+                  "properties": {
+                    "stream": {
+                      "key": "stream",
+                      "default": false,
+                      "metadata": {
+                        "label": "Stream (Large Blobs)",
+                        "description": "Process the blob content in chunks."
+                      },
+                      "widget": {
+                        "widgetKind": "FLAG",
+                        "selected": true,
+                        "template": "stream<{{type}}, error?>"
+                      },
+                      "source": {
+                        "construct": {
+                          "kind": "PAYLOAD_MODIFIER"
+                        },
+                        "argument": {
+                          "targetParam": "payload"
+                        },
+                        "payload": {
+                          "modifier": "stream",
+                          "template": "stream<{{type}}, error?>",
+                          "supersedes": [
+                            "base"
+                          ]
+                        }
+                      },
+                      "state": {
+                        "enabled": true,
+                        "editable": true,
+                        "optional": false,
+                        "advanced": false
+                      }
+                    },
+                    "payload": {
+                      "key": "payload",
+                      "default": "string[][]",
+                      "metadata": {
+                        "label": "Row Schema",
+                        "description": "Create a record type describing one row of the blob. Each row arrives as one record."
+                      },
+                      "source": {
+                        "construct": {
+                          "kind": "PAYLOAD_TYPE"
+                        },
+                        "payload": {
+                          "boundType": "",
+                          "typeConstraint": "anydata",
+                          "defaultType": "string[]",
+                          "template": "{{type}}[]"
+                        },
+                        "bindable": true,
+                        "bindingKind": "USER_SELECTED"
+                      },
+                      "state": {
+                        "enabled": true,
+                        "editable": true,
+                        "optional": false,
+                        "advanced": false
+                      },
+                      "widget": {
+                        "widgetKind": "PAYLOAD_TYPE",
+                        "selected": true,
+                        "ballerinaType": "string[][]",
+                        "template": "{{type}}[]",
+                        "formats": [
+                          {
+                            "supported": [
+                              "schema",
+                              "browse",
+                              "json",
+                              "xml"
+                            ],
+                            "defaultFormat": "schema"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "widget": {
+                    "widgetKind": "COMPLEX_PAYLOAD",
+                    "selected": true
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "content.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "content",
+                    "description": "Define a row schema below to receive the rows as custom types (e.g., User[], Order[])."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "content",
+                  "default": "content",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              },
+              "state": {
+                "enabled": false,
+                "editable": true,
+                "optional": false,
+                "advanced": false,
+                "hidden": false
+              }
+            },
+            {
+              "target": "$service.onBlobCsv.event",
+              "metadata": {
+                "label": "Blob Event (event)",
+                "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": false,
+                "editable": true,
+                "optional": true,
+                "hidden": false
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "event.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Include Blob Event (event)",
+                    "description": "Tick to include the event parameter in the handler signature."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "placeholder": "blob:BlobEvent",
+                  "default": false,
+                  "widget": {
+                    "widgetKind": "FLAG",
+                    "selected": true,
+                    "ballerinaType": "blob:BlobEvent"
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "event.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "event",
+                    "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": false,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "event",
+                  "default": "event",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              }
+            },
+            {
+              "target": "$service.onBlobCsv.caller",
+              "metadata": {
+                "label": "Azure Blob Storage Connection (caller)",
+                "description": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": false,
+                "editable": true,
+                "optional": true,
+                "hidden": false
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "caller.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Include Azure Blob Storage Connection (caller)",
+                    "description": "Tick to include the caller parameter in the handler signature."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "placeholder": "blob:Caller",
+                  "default": false,
+                  "widget": {
+                    "widgetKind": "FLAG",
+                    "selected": true,
+                    "ballerinaType": "blob:Caller"
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "caller.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "caller",
+                    "description": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": false,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "caller",
+                  "default": "caller",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              }
+            }
+          ],
+          "returnType": {
+            "target": "$service.onBlobCsv.returns",
+            "metadata": {
+              "label": "Return Type",
+              "description": "The return type of the function."
+            },
+            "state": {
+              "editable": false,
+              "enabled": true,
+              "optional": true
+            },
+            "source": {
+              "construct": {
+                "kind": "FUNCTION_RETURN"
+              }
+            }
+          },
+          "source": {
+            "construct": {
+              "kind": "FUNCTION"
+            },
+            "argument": {
+              "originalName": "onBlobCsv"
+            },
+            "module": {
+              "name": "blob"
+            },
+            "group": "onCreate"
+          },
+          "state": {
+            "enabled": false,
+            "editable": true,
+            "optional": true
+          },
+          "nameEditable": false,
+          "repeatable": "ONE_EACH_PER_GROUP",
+          "canAddParameters": false,
+          "variantLabel": "CSV",
+          "group": "onCreate",
+          "documentation": {
+            "default": "Handles a newly created or replaced CSV blob."
+          },
+          "properties": {
+            "routing": {
+              "metadata": {
+                "label": "Routing",
+                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": true,
+                "editable": true,
+                "optional": true
+              },
+              "source": {
+                "construct": {
+                  "kind": "COMPLEX_FUNCTION_ANNOTATION"
+                },
+                "argument": {
+                  "originalName": "FunctionConfig"
+                },
+                "module": {
+                  "name": "blob"
+                }
+              },
+              "key": "routing",
+              "default": "",
+              "properties": {
+                "namePattern": {
+                  "key": "namePattern",
+                  "placeholder": ".*\\.csv",
+                  "default": "",
+                  "metadata": {
+                    "label": "Blob Name Pattern",
+                    "description": "A regular expression matched against the blob name, the last path segment"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "namePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                },
+                "contentTypePattern": {
+                  "key": "contentTypePattern",
+                  "placeholder": "text/.*",
+                  "default": "",
+                  "metadata": {
+                    "label": "Content Type Pattern",
+                    "description": "A regular expression matched against the blob's content type without its parameters"
+                  },
+                  "source": {
+                    "construct": {
+                      "kind": "MAPPING_FIELD"
+                    },
+                    "value": {
+                      "kind": "STRING_LITERAL"
+                    },
+                    "field": "contentTypePattern",
+                    "optional": true
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "widget": {
+                    "alternatives": [
+                      {
+                        "widgetKind": "TEXT",
+                        "ballerinaType": "string"
+                      },
+                      {
+                        "widgetKind": "EXPRESSION",
+                        "ballerinaType": "string"
+                      }
+                    ],
+                    "selectedIndex": 0
+                  }
+                }
+              },
+              "widget": {
+                "widgetKind": "GROUP_SECTION",
+                "selected": true
+              }
+            }
+          }
+        },
+        {
+          "target": "$service.onBlobDeleted",
+          "metadata": {
+            "label": "On Blob Deleted",
+            "description": "Invoked when a blob is deleted from the container.",
+            "addLabel": "Add On Blob Deleted Handler",
+            "badge": "onDelete"
+          },
+          "parameters": [
+            {
+              "target": "$service.onBlobDeleted.event",
+              "metadata": {
+                "label": "Blob Event (event)",
+                "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+              },
+              "state": {
+                "hidden": true,
+                "editable": false,
+                "enabled": true,
+                "optional": false,
+                "advanced": false
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "event.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Parameter Type",
+                    "description": "The type of the parameter"
+                  },
+                  "state": {
+                    "editable": false,
+                    "enabled": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "placeholder": "blob:BlobEvent",
+                  "default": "blob:BlobEvent",
+                  "widget": {
+                    "widgetKind": "TYPE",
+                    "selected": true
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "event.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "event",
+                    "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "event",
+                  "default": "event",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              }
+            },
+            {
+              "target": "$service.onBlobDeleted.caller",
+              "metadata": {
+                "label": "Azure Blob Storage Connection (caller)",
+                "description": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": false,
+                "editable": true,
+                "optional": true,
+                "hidden": false
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "caller.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Include Azure Blob Storage Connection (caller)",
+                    "description": "Tick to include the caller parameter in the handler signature."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "placeholder": "blob:Caller",
+                  "default": false,
+                  "widget": {
+                    "widgetKind": "FLAG",
+                    "selected": true,
+                    "ballerinaType": "blob:Caller"
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "caller.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "caller",
+                    "description": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": false,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "caller",
+                  "default": "caller",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              }
+            }
+          ],
+          "returnType": {
+            "target": "$service.onBlobDeleted.returns",
+            "metadata": {
+              "label": "Return Type",
+              "description": "The return type of the function."
+            },
+            "state": {
+              "editable": false,
+              "enabled": true,
+              "optional": true
+            },
+            "source": {
+              "construct": {
+                "kind": "FUNCTION_RETURN"
+              }
+            }
+          },
+          "source": {
+            "construct": {
+              "kind": "FUNCTION"
+            },
+            "argument": {
+              "originalName": "onBlobDeleted"
+            },
+            "module": {
+              "name": "blob"
+            }
+          },
+          "state": {
+            "enabled": false,
+            "editable": true,
+            "optional": true
+          },
+          "nameEditable": false,
+          "repeatable": "FALSE",
+          "canAddParameters": false,
+          "properties": {}
+        },
+        {
+          "target": "$service.onError",
+          "metadata": {
+            "label": "On Error",
+            "description": "Invoked when a poll fails, a message cannot be parsed, or a blob's content cannot be fetched or bound. Errors returned by the other handlers are not sent here; they drive redelivery.",
+            "addLabel": "Add On Error Handler",
+            "badge": "onError"
+          },
+          "parameters": [
+            {
+              "target": "$service.onError.err",
+              "metadata": {
+                "label": "Azure Blob Storage Error",
+                "description": "The error reported by the listener: a failed poll, an unparseable message, or content that could not be fetched or bound."
+              },
+              "state": {
+                "hidden": true,
+                "editable": false,
+                "enabled": true,
+                "optional": false,
+                "advanced": false
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "err.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Parameter Type",
+                    "description": "The type of the parameter"
+                  },
+                  "state": {
+                    "editable": false,
+                    "enabled": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "placeholder": "blob:Error",
+                  "default": "blob:Error",
+                  "widget": {
+                    "widgetKind": "TYPE",
+                    "selected": true
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "err.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "err",
+                    "description": "The error reported by the listener: a failed poll, an unparseable message, or content that could not be fetched or bound."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "blobError",
+                  "default": "blobError",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              }
+            },
+            {
+              "target": "$service.onError.caller",
+              "metadata": {
+                "label": "Azure Blob Storage Connection (caller)",
+                "description": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+              },
+              "state": {
+                "advanced": true,
+                "enabled": false,
+                "editable": true,
+                "optional": true,
+                "hidden": false
+              },
+              "fields": [
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "caller.parameter",
+                    "path": "type"
+                  },
+                  "metadata": {
+                    "label": "Include Azure Blob Storage Connection (caller)",
+                    "description": "Tick to include the caller parameter in the handler signature."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": true,
+                    "optional": true,
+                    "advanced": false
+                  },
+                  "key": "type",
+                  "placeholder": "blob:Caller",
+                  "default": false,
+                  "widget": {
+                    "widgetKind": "FLAG",
+                    "selected": true,
+                    "ballerinaType": "blob:Caller"
+                  }
+                },
+                {
+                  "target": {
+                    "kind": "recordField",
+                    "owner": "caller.parameter",
+                    "path": "name"
+                  },
+                  "metadata": {
+                    "label": "caller",
+                    "description": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                  },
+                  "state": {
+                    "enabled": true,
+                    "editable": false,
+                    "optional": false,
+                    "advanced": false
+                  },
+                  "key": "name",
+                  "placeholder": "caller",
+                  "default": "caller",
+                  "widget": {
+                    "widgetKind": "IDENTIFIER",
+                    "selected": true
+                  }
+                }
+              ],
+              "source": {
+                "construct": {
+                  "kind": "FUNCTION_PARAM"
+                }
+              }
+            }
+          ],
+          "returnType": {
+            "target": "$service.onError.returns",
+            "metadata": {
+              "label": "Return Type",
+              "description": "The return type of the function."
+            },
+            "state": {
+              "editable": false,
+              "enabled": true,
+              "optional": true
+            },
+            "source": {
+              "construct": {
+                "kind": "FUNCTION_RETURN"
+              }
+            }
+          },
+          "source": {
+            "construct": {
+              "kind": "FUNCTION"
+            },
+            "argument": {
+              "originalName": "onError"
+            },
+            "module": {
+              "name": "blob"
+            }
+          },
+          "state": {
+            "enabled": false,
+            "editable": true,
+            "optional": true
+          },
+          "nameEditable": false,
+          "repeatable": "FALSE",
+          "canAddParameters": false,
+          "properties": {}
+        }
+      ],
+      "source": {
+        "construct": {
+          "kind": "SERVICE_TYPE_DESCRIPTOR"
+        },
+        "argument": {
+          "originalName": "Service"
+        },
+        "module": {
+          "name": "blob"
+        }
+      },
+      "description": "Handles blobs created or deleted in the container the service is attached to.",
+      "properties": {}
+    }
+  ],
+  "artifactInfo": {
+    "displayLabel": "Azure Blob Storage Integration",
+    "icon": {
+      "lightPath": "icons/light.svg",
+      "darkPath": "icons/dark.svg"
+    },
+    "identifier": {
+      "separator": " - ",
+      "resolvers": [
+        {
+          "via": "servicePath"
+        }
+      ]
+    }
+  }
+}
