@@ -93,12 +93,12 @@ public final class ClientInit {
     }
 
     // A SAS signs the request alone; a copy source in the same account must carry it too, so
-    // the query of a SAS credential is kept for the copy operations.
+    // the query of a SAS credential is kept for the copy operations, whichever form carries it.
     @SuppressWarnings("unchecked")
     private static void storeSasSignature(BObject self, BMap<BString, Object> config) {
-        Credentials.Resolved credential = Credentials.resolve((BMap<BString, Object>) config.getMapValue(AUTH));
-        if (credential.sas() != null) {
-            self.addNativeData(BallerinaAzureClient.NATIVE_SAS_SIGNATURE, credential.sas().getSignature());
+        String signature = Credentials.sasSignature((BMap<BString, Object>) config.getMapValue(AUTH));
+        if (signature != null) {
+            self.addNativeData(BallerinaAzureClient.NATIVE_SAS_SIGNATURE, signature);
         }
     }
 

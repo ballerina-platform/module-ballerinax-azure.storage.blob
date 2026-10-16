@@ -151,6 +151,34 @@ public final class Credentials {
      * rewritten.
      */
     /**
+     * The SAS query of an auth record, in whichever form carries it: a bare token, the query of a
+     * SAS URL, or the {@code SharedAccessSignature} pair of a connection string.
+     *
+     * @param auth the auth record
+     * @return the SAS query without a leading {@code ?}, or {@code null} for the other forms
+     */
+    public static String sasSignature(BMap<BString, Object> auth) {
+        String signature = null;
+        if (auth.containsKey(SAS_TOKEN)) {
+            signature = requireNonEmpty(auth, SAS_TOKEN);
+        } else if (auth.containsKey(SAS_URL)) {
+            signature = URI.create(requireNonEmpty(auth, SAS_URL)).getRawQuery();
+        } else if (auth.containsKey(CONNECTION_STRING)) {
+            // Split the way the SDK's own parser splits it.
+            for (String pair : requireNonEmpty(auth, CONNECTION_STRING).split(";")) {
+                int separator = pair.indexOf('=');
+                if (separator > 0 && pair.substring(0, separator).strip().equalsIgnoreCase("SharedAccessSignature")) {
+                    signature = pair.substring(separator + 1).strip();
+                }
+            }
+        }
+        if (signature == null || signature.isEmpty()) {
+            return null;
+        }
+        return signature.startsWith("?") ? signature.substring(1) : signature;
+    }
+
+    /**
      * The pipeline policy that keeps an explicit port on requests, or {@code null} when the URL
      * carries none.
      *
