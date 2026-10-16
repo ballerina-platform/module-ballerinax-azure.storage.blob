@@ -1,0 +1,4 @@
+[package]
+org = "azure_blob_test"
+name = "valid_on_error_bare_error"
+version = "0.9.0"

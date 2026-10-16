@@ -1,0 +1,4 @@
+[package]
+org = "azure_blob_test"
+name = "invalid_on_blob_json_map"
+version = "0.9.0"

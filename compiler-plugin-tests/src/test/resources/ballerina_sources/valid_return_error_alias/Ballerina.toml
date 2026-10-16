@@ -1,0 +1,4 @@
+[package]
+org = "azure_blob_test"
+name = "valid_return_error_alias"
+version = "0.9.0"
