@@ -634,7 +634,7 @@ public type BlobProperties record {|
     string blobType;
     # The access tier, as the wire's string, since the service's tier set is open-ended
     string accessTier?;
-    # Whether the tier was inferred rather than set explicitly
+    # Whether the tier was inferred rather than set explicitly; present whenever the blob has a tier
     boolean accessTierInferred?;
     # The rehydration state, set while a rehydration from the archive tier is pending
     string archiveStatus?;
