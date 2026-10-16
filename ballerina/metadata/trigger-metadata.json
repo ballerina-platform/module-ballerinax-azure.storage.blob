@@ -1,0 +1,614 @@
+{
+  "version": "v1.0",
+  "listeners": [
+    {
+      "id": "$listener",
+      "doc": "Consumes the Storage queue an Event Grid subscription fills with blob events and dispatches each event to the service attached for the blob's container.",
+      "type": {
+        "name": "Listener"
+      },
+      "services": [
+        "$service"
+      ],
+      "multipleServicesAllowed": true
+    }
+  ],
+  "serviceTypes": [
+    {
+      "id": "$service",
+      "doc": "Handles the blobs created, replaced, or deleted in one container, dispatching each created blob to the handler matching its name or content type.",
+      "type": {
+        "name": "Service"
+      },
+      "concrete": false,
+      "multipleListenersAllowed": false,
+      "identifier": {
+        "presence": "optional",
+        "form": [
+          "basePath"
+        ]
+      },
+      "handlers": {
+        "backedByConcreteType": false,
+        "options": [
+          {
+            "id": "$service.onBlob",
+            "name": "onBlob",
+            "kind": "remote",
+            "doc": "Invoked for any created blob no typed handler takes, and as the fallback when no typed handler is declared. Content arrives as raw bytes.",
+            "presence": "optional",
+            "annotations": [
+              "$functionConfig"
+            ],
+            "params": [
+              {
+                "id": "$service.onBlob.content",
+                "name": "content",
+                "doc": "The blob's bytes. Declare the stream form to read a large blob in chunks rather than loading it into memory.",
+                "type": [
+                  {
+                    "shape": "array",
+                    "elementType": {
+                      "name": "byte",
+                      "builtin": true
+                    }
+                  },
+                  {
+                    "shape": "stream",
+                    "elementType": {
+                      "shape": "array",
+                      "elementType": {
+                        "name": "byte",
+                        "builtin": true
+                      }
+                    },
+                    "completionType": [
+                      {
+                        "name": "error",
+                        "builtin": true
+                      },
+                      {
+                        "name": "()",
+                        "builtin": true
+                      }
+                    ]
+                  }
+                ],
+                "presence": "required"
+              },
+              {
+                "id": "$service.onBlob.event",
+                "name": "event",
+                "doc": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer.",
+                "type": {
+                  "name": "BlobEvent"
+                },
+                "presence": "optional"
+              },
+              {
+                "id": "$service.onBlob.caller",
+                "name": "caller",
+                "doc": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags.",
+                "type": {
+                  "name": "Caller"
+                },
+                "presence": "optional"
+              }
+            ],
+            "returns": {
+              "id": "$service.onBlob.returns",
+              "type": [
+                {
+                  "name": "error",
+                  "builtin": true
+                },
+                {
+                  "name": "()",
+                  "builtin": true
+                }
+              ]
+            }
+          },
+          {
+            "id": "$service.onBlobText",
+            "name": "onBlobText",
+            "kind": "remote",
+            "doc": "Invoked for each created .txt blob, or a blob whose content type is text, or any created blob matching the patterns set on @blob:FunctionConfig. Falls through to onBlob when not declared.",
+            "presence": "optional",
+            "annotations": [
+              "$functionConfig"
+            ],
+            "params": [
+              {
+                "id": "$service.onBlobText.content",
+                "name": "content",
+                "doc": "The blob's text content, decoded as UTF-8.",
+                "type": {
+                  "name": "string",
+                  "builtin": true
+                },
+                "presence": "required"
+              },
+              {
+                "id": "$service.onBlobText.event",
+                "name": "event",
+                "doc": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer.",
+                "type": {
+                  "name": "BlobEvent"
+                },
+                "presence": "optional"
+              },
+              {
+                "id": "$service.onBlobText.caller",
+                "name": "caller",
+                "doc": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags.",
+                "type": {
+                  "name": "Caller"
+                },
+                "presence": "optional"
+              }
+            ],
+            "returns": {
+              "id": "$service.onBlobText.returns",
+              "type": [
+                {
+                  "name": "error",
+                  "builtin": true
+                },
+                {
+                  "name": "()",
+                  "builtin": true
+                }
+              ]
+            }
+          },
+          {
+            "id": "$service.onBlobJson",
+            "name": "onBlobJson",
+            "kind": "remote",
+            "doc": "Invoked for each created .json blob, or a blob whose content type is JSON, or any created blob matching the patterns set on @blob:FunctionConfig. Falls through to onBlob when not declared.",
+            "presence": "optional",
+            "annotations": [
+              "$functionConfig"
+            ],
+            "params": [
+              {
+                "id": "$service.onBlobJson.content",
+                "name": "content",
+                "doc": "The parsed content; bind a record type to project an object root. Binding is strict unless the listener relaxes it.",
+                "type": {
+                  "name": "json",
+                  "builtin": true
+                },
+                "presence": "required",
+                "dataBinding": {
+                  "typedescs": [
+                    {
+                      "constraint": {
+                        "name": "json",
+                        "builtin": true
+                      },
+                      "shapes": [
+                        {
+                          "form": "bare"
+                        }
+                      ]
+                    },
+                    {
+                      "constraint": {
+                        "name": "record {}",
+                        "builtin": true
+                      },
+                      "shapes": [
+                        {
+                          "form": "bare"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "$service.onBlobJson.event",
+                "name": "event",
+                "doc": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer.",
+                "type": {
+                  "name": "BlobEvent"
+                },
+                "presence": "optional"
+              },
+              {
+                "id": "$service.onBlobJson.caller",
+                "name": "caller",
+                "doc": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags.",
+                "type": {
+                  "name": "Caller"
+                },
+                "presence": "optional"
+              }
+            ],
+            "returns": {
+              "id": "$service.onBlobJson.returns",
+              "type": [
+                {
+                  "name": "error",
+                  "builtin": true
+                },
+                {
+                  "name": "()",
+                  "builtin": true
+                }
+              ]
+            }
+          },
+          {
+            "id": "$service.onBlobXml",
+            "name": "onBlobXml",
+            "kind": "remote",
+            "doc": "Invoked for each created .xml blob, or a blob whose content type is XML, or any created blob matching the patterns set on @blob:FunctionConfig. Falls through to onBlob when not declared.",
+            "presence": "optional",
+            "annotations": [
+              "$functionConfig"
+            ],
+            "params": [
+              {
+                "id": "$service.onBlobXml.content",
+                "name": "content",
+                "doc": "The parsed document; bind a record type to project it from the document's elements. Binding is strict unless the listener relaxes it.",
+                "type": {
+                  "name": "xml",
+                  "builtin": true
+                },
+                "presence": "required",
+                "dataBinding": {
+                  "typedescs": [
+                    {
+                      "constraint": {
+                        "name": "xml",
+                        "builtin": true
+                      },
+                      "shapes": [
+                        {
+                          "form": "bare"
+                        }
+                      ]
+                    },
+                    {
+                      "constraint": {
+                        "name": "record {}",
+                        "builtin": true
+                      },
+                      "shapes": [
+                        {
+                          "form": "bare"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "$service.onBlobXml.event",
+                "name": "event",
+                "doc": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer.",
+                "type": {
+                  "name": "BlobEvent"
+                },
+                "presence": "optional"
+              },
+              {
+                "id": "$service.onBlobXml.caller",
+                "name": "caller",
+                "doc": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags.",
+                "type": {
+                  "name": "Caller"
+                },
+                "presence": "optional"
+              }
+            ],
+            "returns": {
+              "id": "$service.onBlobXml.returns",
+              "type": [
+                {
+                  "name": "error",
+                  "builtin": true
+                },
+                {
+                  "name": "()",
+                  "builtin": true
+                }
+              ]
+            }
+          },
+          {
+            "id": "$service.onBlobCsv",
+            "name": "onBlobCsv",
+            "kind": "remote",
+            "doc": "Invoked for each created .csv blob, or a blob whose content type is CSV, or any created blob matching the patterns set on @blob:FunctionConfig. Falls through to onBlob when not declared. Declaring a stream parameter reads the blob in chunks instead of loading it into memory.",
+            "presence": "optional",
+            "annotations": [
+              "$functionConfig"
+            ],
+            "params": [
+              {
+                "id": "$service.onBlobCsv.content",
+                "name": "content",
+                "doc": "The parsed rows, as batched or streamed string rows or records; the field names of a record row come from the header row. Binding is strict unless the listener relaxes it.",
+                "type": [
+                  {
+                    "shape": "array",
+                    "elementType": {
+                      "shape": "array",
+                      "elementType": {
+                        "name": "string",
+                        "builtin": true
+                      }
+                    }
+                  },
+                  {
+                    "shape": "array",
+                    "elementType": {
+                      "name": "record {}",
+                      "builtin": true
+                    }
+                  },
+                  {
+                    "shape": "stream",
+                    "elementType": {
+                      "shape": "array",
+                      "elementType": {
+                        "name": "string",
+                        "builtin": true
+                      }
+                    },
+                    "completionType": [
+                      {
+                        "name": "error",
+                        "builtin": true
+                      },
+                      {
+                        "name": "()",
+                        "builtin": true
+                      }
+                    ]
+                  },
+                  {
+                    "shape": "stream",
+                    "elementType": {
+                      "name": "record {}",
+                      "builtin": true
+                    },
+                    "completionType": [
+                      {
+                        "name": "error",
+                        "builtin": true
+                      },
+                      {
+                        "name": "()",
+                        "builtin": true
+                      }
+                    ]
+                  }
+                ],
+                "presence": "required",
+                "dataBinding": {
+                  "typedescs": [
+                    {
+                      "constraint": {
+                        "shape": "array",
+                        "elementType": {
+                          "name": "string",
+                          "builtin": true
+                        }
+                      },
+                      "shapes": [
+                        {
+                          "form": "array",
+                          "element": "bare"
+                        },
+                        {
+                          "form": "stream",
+                          "element": "bare",
+                          "completionType": [
+                            {
+                              "name": "error",
+                              "builtin": true
+                            },
+                            {
+                              "name": "()",
+                              "builtin": true
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "constraint": {
+                        "name": "record {}",
+                        "builtin": true
+                      },
+                      "shapes": [
+                        {
+                          "form": "array",
+                          "element": "bare"
+                        },
+                        {
+                          "form": "stream",
+                          "element": "bare",
+                          "completionType": [
+                            {
+                              "name": "error",
+                              "builtin": true
+                            },
+                            {
+                              "name": "()",
+                              "builtin": true
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "$service.onBlobCsv.event",
+                "name": "event",
+                "doc": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer.",
+                "type": {
+                  "name": "BlobEvent"
+                },
+                "presence": "optional"
+              },
+              {
+                "id": "$service.onBlobCsv.caller",
+                "name": "caller",
+                "doc": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags.",
+                "type": {
+                  "name": "Caller"
+                },
+                "presence": "optional"
+              }
+            ],
+            "returns": {
+              "id": "$service.onBlobCsv.returns",
+              "type": [
+                {
+                  "name": "error",
+                  "builtin": true
+                },
+                {
+                  "name": "()",
+                  "builtin": true
+                }
+              ]
+            }
+          },
+          {
+            "id": "$service.onBlobDeleted",
+            "name": "onBlobDeleted",
+            "kind": "remote",
+            "doc": "Invoked for each deleted blob in the container.",
+            "presence": "optional",
+            "params": [
+              {
+                "id": "$service.onBlobDeleted.event",
+                "name": "event",
+                "doc": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer.",
+                "type": {
+                  "name": "BlobEvent"
+                },
+                "presence": "required"
+              },
+              {
+                "id": "$service.onBlobDeleted.caller",
+                "name": "caller",
+                "doc": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags.",
+                "type": {
+                  "name": "Caller"
+                },
+                "presence": "optional"
+              }
+            ],
+            "returns": {
+              "id": "$service.onBlobDeleted.returns",
+              "type": [
+                {
+                  "name": "error",
+                  "builtin": true
+                },
+                {
+                  "name": "()",
+                  "builtin": true
+                }
+              ]
+            }
+          },
+          {
+            "id": "$service.onError",
+            "name": "onError",
+            "kind": "remote",
+            "doc": "Invoked when the listener fails to poll the queue, to parse a message, or to fetch or bind a blob's content. Errors returned by the other handlers are not sent here; they drive redelivery. Without it, failures are logged.",
+            "presence": "optional",
+            "params": [
+              {
+                "id": "$service.onError.err",
+                "name": "err",
+                "doc": "The failure that interrupted processing.",
+                "type": {
+                  "name": "Error"
+                },
+                "presence": "required"
+              },
+              {
+                "id": "$service.onError.caller",
+                "name": "caller",
+                "doc": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags.",
+                "type": {
+                  "name": "Caller"
+                },
+                "presence": "optional"
+              }
+            ],
+            "returns": {
+              "id": "$service.onError.returns",
+              "type": [
+                {
+                  "name": "error",
+                  "builtin": true
+                },
+                {
+                  "name": "()",
+                  "builtin": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "rules": [
+        {
+          "id": "$atLeastOneHandler",
+          "rule": "structure.atLeastOne",
+          "message": "An Azure Blob Storage service must declare at least one of onBlob, onBlobText, onBlobJson, onBlobXml, onBlobCsv, or onBlobDeleted. onError alone never receives an event, so the service would do nothing.",
+          "subjects": [
+            {
+              "kind": "handler",
+              "id": "$service.onBlob"
+            },
+            {
+              "kind": "handler",
+              "id": "$service.onBlobText"
+            },
+            {
+              "kind": "handler",
+              "id": "$service.onBlobJson"
+            },
+            {
+              "kind": "handler",
+              "id": "$service.onBlobXml"
+            },
+            {
+              "kind": "handler",
+              "id": "$service.onBlobCsv"
+            },
+            {
+              "kind": "handler",
+              "id": "$service.onBlobDeleted"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "annotations": [
+    {
+      "id": "$functionConfig",
+      "type": {
+        "name": "FunctionConfig"
+      },
+      "attachPoint": "function",
+      "presence": "optional"
+    }
+  ]
+}

@@ -87,9 +87,11 @@ public isolated client class Client {
     # + options - Optional listing options (prefix, delimiter, inclusion toggles)
     # + return - A stream of `BlobEntry`, or an `Error`
     isolated remote function listBlobs(BlobListOptions? options = ())
-            returns stream<BlobEntry, Error?>|Error = @java:Method {
-        'class: "io.ballerina.lib.azure.storage.blob.client.ListOps"
-    } external;
+            returns stream<BlobEntry, Error?>|Error {
+        BlobEntryStreamGenerator generator = new;
+        check newBlobIterator(self, generator, options);
+        return new stream<BlobEntry, Error?>(generator);
+    }
 
     # Lists one page of the container's blobs, with the marker to resume from.
     #
@@ -194,9 +196,142 @@ public isolated client class Client {
     # + options - Optional upload options (headers, metadata, format override)
     # + return - An `Error` if the upload failed, otherwise `()`
     isolated remote function upload(UploadContent content, string destinationPath,
-            UploadContentOptions? options = ()) returns Error? = @java:Method {
-        'class: "io.ballerina.lib.azure.storage.blob.client.TransferOps"
-    } external;
+            UploadContentOptions? options = ()) returns Error? {
+        if content is stream<byte[], error?> {
+            return self.uploadByteStream(content, destinationPath, options);
+        }
+        if content is stream<record {}, error?> {
+            return self.uploadRecordStream(content, destinationPath, options);
+        }
+        byte[]|string|xml payload;
+        FileFormat? appliedFormat = ();
+        if content is record {} {
+            [payload, appliedFormat] = check serializeRecord(content, destinationPath, options?.fileFormat);
+        } else if content is record {}[] {
+            payload = check serializeRecordArray(content, destinationPath, options?.fileFormat);
+            appliedFormat = CSV;
+        } else if content is byte[]|string {
+            payload = content;
+        } else if content is xml {
+            if resolveUploadFormat(destinationPath, options?.fileFormat) !is XML {
+                return error Error("xml content requires a '.xml' extension in the destination path or an explicit "
+                        + "XML fileFormat");
+            }
+            payload = content;
+            appliedFormat = XML;
+        } else {
+            // The compiler does not subtract the record shapes from the union here, but
+            // both are handled above, so the residual json value is cast-safe.
+            [payload, appliedFormat] = check serializeJson(<json>content, destinationPath, options?.fileFormat);
+        }
+        return externUpload(self, payload, destinationPath, options, appliedFormat);
+    }
+
+    // Stages the source's bytes as blocks of the stream block size and commits them at the end.
+    // Source chunks coalesce into full blocks, so the request count tracks the content size
+    // rather than the source's chunking; a chunk larger than a block is carried over in slices.
+    private isolated function uploadByteStream(stream<byte[], error?> content, string destinationPath,
+            UploadContentOptions? options) returns Error? {
+        Error? result = self.stageByteStream(content, destinationPath, options);
+        if result is Error {
+            closeByteStreamQuietly(content);
+        }
+        return result;
+    }
+
+    private isolated function stageByteStream(stream<byte[], error?> content, string destinationPath,
+            UploadContentOptions? options) returns Error? {
+        string uploadId = newStreamUploadId();
+        byte[] buffer = [];
+        byte[] carry = [];
+        int blockCount = 0;
+        while true {
+            byte[] bytes;
+            if carry.length() > 0 {
+                bytes = carry;
+                carry = [];
+            } else {
+                ContentStreamEntry|error? chunk = content.next();
+                if chunk is () {
+                    break;
+                }
+                if chunk is error {
+                    return error Error("the source stream failed: " + chunk.message(), chunk);
+                }
+                bytes = chunk.value;
+            }
+            int room = STREAM_BLOCK_BYTES - buffer.length();
+            if bytes.length() > room {
+                carry = bytes.slice(room);
+                bytes = bytes.slice(0, room);
+            }
+            // Copied, never aliased: a source may hand out readonly chunks, and the buffer grows.
+            buffer.push(...bytes);
+            if buffer.length() >= STREAM_BLOCK_BYTES {
+                check stageStreamBlock(self, destinationPath, uploadId, blockCount, buffer, options);
+                blockCount += 1;
+                buffer = [];
+            }
+        }
+        if buffer.length() > 0 {
+            check stageStreamBlock(self, destinationPath, uploadId, blockCount, buffer, options);
+            blockCount += 1;
+        }
+        return commitStreamBlocks(self, destinationPath, uploadId, blockCount, options, ());
+    }
+
+    // Writes CSV rows as they are pulled: the first record's field names form the header, and
+    // a later record's extra field is not added to a header already written.
+    private isolated function uploadRecordStream(stream<record {}, error?> content, string destinationPath,
+            UploadContentOptions? options) returns Error? {
+        if resolveUploadFormat(destinationPath, options?.fileFormat) !is CSV {
+            closeRecordStreamQuietly(content);
+            return error Error("a record stream requires CSV format: use a '.csv' destination path "
+                    + "or an explicit fileFormat");
+        }
+        Error? result = self.stageRecordStream(content, destinationPath, options);
+        if result is Error {
+            closeRecordStreamQuietly(content);
+        }
+        return result;
+    }
+
+    private isolated function stageRecordStream(stream<record {}, error?> content, string destinationPath,
+            UploadContentOptions? options) returns Error? {
+        string uploadId = newStreamUploadId();
+        string[]? header = ();
+        string buffer = "";
+        int blockCount = 0;
+        while true {
+            record {|record {} value;|}|error? entry = content.next();
+            if entry is () {
+                break;
+            }
+            if entry is error {
+                return error Error("the source stream failed: " + entry.message(), entry);
+            }
+            string[] columns;
+            if header is string[] {
+                columns = header;
+                buffer += "\n";
+            } else {
+                columns = entry.value.keys();
+                header = columns;
+                buffer += csvRow(columns) + "\n";
+            }
+            buffer += csvRow(cells(entry.value, columns));
+            if buffer.length() >= STREAM_BLOCK_BYTES {
+                check stageStreamBlock(self, destinationPath, uploadId, blockCount, buffer.toBytes(), options);
+                blockCount += 1;
+                buffer = "";
+            }
+        }
+        if buffer.length() > 0 {
+            check stageStreamBlock(self, destinationPath, uploadId, blockCount, buffer.toBytes(), options);
+            blockCount += 1;
+        }
+        return commitStreamBlocks(self, destinationPath, uploadId, blockCount, options, CSV);
+    }
 
     # Downloads a blob to a local file. Fails if a local file already exists at the destination.
     #
@@ -325,9 +460,11 @@ public isolated client class Client {
     # + query - The filter expression, such as `"status" = 'done' AND "priority" >= '05'`
     # + return - A stream of `TaggedBlobEntry`, or an `Error`
     isolated remote function findBlobsByTags(string query)
-            returns stream<TaggedBlobEntry, Error?>|Error = @java:Method {
-        'class: "io.ballerina.lib.azure.storage.blob.client.TagOps"
-    } external;
+            returns stream<TaggedBlobEntry, Error?>|Error {
+        TaggedBlobStreamGenerator generator = new;
+        check newTaggedBlobIterator(self, generator, query);
+        return new stream<TaggedBlobEntry, Error?>(generator);
+    }
 
     // -----------------------------------------------------------------------
     // Snapshot operations

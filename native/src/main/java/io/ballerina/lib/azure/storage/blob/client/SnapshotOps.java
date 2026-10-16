@@ -18,22 +18,26 @@
 
 package io.ballerina.lib.azure.storage.blob.client;
 
+import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
+import io.ballerina.lib.azure.storage.blob.util.OptionsReader;
 import io.ballerina.runtime.api.Environment;
+import io.ballerina.runtime.api.utils.StringUtils;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
 
 /**
- * Point-in-time, read-only copies of a blob.
- *
- * <p>Every method is declared so that the Ballerina side of the API compiles against the
- * surface it expects; none of them carries an implementation yet.
+ * Native implementation of the snapshot operation.
  */
 public final class SnapshotOps {
 
     private SnapshotOps() {
     }
 
+    /** Creates a read-only snapshot of a blob and returns its id. */
     public static Object createSnapshot(Environment env, BObject self, BString path, Object options) {
-        throw new UnsupportedOperationException("not implemented");
+        return BallerinaAzureClient.invoke(env, () -> StringUtils.fromString(BlobOps.blobClient(self, path)
+                .createSnapshotWithResponse(OptionsReader.metadata(options), OptionsReader.leaseConditions(options),
+                        null, null)
+                .getValue().getSnapshotId()));
     }
 }
