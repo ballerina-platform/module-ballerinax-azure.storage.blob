@@ -112,6 +112,18 @@ public final class TransportConfigMapper {
     }
 
     public static RequestRetryOptions retryOptions(BMap<BString, Object> retry) {
+        return retryOptions(retry, true);
+    }
+
+    /**
+     * Maps a {@code RetryConfig} record, with or without its secondary host: a queue request is
+     * never retried against a secondary, since a receive is a read that changes the message.
+     *
+     * @param retry         the record
+     * @param withSecondary whether {@code secondaryHostUrl} applies
+     * @return the SDK retry options
+     */
+    public static RequestRetryOptions retryOptions(BMap<BString, Object> retry, boolean withSecondary) {
         String policy = retry.getStringValue(RETRY_POLICY_TYPE).getValue();
         return new RequestRetryOptions(
                 RETRY_POLICY_FIXED.equals(policy) ? RetryPolicyType.FIXED : RetryPolicyType.EXPONENTIAL,
@@ -119,7 +131,7 @@ public final class TransportConfigMapper {
                 seconds(retry.get(TRY_TIMEOUT_SECONDS)),
                 seconds(retry.get(RETRY_DELAY_SECONDS)),
                 seconds(retry.get(MAX_RETRY_DELAY_SECONDS)),
-                ValueUtils.optString(retry, SECONDARY_HOST_URL));
+                withSecondary ? ValueUtils.optString(retry, SECONDARY_HOST_URL) : null);
     }
 
     @SuppressWarnings("unchecked")

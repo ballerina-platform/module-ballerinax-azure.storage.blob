@@ -56,6 +56,17 @@ dependencies {
     implementation group: 'io.ballerina.lib', name: 'data.jsondata-native', version: "${stdlibDataJsonDataVersion}"
     implementation group: 'io.ballerina.lib', name: 'data.xmldata-native', version: "${stdlibDataXmlDataVersion}"
     implementation group: 'io.ballerina.lib', name: 'data.csv-native', version: "${stdlibDataCsvVersion}"
+
+    testImplementation group: 'org.testng', name: 'testng', version: "${testngVersion}"
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockitoVersion}"
+}
+
+test {
+    useTestNG()
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+    }
 }
 
 jar {

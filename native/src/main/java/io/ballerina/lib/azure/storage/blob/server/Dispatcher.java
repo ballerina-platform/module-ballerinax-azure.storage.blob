@@ -96,7 +96,8 @@ final class Dispatcher {
         EventParser.Parsed event;
         try {
             event = EventParser.parse(handle.body());
-        } catch (BError e) {
+        } catch (EventParser.EventParseException parseFailure) {
+            BError e = BlobErrorCreator.clientError(parseFailure.getMessage(), parseFailure.getCause());
             notifyAllOnError(ctx, e);
             fail(ctx, handle, e.getErrorMessage().getValue());
             return;

@@ -80,6 +80,7 @@ function testListenerOnBlobDispatchWithEventAndCaller() returns error? {
         remote function onBlob(byte[] content, BlobEvent event, Caller caller) returns error? {
             recorder.put("onblob", check string:fromBytes(content));
             recorder.put("eventType", event.eventType);
+            recorder.put("accountName", event.accountName);
             recorder.put("container", event.containerName);
             recorder.put("path", event.path);
             recorder.put("url", event.url);
@@ -100,6 +101,7 @@ function testListenerOnBlobDispatchWithEventAndCaller() returns error? {
 
     test:assertEquals(recorder.payload("onblob"), "payload-onblob");
     test:assertEquals(recorder.payload("eventType"), "BLOB_CREATED");
+    test:assertEquals(recorder.payload("accountName"), accountName());
     test:assertEquals(recorder.payload("container"), setup[1]);
     test:assertEquals(recorder.payload("path"), "incoming/note.dat");
     test:assertEquals(recorder.payload("url"), blobUrl(setup[1], "incoming/note.dat"));
@@ -545,10 +547,32 @@ function testListenerInitValidation() {
     test:assertTrue(new Listener(" ", auth = auth) is Error, "an empty queue name must be rejected");
     test:assertTrue(new Listener("q", auth = auth, queueServiceUrl = "not a url") is Error,
             "an invalid queueServiceUrl must be rejected");
-    test:assertTrue(new Listener("q", auth = {sasUrl: "https://acc.example.com/?sv=2024-11-04&sig=abc"}) is Error,
+    string accountSas = "sv=2024-11-04&ss=bq&srt=co&sp=racup&sig=abc";
+    test:assertTrue(new Listener("q", auth = {sasUrl: string `https://acc.example.com/?${accountSas}`}) is Error,
             "a SAS URL on a non-blob host needs queueServiceUrl");
-    test:assertTrue(new Listener("q", auth = {sasUrl: "https://acc.blob.core.windows.net/?sv=2024-11-04&sig=abc"}) is Listener,
-            "a SAS URL on the blob host derives the queue endpoint");
+    test:assertTrue(new Listener("q", auth = {sasUrl: string `https://acc.blob.core.windows.net/?${accountSas}`})
+            is Listener, "a SAS URL on the blob host derives the queue endpoint");
+    // The listener takes an account SAS covering both services; the kind and the services are
+    // checked locally, in every credential form that carries a SAS (spec 2.1).
+    test:assertTrue(new Listener("q", auth = {accountName: "acc", sasToken: "sv=2024-11-04&sr=c&sp=rl&sig=abc"})
+            is Error, "a service SAS must be rejected");
+    test:assertTrue(new Listener("q", auth = {accountName: "acc", sasToken: "sv=2024-11-04&ss=b&srt=co&sp=r&sig=abc"})
+            is Error, "an account SAS without the queue service must be rejected");
+    test:assertTrue(new Listener("q", auth = {sasUrl: string `https://acc.blob.core.windows.net/?sv=2024&ss=q&sig=abc`})
+            is Error, "an account SAS without the blob service must be rejected");
+    test:assertTrue(new Listener("q", auth = {connectionString: "BlobEndpoint=https://acc.blob.core.windows.net;"
+            + "QueueEndpoint=https://acc.queue.core.windows.net;SharedAccessSignature=sv=2024-11-04&sr=b&sp=r&sig=abc"})
+            is Error, "a connection string's service SAS must be rejected");
+    test:assertTrue(new Listener("q", auth = {connectionString: "BlobEndpoint=https://acc.blob.core.windows.net;"
+            + string `QueueEndpoint=https://acc.queue.core.windows.net;SharedAccessSignature=${accountSas}`})
+            is Listener, "a connection string's account SAS covering both services is accepted");
+    // An explicit blob serviceUrl derives the queue endpoint by relabelling its host; a host
+    // without the blob label (the emulator) needs queueServiceUrl.
+    test:assertTrue(new Listener("q", auth = {accountName: "acc", accountKey: AZURITE_KEY,
+            serviceUrl: "https://acc.blob.core.chinacloudapi.cn"}) is Listener,
+            "a sovereign blob serviceUrl derives the queue endpoint");
+    test:assertTrue(new Listener("q", auth = {accountName: AZURITE_ACCOUNT, accountKey: AZURITE_KEY,
+            serviceUrl: AZURITE_URL}) is Error, "an emulator serviceUrl without queueServiceUrl must be rejected");
 }
 
 // ---- lifecycle

@@ -32,8 +32,6 @@ import io.ballerina.runtime.api.utils.StringUtils;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BString;
 
-import java.net.URI;
-
 /**
  * Builds the SDK queue clients from the Ballerina {@code ListenerConfiguration}: the same
  * credential, retry and transport settings as the blob clients, aimed at the queue endpoint.
@@ -61,7 +59,7 @@ final class QueueClients {
                 .messageEncoding(QueueMessageEncoding.NONE);
         Object retryConfig = config.get(ClientInit.RETRY_CONFIG);
         if (retryConfig != null) {
-            builder.retryOptions(TransportConfigMapper.retryOptions((BMap<BString, Object>) retryConfig));
+            builder.retryOptions(TransportConfigMapper.retryOptions((BMap<BString, Object>) retryConfig, false));
         }
         builder.httpClient(TransportConfigMapper.httpClient(
                 (BMap<BString, Object>) config.get(ClientInit.TRANSPORT_CONFIG)));
@@ -71,32 +69,23 @@ final class QueueClients {
             queueServiceUrl = Credentials.validateUrl(queueServiceUrl, "queueServiceUrl");
         }
         Credentials.Resolved credential = Credentials.resolve(auth);
-        String endpoint;
+        String endpoint = QueueEndpoints.derive(queueServiceUrl, credential);
         if (credential.connectionString() != null) {
-            // As for the blob client: the SDK's parser validates the string, and the queue
-            // endpoint it derived is read back from a first build for the port policy.
+            // The SDK's parser validates the string and supplies the credential; the endpoint is
+            // the one derived above, so an explicit blob endpoint is honoured.
             try {
                 builder.connectionString(credential.connectionString());
-                if (queueServiceUrl != null) {
-                    builder.endpoint(queueServiceUrl);
-                    endpoint = queueServiceUrl;
-                } else {
-                    endpoint = builder.buildClient().getQueueUrl();
-                }
             } catch (IllegalArgumentException | IllegalStateException e) {
                 throw BlobErrorCreator.clientError("invalid connection string: " + BallerinaAzureClient.describe(e), e);
             }
+        } else if (credential.namedKey() != null) {
+            builder.credential(credential.namedKey());
+        } else if (credential.sas() != null) {
+            builder.credential(credential.sas());
         } else {
-            endpoint = queueServiceUrl != null ? queueServiceUrl : queueEndpoint(credential);
-            builder.endpoint(endpoint);
-            if (credential.namedKey() != null) {
-                builder.credential(credential.namedKey());
-            } else if (credential.sas() != null) {
-                builder.credential(credential.sas());
-            } else {
-                builder.credential(credential.token());
-            }
+            builder.credential(credential.token());
         }
+        builder.endpoint(endpoint);
         if (endpoint != null) {
             HttpPipelinePolicy override = Credentials.portOverride(endpoint);
             if (override != null) {
@@ -109,20 +98,5 @@ final class QueueClients {
             throw BlobErrorCreator.clientError(
                     "invalid listener configuration: " + BallerinaAzureClient.describe(e), e);
         }
-    }
-
-    // The queue endpoint derived from the credential: the account's public queue host, or the
-    // SAS URL's host with its blob service name swapped for the queue service.
-    private static String queueEndpoint(Credentials.Resolved credential) {
-        if (credential.sasUrl() == null) {
-            return credential.endpoint(Credentials.Service.QUEUE);
-        }
-        URI uri = URI.create(credential.sasUrl());
-        String host = uri.getHost();
-        if (host == null || !host.contains(".blob.")) {
-            throw BlobErrorCreator.clientError(
-                    "queueServiceUrl is required when the SAS URL's host is not an Azure blob endpoint", null);
-        }
-        return uri.getScheme() + "://" + host.replace(".blob.", ".queue.");
     }
 }

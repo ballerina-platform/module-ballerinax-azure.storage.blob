@@ -318,7 +318,7 @@ public enum FileFormat {
 
 # The blob lifecycle event types this module dispatches.
 public enum BlobEventType {
-    # A blob's content was fully committed, on creation or on replacement
+    # A blob was created or replaced
     BLOB_CREATED,
     # A blob was deleted
     BLOB_DELETED
@@ -709,11 +709,13 @@ public type BlockList record {|
 public type BlobEvent record {|
     # Whether the blob was created (or replaced) or deleted
     BlobEventType eventType;
+    # The storage account the event comes from
+    string accountName;
     # The container the blob belongs to, derived from the event subject
     string containerName;
     # The blob's container-relative path, derived from the event subject
     string path;
-    # The blob's full URL, which `Caller.copyBlobFromUrl` takes as its source
+    # The blob's URL on the blob endpoint, which `Caller.copyBlobFromUrl` takes as its source
     string url;
     # When the event fired
     time:Utc eventTime;
@@ -723,8 +725,7 @@ public type BlobEvent record {|
     string contentType?;
     # The blob's size in bytes, as provided by the event
     int contentLength?;
-    # The blob type as the event reports it. The event schema documents only `BlockBlob` and
-    # `PageBlob`, so an append blob's events may not identify their type
+    # The blob type as the event reports it: `BlockBlob`, `PageBlob`, or `AppendBlob`
     string blobType?;
     # The blob's entity tag, as provided by the event
     string eTag?;

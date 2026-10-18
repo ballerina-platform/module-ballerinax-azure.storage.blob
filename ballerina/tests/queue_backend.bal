@@ -30,6 +30,14 @@ isolated function queueServiceUrl() returns string => liveRun
     ? string `https://${liveAccountName}.queue.core.windows.net`
     : AZURITE_QUEUE_URL;
 
+// The storage account the active backend serves; the listener's account check compares every
+// event's account with it, so the synthetic events name it (spec 5.8).
+isolated function accountName() returns string => liveRun ? liveAccountName : AZURITE_ACCOUNT;
+
+// The Event Grid topic (or CloudEvents source) of a storage account's system topic.
+isolated function storageTopic(string account = accountName()) returns string =>
+    string `/subscriptions/{subscription-id}/resourceGroups/Storage/providers/Microsoft.Storage/storageAccounts/${account}`;
+
 // The queue name a test works in; per-run unique like the container names.
 isolated function testQueue(string base) returns string => string `${containerPrefix}-${base}`;
 
@@ -150,16 +158,18 @@ isolated function blobUrl(string container, string path) returns string => liveR
     : string `${AZURITE_URL}/${container}/${path}`;
 
 isolated function eventData(string container, string path, string api, string? contentType,
-        int? contentLength) returns map<json> {
+        int? contentLength, string? blobType = "BlockBlob", string? url = ()) returns map<json> {
     map<json> data = {
         api,
         clientRequestId: "6d79dbfb-0e37-4fc4-981f-442c9ca65760",
         requestId: "831e1650-001e-001b-66ab-eeb76e000000",
-        blobType: "BlockBlob",
-        url: blobUrl(container, path),
+        url: url ?: blobUrl(container, path),
         sequencer: "00000000000004420000000000028963",
         storageDiagnostics: {batchId: "b68529f3-68cd-4744-baa4-3c0498ec19f0"}
     };
+    if blobType is string {
+        data["blobType"] = blobType;
+    }
     if contentType is string {
         data["contentType"] = contentType;
         data["eTag"] = "0x8D4BCC2E4835CD0";
@@ -172,21 +182,22 @@ isolated function eventData(string container, string path, string api, string? c
 
 // The Event Grid schema form of a BlobCreated event.
 isolated function blobCreatedEvent(string container, string path, string contentType = "application/octet-stream",
-        int contentLength = 0, string api = "PutBlob") returns json => {
-    topic: "/subscriptions/{subscription-id}/resourceGroups/Storage/providers/Microsoft.Storage/storageAccounts/my-storage-account",
+        int contentLength = 0, string api = "PutBlob", string? blobType = "BlockBlob", string? topic = (),
+        string? url = ()) returns json => {
+    topic: topic ?: storageTopic(),
     subject: string `/blobServices/default/containers/${container}/blobs/${path}`,
     eventType: "Microsoft.Storage.BlobCreated",
     eventTime: "2017-06-26T18:41:00.9584103Z",
     id: "831e1650-001e-001b-66ab-eeb76e069631",
-    data: eventData(container, path, api, contentType, contentLength),
+    data: eventData(container, path, api, contentType, contentLength, blobType, url),
     dataVersion: "",
     metadataVersion: "1"
 };
 
 // The CloudEvents schema form of a BlobCreated event.
 isolated function blobCreatedCloudEvent(string container, string path,
-        string contentType = "application/octet-stream", int contentLength = 0) returns json => {
-    "source": "/subscriptions/{subscription-id}/resourceGroups/Storage/providers/Microsoft.Storage/storageAccounts/my-storage-account",
+        string contentType = "application/octet-stream", int contentLength = 0, string? 'source = ()) returns json => {
+    "source": 'source ?: storageTopic(),
     subject: string `/blobServices/default/containers/${container}/blobs/${path}`,
     'type: "Microsoft.Storage.BlobCreated",
     time: "2017-06-26T18:41:00.9584103Z",
@@ -196,11 +207,11 @@ isolated function blobCreatedCloudEvent(string container, string path,
 };
 
 // A BlobDeleted event carries the content type but neither the eTag nor the content length.
-isolated function blobDeletedEvent(string container, string path) returns json {
+isolated function blobDeletedEvent(string container, string path, string? topic = ()) returns json {
     map<json> data = eventData(container, path, "DeleteBlob", "text/plain", ());
     _ = data.remove("eTag");
     return {
-        topic: "/subscriptions/{subscription-id}/resourceGroups/Storage/providers/Microsoft.Storage/storageAccounts/my-storage-account",
+        topic: topic ?: storageTopic(),
         subject: string `/blobServices/default/containers/${container}/blobs/${path}`,
         eventType: "Microsoft.Storage.BlobDeleted",
         eventTime: "2017-11-07T20:09:22.5674003Z",
@@ -212,7 +223,7 @@ isolated function blobDeletedEvent(string container, string path) returns json {
 }
 
 isolated function blobTierChangedEvent(string container, string path) returns json => {
-    topic: "/subscriptions/{subscription-id}/resourceGroups/Storage/providers/Microsoft.Storage/storageAccounts/my-storage-account",
+    topic: storageTopic(),
     subject: string `/blobServices/default/containers/${container}/blobs/${path}`,
     eventType: "Microsoft.Storage.BlobTierChanged",
     eventTime: "2021-05-04T15:00:00.8350154Z",

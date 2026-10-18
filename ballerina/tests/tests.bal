@@ -67,6 +67,34 @@ function testInitValidatesLocally() {
     test:assertTrue(emptyContainer is Error && emptyContainer !is ServiceError);
 }
 
+@test:Config {}
+function testListenerErrorTypesAreClientSideSubtypes() {
+    // Seen through the root type, each is an `Error` without service detail, and the three stay
+    // distinguishable by an `is` check, which is how a handler and the listener tell them apart.
+    Error[] errors = [
+        error DeadLetterError("negative total"),
+        error RetryError("ledger busy", delaySeconds = 2.5d),
+        error ContentBindingError("no such field", containerName = "c", path = "a.json")
+    ];
+    foreach Error e in errors {
+        test:assertFalse(e is ServiceError, e.message());
+    }
+    Error retryLater = errors[1];
+    test:assertTrue(retryLater is RetryError && !(retryLater is DeadLetterError));
+    if retryLater is RetryError {
+        test:assertEquals(retryLater.detail().delaySeconds, 2.5d);
+    }
+    Error binding = errors[2];
+    test:assertTrue(binding is ContentBindingError);
+    if binding is ContentBindingError {
+        test:assertEquals(binding.detail().containerName, "c");
+        test:assertEquals(binding.detail().path, "a.json");
+        test:assertTrue(binding.detail().content is ());
+    }
+    error generic = error("x");
+    test:assertFalse(generic is DeadLetterError || generic is RetryError || generic is ContentBindingError);
+}
+
 // ---------------------------------------------------------------------------
 // AdminClient: containers
 // ---------------------------------------------------------------------------

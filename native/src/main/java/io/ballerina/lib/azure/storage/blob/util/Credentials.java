@@ -37,6 +37,9 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Base64;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * Resolves the Ballerina {@code AuthConfig} union into the credential and endpoint inputs the
@@ -176,6 +179,125 @@ public final class Credentials {
             return null;
         }
         return signature.startsWith("?") ? signature.substring(1) : signature;
+    }
+
+    /**
+     * Checks that a SAS a listener authenticates with is an account SAS covering the blob and the
+     * queue services: a service SAS (an {@code sr} parameter) cannot poll a queue, and an account
+     * SAS whose {@code ss} lacks {@code b} or {@code q} cannot reach one of the two. Permission
+     * letters are not checked; a missing one fails at the first call that needs it.
+     *
+     * @param sasQuery the SAS query without a leading {@code ?}, or {@code null} for a credential
+     *                 that is no SAS
+     * @throws ConfigurationException when the SAS is of the wrong kind or covers too little
+     */
+    public static void checkListenerSas(String sasQuery) {
+        if (sasQuery == null) {
+            return;
+        }
+        Map<String, String> parameters = queryParameters(sasQuery);
+        if (parameters.containsKey("sr")) {
+            throw new ConfigurationException("the listener needs an account SAS covering the blob and queue "
+                    + "services; a service SAS (sr) cannot poll a queue");
+        }
+        String services = parameters.getOrDefault("ss", "");
+        if (!services.contains("b")) {
+            throw new ConfigurationException("the listener's SAS covers no blob service: ss must include b");
+        }
+        if (!services.contains("q")) {
+            throw new ConfigurationException("the listener's SAS covers no queue service: ss must include q");
+        }
+    }
+
+    /**
+     * The storage account a listener's blob operations act on, as far as the credential tells:
+     * an explicit account name, a connection string's {@code AccountName}, the first host label
+     * of a blob endpoint that carries the {@code .blob.} service label, or the account segment of
+     * an emulator address's path; otherwise unknown.
+     *
+     * @param credential the resolved credential
+     * @return the account name, or {@code null} when it cannot be told
+     */
+    public static String listenerAccountName(Resolved credential) {
+        if (credential.accountName() != null) {
+            return credential.accountName();
+        }
+        if (credential.connectionString() != null) {
+            return accountFromConnectionString(credential.connectionString());
+        }
+        String endpoint = credential.explicitServiceUrl() != null
+                ? credential.explicitServiceUrl() : credential.sasUrl();
+        return endpoint == null ? null : accountFromEndpoint(endpoint);
+    }
+
+    /**
+     * The account a connection string names: its {@code AccountName}, or the development account
+     * for the emulator shorthand.
+     *
+     * @param connectionString the connection string
+     * @return the account name, or {@code null}
+     */
+    public static String accountFromConnectionString(String connectionString) {
+        Map<String, String> pairs = new LinkedHashMap<>();
+        for (String pair : connectionString.split(";")) {
+            int separator = pair.indexOf('=');
+            if (separator > 0) {
+                pairs.put(pair.substring(0, separator).strip().toLowerCase(Locale.ROOT),
+                        pair.substring(separator + 1).strip());
+            }
+        }
+        if ("true".equalsIgnoreCase(pairs.get("usedevelopmentstorage"))) {
+            return "devstoreaccount1";
+        }
+        String account = pairs.get("accountname");
+        return account == null || account.isBlank() ? null : account;
+    }
+
+    /**
+     * The account a blob endpoint URL names: the first host label when the host carries the
+     * {@code .blob.} service label (standard, sovereign, private-link and DNS-zone hosts), or the
+     * first path segment of an emulator address (an IP or {@code localhost}); a custom domain
+     * names none.
+     *
+     * @param endpoint the endpoint URL, with or without a SAS query
+     * @return the account name, or {@code null}
+     */
+    public static String accountFromEndpoint(String endpoint) {
+        URI uri;
+        try {
+            uri = new URI(endpoint);
+        } catch (URISyntaxException e) {
+            return null;
+        }
+        String host = uri.getHost();
+        if (host == null) {
+            return null;
+        }
+        String lower = host.toLowerCase(Locale.ROOT);
+        if (lower.contains(".blob.") && !lower.startsWith(".blob.")) {
+            return host.substring(0, host.indexOf('.'));
+        }
+        boolean emulator = lower.equals("localhost") || lower.startsWith("[")
+                || lower.matches("\\d+\\.\\d+\\.\\d+\\.\\d+");
+        if (emulator && uri.getPath() != null) {
+            String[] segments = uri.getPath().split("/");
+            for (String segment : segments) {
+                if (!segment.isEmpty()) {
+                    return segment;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Map<String, String> queryParameters(String query) {
+        Map<String, String> parameters = new LinkedHashMap<>();
+        for (String pair : query.split("&")) {
+            int separator = pair.indexOf('=');
+            String key = separator < 0 ? pair : pair.substring(0, separator);
+            parameters.put(key, separator < 0 ? "" : pair.substring(separator + 1));
+        }
+        return parameters;
     }
 
     /**

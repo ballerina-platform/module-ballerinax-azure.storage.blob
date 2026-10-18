@@ -18,11 +18,13 @@
 
 package io.ballerina.lib.azure.storage.blob.server;
 
+import io.ballerina.lib.azure.storage.blob.client.ClientInit;
 import io.ballerina.lib.azure.storage.blob.server.ListenerContext.HandlerConfig;
 import io.ballerina.lib.azure.storage.blob.server.ListenerContext.ServiceContext;
 import io.ballerina.lib.azure.storage.blob.server.ListenerContext.State;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.BlobErrorCreator;
+import io.ballerina.lib.azure.storage.blob.util.Credentials;
 import io.ballerina.lib.azure.storage.blob.util.ModuleUtils;
 import io.ballerina.runtime.api.Environment;
 import io.ballerina.runtime.api.Runtime;
@@ -112,6 +114,8 @@ public final class Listener {
             long redeliverySeconds = (long) Math.ceil(((BDecimal) config.get(REDELIVERY_DELAY_SECONDS)).floatValue());
             boolean laxDataBinding = Boolean.TRUE.equals(config.get(LAX_DATA_BINDING));
             BMap<BString, Object> clientConfig = (BMap<BString, Object>) listenerObj.get(CLIENT_CONFIG_FIELD);
+            BMap<BString, Object> auth = (BMap<BString, Object>) config.getMapValue(ClientInit.AUTH);
+            Credentials.checkListenerSas(Credentials.sasSignature(auth));
             ListenerContext ctx = new ListenerContext(queue, batchSize, newBatchThreshold, maxDeliveryCount,
                     maxPollingMillis, redeliverySeconds, laxDataBinding, config, clientConfig,
                     QueueClients.build(config, queue));

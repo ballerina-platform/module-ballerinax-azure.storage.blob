@@ -22,8 +22,8 @@ public type ServiceErrorDetail record {|
     string errorCode;
 |};
 
-# The root error type. A client-side failure is this type and carries no detail; an error
-# raised by the Azure service is a `ServiceError`.
+# The root error type. A client-side failure is this type and carries no detail, except the
+# listener's `ContentBindingError`; an error raised by the Azure service is a `ServiceError`.
 public type Error distinct error;
 
 # An error raised by the Azure service, carrying the HTTP status and the Azure error code. A
@@ -55,3 +55,28 @@ public type ArchivedBlobError distinct ServiceError;
 # The operation applies to another blob type, e.g. appending to a block blob or writing
 # pages to an append blob (HTTP 409).
 public type InvalidBlobTypeError distinct ServiceError;
+
+# Returned by a handler to move the message to the poison queue at once.
+public type DeadLetterError distinct Error;
+
+# The detail of a `RetryError`.
+public type RetryErrorDetail record {|
+    # The least time, in seconds, before the message is redelivered
+    decimal delaySeconds;
+|};
+
+# Returned by a handler to have the message redelivered after `delaySeconds`.
+public type RetryError distinct (Error & error<RetryErrorDetail>);
+
+# The blob whose content failed to bind.
+public type ContentBindingErrorDetail record {|
+    # The blob's container
+    string containerName;
+    # The blob's container-relative path
+    string path;
+    # The content, when it was already read into memory
+    byte[] content?;
+|};
+
+# A blob's content could not be bound to the handler's parameter type.
+public type ContentBindingError distinct (Error & error<ContentBindingErrorDetail>);
