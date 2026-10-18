@@ -867,8 +867,7 @@ listener blob:Listener blobListener = check new (auth = {accountName: "myacct", 
 // The service consumes the queue its annotation names; a .json blob is bound to the record.
 @blob:ServiceConfig {queueName: "invoice-events"}
 isolated service on blobListener {
-    isolated remote function onBlobJson(Invoice invoice, blob:BlobEvent event, blob:Caller caller)
-            returns blob:DeadLetterError|blob:RetryError|error? {
+    isolated remote function onBlobJson(Invoice invoice, blob:BlobEvent event, blob:Caller caller) returns error? {
         // Process the invoice. The event is acknowledged when the handler returns normally.
         check caller->setTags(event.path, {status: "processed"});
     }
@@ -1026,7 +1025,9 @@ of, including after a failed or skipped settlement step (section 5.10). Renewal 
 is clamped to the message's remaining time less a safety margin of 60 seconds. When that
 clamped value is not positive, renewal stops and an error is logged that the message is bound
 to expire while its handler still runs; a visibility of zero or less is never sent, since it
-would release a running message to other consumers.
+would release a running message to other consumers. During that last minute the message is
+visible, so any consumer, this listener included, may receive it once more before it expires;
+that delivery is one of the duplicates section 5.9 asks handlers to tolerate.
 
 Each renewal call runs without blocking and times out at the smaller of 30 seconds and the
 hold time remaining, so one hung call cannot delay the renewal of other messages. The calls
@@ -1066,9 +1067,11 @@ A service declares its handlers by name:
 A content handler takes its content first, then optionally the `BlobEvent` (section 5.7), then
 optionally the `Caller` (section 5.13), in that order; the listener passes only what the
 handler declares. `onBlobDeleted` takes the `BlobEvent` and, optionally, the `Caller`. Every
-event handler returns `error?`, and its signature may name the two settlement errors the
-listener recognises, as in `returns blob:DeadLetterError|blob:RetryError|error?`
-(section 5.9).
+event handler returns `error?`; a handler steers the outcome by returning a `DeadLetterError`
+or `RetryError` value, both subtypes of `error` (section 5.9). Declaring them in the return
+type, as in `returns blob:DeadLetterError|blob:RetryError|error?`, is legal but makes the
+language type a bare `error(...)` constructed in the handler as the first of them, a
+`DeadLetterError`; declare `error?` and construct the settlement errors explicitly.
 
 Created events are routed by the blob name's extension, compared ignoring case: `txt` to
 `onBlobText`, `json` to `onBlobJson`, `xml` to `onBlobXml`, `csv` to `onBlobCsv`, and
@@ -1164,7 +1167,9 @@ Stream content is read in ranged chunks, and no connection is held between chunk
 locked to the version of the blob it started on: a blob replaced while its stream is being
 read fails the next chunk with a `PreconditionFailedError` (HTTP 412), the handler's returned
 error makes the message visible again for redelivery, and the new content may then be
-processed twice, by that redelivery and by the blob's own created event.
+processed twice, by that redelivery and by the blob's own created event. A query over the
+stream (`from ... in rows do {}`) surfaces a copy of an error entry that keeps its message but
+not its type; a handler that tests an entry's type pulls the stream with `next()`.
 
 ### 5.7 The Blob Event
 
@@ -1324,8 +1329,7 @@ subscription must exclude it with the advanced filter `StringNotBeginsWith` on `
 ```ballerina
 @blob:ServiceConfig {queueName: "invoice-events"}
 isolated service on blobListener {
-    isolated remote function onBlobJson(Invoice invoice, blob:BlobEvent event)
-            returns blob:DeadLetterError|blob:RetryError|error? {
+    isolated remote function onBlobJson(Invoice invoice, blob:BlobEvent event) returns error? {
         if invoice.total < 0d {
             // Retrying cannot help; park the message for inspection.
             return error blob:DeadLetterError(string `negative total in ${event.path}`);
