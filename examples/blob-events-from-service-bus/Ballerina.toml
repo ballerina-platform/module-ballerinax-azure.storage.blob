@@ -1,0 +1,8 @@
+[package]
+org = "wso2"
+name = "blob_events_from_service_bus"
+version = "1.0.0"
+distribution = "2201.14.0"
+
+[build-options]
+observabilityIncluded = true

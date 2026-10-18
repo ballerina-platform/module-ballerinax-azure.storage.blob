@@ -4,12 +4,13 @@ The `ballerinax/azure.storage.blob` connector provides practical examples illust
 
 1. [Folder archive](folder-archive) — upload a local folder into a container, tier each blob by its age, and list what the archive holds.
 2. [Download link](download-link) — upload a report and generate a time-limited, read-only SAS URL that can be handed to a third party.
-3. [Blob event processor](blob-event-processor) — react to blobs as they arrive with the listener, binding invoices to a record, tagging and moving them, and logging everything else.
+3. [Blob event processor](blob-event-processor) — react to blobs as they arrive with the listener, binding invoices to a record, tagging and moving them, parking bad ones in the poison queue, and logging everything else.
 4. [Tag search](tag-search) — find blobs by their index tags with a tag query and mark the matches processed.
+5. [Blob events from Service Bus](blob-events-from-service-bus) — consume blob events delivered to an Azure Service Bus queue with `parseEvent` and read each new invoice through the client.
 
 ## Prerequisites
 
-Each example needs an Azure storage account and its access key; the connector's [setup guide](../README.md#setup-guide) walks through creating them. The event processor additionally needs the storage queue and Event Grid subscription its walkthrough describes. Each example's walkthrough documents the `Config.toml` to create in the example directory.
+Each example needs an Azure storage account and its access key; the connector's [setup guide](../README.md#setup-guide) walks through creating them. The event processor additionally needs the storage queue and Event Grid subscription its walkthrough describes, and the Service Bus example a Service Bus queue with its subscription. Each example's walkthrough documents the `Config.toml` to create in the example directory.
 
 ## Running an example
 

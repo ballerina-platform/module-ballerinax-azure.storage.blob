@@ -20,7 +20,6 @@ import ballerinax/azure.storage.blob;
 
 configurable string accountName = ?;
 configurable string accountKey = ?;
-configurable string queueName = "blob-events";
 
 // The shape an invoice blob binds to.
 type Invoice record {|
@@ -29,17 +28,22 @@ type Invoice record {|
     decimal total;
 |};
 
-listener blob:Listener invoiceListener = new (queueName, auth = {accountName, accountKey});
+listener blob:Listener invoiceListener = check new (auth = {accountName, accountKey});
 
-// Handles the events of the invoices container: a .json blob binds to an Invoice and is
-// tagged and moved into "processed/"; any other blob is logged.
-service /invoices on invoiceListener {
+// Consumes the queue the invoices container's Event Grid subscription delivers to. A .json blob
+// binds to an Invoice and is tagged and moved into "processed/"; any other blob is logged.
+@blob:ServiceConfig {queueName: "invoice-events"}
+isolated service on invoiceListener {
 
-    remote function onBlobJson(Invoice invoice, blob:BlobEvent event, blob:Caller caller) returns error? {
-        // The copy below creates a blob in this same container, which fires its own created
-        // event back into this handler; the processed copies are not invoices to process.
+    isolated remote function onBlobJson(Invoice invoice, blob:BlobEvent event, blob:Caller caller) returns error? {
+        // The copy below creates a blob in this same container. The subscription excludes the
+        // "processed/" prefix (see the walkthrough); this check covers a subscription without it.
         if event.path.startsWith("processed/") {
             return;
+        }
+        if invoice.total < 0d {
+            // Retrying cannot help: park the message in the poison queue for inspection.
+            return error blob:DeadLetterError(string `negative total in ${event.path}`);
         }
         log:printInfo("received invoice", path = event.path, id = invoice.id, customer = invoice.customer,
                 total = invoice.total);
@@ -52,18 +56,22 @@ service /invoices on invoiceListener {
         log:printInfo("moved invoice", sourcePath = event.path, destinationPath = processedPath);
     }
 
-    remote function onBlob(byte[] content, blob:BlobEvent event) returns error? {
+    isolated remote function onBlob(byte[] content, blob:BlobEvent event) returns error? {
         log:printInfo("received a non-invoice blob", path = event.path, sizeBytes = content.length(),
                 contentType = event.contentType ?: "unknown");
     }
 
-    remote function onBlobDeleted(blob:BlobEvent event) returns error? {
+    isolated remote function onBlobDeleted(blob:BlobEvent event) returns error? {
         log:printInfo("blob deleted", path = event.path);
     }
 
-    // Notified of poll failures, of events whose blob could not be fetched, and of .json blobs
-    // that do not bind to the Invoice record; those events are acknowledged after this call.
-    remote function onError(blob:Error err) returns error? {
+    // Notified of failed polls, of events whose blob could not be fetched or bound, and of moves
+    // to the poison queue that failed. It runs before the message is disposed of.
+    isolated remote function onError(blob:Error err, blob:BlobEvent? event, blob:Caller? caller) returns error? {
+        if err is blob:ContentBindingError && event is blob:BlobEvent && caller is blob:Caller {
+            // A .json blob that is not an invoice: mark it, then its message moves to the poison queue.
+            check caller->setTags(event.path, {status: "unreadable"});
+        }
         log:printError("invoice listener reported an error", 'error = err);
     }
 }
