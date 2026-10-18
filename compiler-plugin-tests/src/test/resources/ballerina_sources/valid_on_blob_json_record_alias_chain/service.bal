@@ -16,7 +16,7 @@
 
 import ballerinax/azure.storage.blob as blob;
 
-listener blob:Listener lsn = new ("events", auth = {accountName: "acc", accountKey: "a2V5"});
+listener blob:Listener lsn = new (auth = {accountName: "acc", accountKey: "a2V5"});
 
 type Person record {|
     string name;
@@ -27,7 +27,8 @@ type Document Person;
 
 type Invoice Document;
 
-service /invoices on lsn {
-    remote function onBlobJson(Invoice content) returns error? {
+@blob:ServiceConfig {queueName: "events"}
+isolated service on lsn {
+    isolated remote function onBlobJson(Invoice content) returns error? {
     }
 }

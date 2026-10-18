@@ -18,60 +18,42 @@
 
 package io.ballerina.lib.azure.storage.blob.server;
 
+import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.common.policy.RequestRetryOptions;
 import io.ballerina.lib.azure.storage.blob.client.ClientInit;
-import io.ballerina.lib.azure.storage.blob.server.ListenerContext.HandlerConfig;
-import io.ballerina.lib.azure.storage.blob.server.ListenerContext.ServiceContext;
 import io.ballerina.lib.azure.storage.blob.server.ListenerContext.State;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.BlobErrorCreator;
+import io.ballerina.lib.azure.storage.blob.util.ConfigurationException;
 import io.ballerina.lib.azure.storage.blob.util.Credentials;
-import io.ballerina.lib.azure.storage.blob.util.ModuleUtils;
+import io.ballerina.lib.azure.storage.blob.util.SharedTransports;
+import io.ballerina.lib.azure.storage.blob.util.TransportConfigMapper;
+import io.ballerina.lib.azure.storage.blob.util.ValueUtils;
 import io.ballerina.runtime.api.Environment;
-import io.ballerina.runtime.api.Runtime;
-import io.ballerina.runtime.api.concurrent.StrandMetadata;
-import io.ballerina.runtime.api.types.MethodType;
-import io.ballerina.runtime.api.types.ObjectType;
-import io.ballerina.runtime.api.types.Parameter;
-import io.ballerina.runtime.api.types.Type;
 import io.ballerina.runtime.api.utils.StringUtils;
-import io.ballerina.runtime.api.utils.TypeUtils;
-import io.ballerina.runtime.api.values.BDecimal;
 import io.ballerina.runtime.api.values.BError;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
 
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 /**
- * Native backing of the queue-consuming {@code Listener}: holds the per-listener context,
- * reads the attached services' handlers and their {@code @blob:FunctionConfig} routing, and
- * drives the lifecycle. The receive loop is the {@link Poller}; the per-message work is the
- * {@link Dispatcher}.
+ * Native backing of the queue-consuming {@code Listener}: builds the shared credential and
+ * transport at {@code init}, validates and registers the attached services, and drives the
+ * lifecycle. The receive loop of each service is its {@link Poller}; the per-message work is
+ * the {@link Dispatcher}.
  */
 public final class Listener {
 
-    // Native-data key under which the per-listener context is stored on the listener object.
     private static final String NATIVE_LISTENER_CONTEXT = "listenerContext";
     // The listener's private field carrying the client settings its Callers are built from.
     private static final BString CLIENT_CONFIG_FIELD = StringUtils.fromString("clientConfig");
-
-    private static final BString BATCH_SIZE = StringUtils.fromString("batchSize");
-    private static final BString NEW_BATCH_THRESHOLD = StringUtils.fromString("newBatchThreshold");
-    private static final BString MAX_DELIVERY_COUNT = StringUtils.fromString("maxDeliveryCount");
-    private static final BString MAX_POLLING_INTERVAL_SECONDS = StringUtils.fromString("maxPollingIntervalSeconds");
-    private static final BString REDELIVERY_DELAY_SECONDS = StringUtils.fromString("redeliveryDelaySeconds");
+    private static final BString QUEUE_SERVICE_URL = StringUtils.fromString("queueServiceUrl");
     private static final BString LAX_DATA_BINDING = StringUtils.fromString("laxDataBinding");
-
-    private static final String FUNCTION_CONFIG_ANNOTATION = "FunctionConfig";
-    private static final BString NAME_PATTERN = StringUtils.fromString("namePattern");
-    private static final BString CONTENT_TYPE_PATTERN = StringUtils.fromString("contentTypePattern");
-    private static final String CALLER_TYPE_NAME = "Caller";
+    private static final BString CONNECTION_POOL = StringUtils.fromString("connectionPool");
+    private static final BString MAX_CONNECTIONS = StringUtils.fromString("maxConnections");
 
     static final String ON_BLOB = "onBlob";
     static final String ON_BLOB_TEXT = "onBlobText";
@@ -83,45 +65,56 @@ public final class Listener {
     // Routing patterns are checked in this fixed order, so overlapping patterns resolve the
     // same way on every runtime, independent of method enumeration order.
     static final List<String> ROUTING_ORDER = List.of(ON_BLOB_TEXT, ON_BLOB_JSON, ON_BLOB_XML, ON_BLOB_CSV, ON_BLOB);
-    private static final Set<String> HANDLER_NAMES = Set.of(ON_BLOB, ON_BLOB_TEXT, ON_BLOB_JSON, ON_BLOB_XML,
-            ON_BLOB_CSV, ON_BLOB_DELETED);
 
-    private static final long STOP_POLL_MILLIS = 50;
+    private enum Stop { STOPPED_NOW, ALREADY_STOPPED }
 
     private Listener() {
     }
 
     /**
-     * Initializes the listener: validates the queue endpoint and credential locally, and stores
-     * the context the poller and dispatcher read. No call reaches Azure.
+     * Initializes the listener: checks the credential, derives the queue endpoint, and builds
+     * the one transport its services and Callers share. No call reaches Azure.
      *
      * @param env         the Ballerina runtime environment
      * @param listenerObj the Ballerina listener object
-     * @param queueName   the queue the Event Grid subscription delivers to
      * @param config      the {@code ListenerConfiguration} record
      * @return {@code null} on success, or the validation error
      */
     @SuppressWarnings("unchecked")
-    public static Object initListener(Environment env, BObject listenerObj, BString queueName,
-                                      BMap<BString, Object> config) {
+    public static Object initListener(Environment env, BObject listenerObj, BMap<BString, Object> config) {
         try {
-            String queue = queueName.getValue().strip();
-            int batchSize = (int) config.getIntValue(BATCH_SIZE).longValue();
-            int newBatchThreshold = (int) config.getIntValue(NEW_BATCH_THRESHOLD).longValue();
-            int maxDeliveryCount = (int) config.getIntValue(MAX_DELIVERY_COUNT).longValue();
-            long maxPollingMillis = Math.max(1, Math.round(
-                    ((BDecimal) config.get(MAX_POLLING_INTERVAL_SECONDS)).floatValue() * 1000));
-            long redeliverySeconds = (long) Math.ceil(((BDecimal) config.get(REDELIVERY_DELAY_SECONDS)).floatValue());
-            boolean laxDataBinding = Boolean.TRUE.equals(config.get(LAX_DATA_BINDING));
-            BMap<BString, Object> clientConfig = (BMap<BString, Object>) listenerObj.get(CLIENT_CONFIG_FIELD);
             BMap<BString, Object> auth = (BMap<BString, Object>) config.getMapValue(ClientInit.AUTH);
-            Credentials.checkListenerSas(Credentials.sasSignature(auth));
-            ListenerContext ctx = new ListenerContext(queue, batchSize, newBatchThreshold, maxDeliveryCount,
-                    maxPollingMillis, redeliverySeconds, laxDataBinding, config, clientConfig,
-                    QueueClients.build(config, queue));
-            ctx.runtime = env.getRuntime();
+            String sasSignature = Credentials.sasSignature(auth);
+            Credentials.checkListenerSas(sasSignature);
+            String queueServiceUrl = ValueUtils.optString(config, QUEUE_SERVICE_URL);
+            if (queueServiceUrl != null) {
+                queueServiceUrl = Credentials.validateUrl(queueServiceUrl, "queueServiceUrl");
+            }
+            Credentials.Resolved credential = Credentials.resolve(auth);
+            String queueEndpoint = QueueEndpoints.derive(queueServiceUrl, credential);
+            BMap<BString, Object> clientConfig = (BMap<BString, Object>) listenerObj.get(CLIENT_CONFIG_FIELD);
+            BMap<BString, Object> transportConfig = (BMap<BString, Object>) config.get(ClientInit.TRANSPORT_CONFIG);
+            TransportConfigMapper.Transport transport = TransportConfigMapper.transport(transportConfig);
+            BlobServiceClient serviceClient = ClientInit.buildServiceClient(clientConfig, transport.httpClient());
+            BMap<BString, Object> retry = (BMap<BString, Object>) config.get(ClientInit.RETRY_CONFIG);
+            RequestRetryOptions retrying = retry == null ? null : TransportConfigMapper.retryOptions(retry, false);
+            RequestRetryOptions retryFree = TransportConfigMapper.singleTry(retry);
+            BMap<BString, Object> pool = (BMap<BString, Object>) transportConfig.get(CONNECTION_POOL);
+            int maxConnections = Math.toIntExact((Long) pool.get(MAX_CONNECTIONS));
+            HoldTiming timing = HoldTiming.fromSystemProperty();
+            ListenerContext ctx = new ListenerContext(clientConfig, credential, queueEndpoint, transport,
+                    retrying, retryFree, maxConnections, Credentials.listenerAccountName(credential),
+                    Boolean.TRUE.equals(config.get(LAX_DATA_BINDING)), timing, env.getRuntime());
+            SharedTransports.register(clientConfig, new SharedTransports.Shared(transport.httpClient(),
+                    transport.provider(), serviceClient, sasSignature));
+            if (timing.scaled()) {
+                ctx.log.warn("the message hold is shortened to " + timing.hold().toSeconds() + " seconds by the "
+                        + HoldTiming.PROPERTY + " system property, a test setting");
+            }
             listenerObj.addNativeData(NATIVE_LISTENER_CONTEXT, ctx);
             return null;
+        } catch (ConfigurationException e) {
+            return BlobErrorCreator.clientError(e.getMessage(), null);
         } catch (BError e) {
             return e;
         } catch (Exception e) {
@@ -130,32 +123,41 @@ public final class Listener {
     }
 
     /**
-     * Attaches a service for a container, or as the catch-all when the container is nil.
+     * Attaches a service: validates its annotation and handlers against the rules and the
+     * services already attached, builds its queue clients, and starts polling when the listener
+     * is running.
      *
      * @param listenerObj the Ballerina listener object
      * @param service     the service being attached
-     * @param container   the container name, or {@code null} for the catch-all
-     * @param caller      the service's {@code Caller}, or {@code null} for the catch-all
      * @return {@code null} on success, or the validation error
      */
-    public static Object attachService(BObject listenerObj, BObject service, Object container, Object caller) {
+    public static Object attachService(BObject listenerObj, BObject service) {
         ListenerContext ctx = context(listenerObj);
         try {
-            String name = container == null ? null : ((BString) container).getValue();
-            ServiceContext parsed = parseService(service, name, (BObject) caller);
             synchronized (ctx) {
-                if (name == null) {
-                    if (ctx.catchAll != null) {
-                        throw BlobErrorCreator.clientError(
-                                "a service with no attach point is already attached to this listener", null);
-                    }
-                    ctx.catchAll = parsed;
-                } else if (ctx.services.putIfAbsent(name, parsed) != null) {
-                    throw BlobErrorCreator.clientError(
-                            "a service for container '" + name + "' is already attached to this listener", null);
+                if (ctx.state() == State.STOPPED) {
+                    throw new ConfigurationException("a service cannot be attached to a stopped listener");
+                }
+                ServiceContext parsed = ServiceContext.parse(ctx, service);
+                List<ServiceSettings> attached = new ArrayList<>();
+                for (ServiceContext other : ctx.services()) {
+                    attached.add(other.settings);
+                }
+                parsed.settings.checkAgainst(attached);
+                ctx.addService(parsed);
+                attached.add(parsed.settings);
+                String warning = poolWarning(attached, ctx.maxConnections);
+                if (warning != null) {
+                    ctx.log.warn(warning);
+                }
+                if (ctx.state() == State.RUNNING) {
+                    parsed.poller = new Poller(ctx, parsed);
+                    parsed.poller.start();
                 }
             }
             return null;
+        } catch (ConfigurationException e) {
+            return BlobErrorCreator.clientError(e.getMessage(), null);
         } catch (BError e) {
             return e;
         } catch (Exception e) {
@@ -164,7 +166,30 @@ public final class Listener {
     }
 
     /**
-     * Detaches a service.
+     * The warning logged when the attached services' combined concurrency exceeds the pool,
+     * or {@code null} when it does not.
+     *
+     * @param attached       the attached services' settings
+     * @param maxConnections the pool size
+     * @return the warning text, or {@code null}
+     */
+    static String poolWarning(List<ServiceSettings> attached, int maxConnections) {
+        int sum = 0;
+        for (ServiceSettings settings : attached) {
+            sum += settings.concurrency();
+        }
+        if (sum <= maxConnections) {
+            return null;
+        }
+        return "the attached services can have up to " + sum + " blob fetches in flight (the sum of each one's "
+                + "batchSize + newBatchThreshold), above transportConfig.connectionPool.maxConnections ("
+                + maxConnections + "). The sum is an upper bound, not connections held: a stream read holds no "
+                + "connection between chunks, and the queue traffic has its own pool. Raise maxConnections or lower "
+                + "batchSize";
+    }
+
+    /**
+     * Detaches a service: its queue is no longer polled; its running handlers finish and settle.
      *
      * @param listenerObj the Ballerina listener object
      * @param service     the service being detached
@@ -172,46 +197,45 @@ public final class Listener {
      */
     public static Object detachService(BObject listenerObj, BObject service) {
         ListenerContext ctx = context(listenerObj);
-        synchronized (ctx) {
-            if (ctx.catchAll != null && ctx.catchAll.service() == service) {
-                ctx.catchAll = null;
-                return null;
-            }
-            if (ctx.services.entrySet().removeIf(entry -> entry.getValue().service() == service)) {
-                return null;
-            }
+        ServiceContext removed = ctx.removeService(service);
+        if (removed == null) {
+            return BlobErrorCreator.clientError("the given service is not attached to this listener", null);
         }
-        return BlobErrorCreator.clientError("the given service is not attached to this listener", null);
-    }
-
-    /**
-     * Starts the receive loop. A running listener cannot be started again, and a stopped one
-     * cannot be restarted.
-     *
-     * @param env         the Ballerina runtime environment
-     * @param listenerObj the Ballerina listener object
-     * @return {@code null} on success, or the error
-     */
-    public static Object startListener(Environment env, BObject listenerObj) {
-        ListenerContext ctx = context(listenerObj);
-        synchronized (ctx) {
-            if (ctx.state == State.RUNNING) {
-                return BlobErrorCreator.clientError("the listener is already running", null);
-            }
-            if (ctx.state == State.STOPPED) {
-                return BlobErrorCreator.clientError("a stopped listener cannot be started again", null);
-            }
-            ctx.runtime = env.getRuntime();
-            ctx.poller = new Poller(ctx);
-            ctx.state = State.RUNNING;
-            ctx.poller.start();
+        Poller poller = removed.poller;
+        if (poller != null) {
+            poller.stop();
         }
         return null;
     }
 
     /**
-     * Stops polling and waits for the in-flight handlers to finish, for at most the visibility
-     * window; what is still running after that is logged and left to redelivery.
+     * Starts polling every attached service's queue. A running listener cannot be started again,
+     * and a stopped one cannot be restarted.
+     *
+     * @param listenerObj the Ballerina listener object
+     * @return {@code null} on success, or the error
+     */
+    public static Object startListener(BObject listenerObj) {
+        ListenerContext ctx = context(listenerObj);
+        synchronized (ctx) {
+            if (ctx.state() == State.RUNNING) {
+                return BlobErrorCreator.clientError("the listener is already running", null);
+            }
+            if (ctx.state() == State.STOPPED) {
+                return BlobErrorCreator.clientError("a stopped listener cannot be started again", null);
+            }
+            ctx.state(State.RUNNING);
+            for (ServiceContext service : ctx.services()) {
+                service.poller = new Poller(ctx, service);
+                service.poller.start();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Stops polling and waits for the in-flight handlers and onError calls to finish, for at
+     * most the graceful bound; what still runs after that is logged and continues.
      *
      * @param env         the Ballerina runtime environment
      * @param listenerObj the Ballerina listener object
@@ -220,30 +244,29 @@ public final class Listener {
     public static Object gracefulStopListener(Environment env, BObject listenerObj) {
         ListenerContext ctx = context(listenerObj);
         Object stopped = stopPolling(ctx);
-        if (stopped != null) {
-            return stopped;
+        if (stopped != Stop.STOPPED_NOW) {
+            return stopped == Stop.ALREADY_STOPPED ? null : stopped;
         }
         return BallerinaAzureClient.invoke(env, () -> {
-            long deadline = System.currentTimeMillis() + MessageHandle.VISIBILITY.toMillis();
+            boolean idle;
             try {
-                while (ctx.inFlight.get() > 0 && System.currentTimeMillis() < deadline) {
-                    Thread.sleep(STOP_POLL_MILLIS);
-                }
+                idle = ctx.awaitIdle(ctx.timing.gracefulBound());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+                idle = ctx.inFlight() == 0;
             }
-            if (ctx.inFlight.get() > 0) {
-                logWarn(ctx, "azure.storage.blob listener: " + ctx.inFlight.get()
-                        + " handler(s) still running after the stop wait; their messages will be redelivered");
-                releaseActive(ctx);
+            if (!idle) {
+                ctx.log.warn(ctx.inFlight() + " handler(s) still running after the stop wait; they continue and "
+                        + "settle their messages when they finish");
             }
+            ctx.releaseIfIdle();
             return null;
         });
     }
 
     /**
-     * Stops polling and returns at once; the messages of the handlers still running reappear
-     * on the queue when their visibility window expires.
+     * Stops polling and returns at once; the handlers still running keep their messages hidden
+     * and settle normally.
      *
      * @param listenerObj the Ballerina listener object
      * @return {@code null} on success, or the error
@@ -251,112 +274,30 @@ public final class Listener {
     public static Object immediateStopListener(BObject listenerObj) {
         ListenerContext ctx = context(listenerObj);
         Object stopped = stopPolling(ctx);
-        if (stopped != null) {
-            return stopped;
+        if (stopped != Stop.STOPPED_NOW) {
+            return stopped == Stop.ALREADY_STOPPED ? null : stopped;
         }
-        releaseActive(ctx);
+        ctx.releaseIfIdle();
         return null;
     }
 
+    // Stopping a listener that never started fails; stopping a stopped one again does nothing.
     private static Object stopPolling(ListenerContext ctx) {
         synchronized (ctx) {
-            if (ctx.state != State.RUNNING) {
-                return BlobErrorCreator.clientError("the listener is not running", null);
+            if (ctx.state() == State.NEW) {
+                return BlobErrorCreator.clientError("the listener has not been started", null);
             }
-            ctx.state = State.STOPPED;
-            ctx.poller.stop();
-        }
-        return null;
-    }
-
-    private static void releaseActive(ListenerContext ctx) {
-        for (MessageHandle handle : ctx.active) {
-            handle.release();
-        }
-    }
-
-    // Diagnostics go through the module's Ballerina log helpers: slf4j has no binding in any
-    // Ballerina distribution, so logging from Java directly would be discarded silently.
-    private static void logAt(ListenerContext ctx, String function, String message) {
-        Runtime runtime = ctx == null ? null : ctx.runtime;
-        if (runtime == null) {
-            return;
-        }
-        try {
-            runtime.callFunction(ModuleUtils.getModule(), function, new StrandMetadata(true, null),
-                    StringUtils.fromString(message));
-        } catch (RuntimeException ignored) {
-            // Reporting a diagnostic must never take down the path that raised it.
-        }
-    }
-
-    static void logWarn(ListenerContext ctx, String message) {
-        logAt(ctx, "logListenerWarn", message);
-    }
-
-    static void logError(ListenerContext ctx, String message) {
-        logAt(ctx, "logListenerError", message);
-    }
-
-    static void logDebug(ListenerContext ctx, String message) {
-        logAt(ctx, "logListenerDebug", message);
-    }
-
-    // Reads the service's handlers, their routing annotations and parameter shapes.
-    private static ServiceContext parseService(BObject service, String container, BObject caller) {
-        ObjectType serviceType = (ObjectType) TypeUtils.getReferredType(TypeUtils.getType(service));
-        Map<String, HandlerConfig> handlers = new LinkedHashMap<>();
-        int onErrorArity = 0;
-        for (MethodType method : serviceType.getMethods()) {
-            String methodName = method.getName();
-            if (ON_ERROR.equals(methodName)) {
-                onErrorArity = method.getParameters().length;
-                continue;
+            if (ctx.state() == State.STOPPED) {
+                return Stop.ALREADY_STOPPED;
             }
-            if (!HANDLER_NAMES.contains(methodName)) {
-                continue;
-            }
-            Pattern namePattern = null;
-            Pattern contentTypePattern = null;
-            BMap<BString, Object> functionConfig = annotation(method.getAnnotations(), FUNCTION_CONFIG_ANNOTATION);
-            if (functionConfig != null) {
-                namePattern = compile(functionConfig.get(NAME_PATTERN));
-                contentTypePattern = compile(functionConfig.get(CONTENT_TYPE_PATTERN));
-            }
-            Parameter[] params = method.getParameters();
-            boolean secondIsCaller = params.length >= 2
-                    && CALLER_TYPE_NAME.equals(TypeUtils.getReferredType(params[1].type).getName());
-            Type contentType = params.length >= 1 ? params[0].type : null;
-            handlers.put(methodName, new HandlerConfig(methodName, namePattern, contentTypePattern,
-                    params.length, secondIsCaller, contentType));
-        }
-        return new ServiceContext(service, container, caller, handlers, onErrorArity);
-    }
-
-    private static BMap<BString, Object> annotation(BMap<BString, Object> annotations, String suffix) {
-        if (annotations == null) {
-            return null;
-        }
-        for (BString key : annotations.getKeys()) {
-            if (key.getValue().endsWith(suffix) && annotations.get(key) instanceof BMap) {
-                @SuppressWarnings("unchecked")
-                BMap<BString, Object> map = (BMap<BString, Object>) annotations.get(key);
-                return map;
+            ctx.state(State.STOPPED);
+            for (ServiceContext service : ctx.services()) {
+                if (service.poller != null) {
+                    service.poller.stop();
+                }
             }
         }
-        return null;
-    }
-
-    private static Pattern compile(Object pattern) {
-        if (pattern == null) {
-            return null;
-        }
-        String value = ((BString) pattern).getValue();
-        try {
-            return Pattern.compile(value);
-        } catch (PatternSyntaxException e) {
-            throw BlobErrorCreator.clientError("invalid regular expression: " + value, e);
-        }
+        return Stop.STOPPED_NOW;
     }
 
     private static ListenerContext context(BObject listenerObj) {

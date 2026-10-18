@@ -25,4 +25,12 @@
         <Package name="io.ballerina.lib.azure.storage.blob.plugin"/>
         <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
     </Match>
+    <!--
+      A listener's shared transport stack is a handle on the SDK clients the listener's Callers
+      adopt; handing them out is its purpose.
+    -->
+    <Match>
+        <Class name="io.ballerina.lib.azure.storage.blob.util.SharedTransports$Shared"/>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
 </FindBugsFilter>

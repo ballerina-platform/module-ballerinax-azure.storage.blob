@@ -16,7 +16,7 @@
 
 import ballerinax/azure.storage.blob as blob;
 
-listener blob:Listener lsn = new ("events", auth = {accountName: "acc", accountKey: "a2V5"});
+listener blob:Listener lsn = new (auth = {accountName: "acc", accountKey: "a2V5"});
 
 type Person record {|
     string name;
@@ -35,16 +35,17 @@ type Event blob:BlobEvent;
 
 type Ctx blob:Caller;
 
-service /invoices on lsn {
-    remote function onBlobCsv(Orders orders) returns error? {
+@blob:ServiceConfig {queueName: "events"}
+isolated service on lsn {
+    isolated remote function onBlobCsv(Orders orders) returns error? {
     }
 
-    remote function onBlobJson(Payload payload) returns error? {
+    isolated remote function onBlobJson(Payload payload) returns error? {
     }
 
-    remote function onBlob(Raw content, Event event, Ctx caller) returns error? {
+    isolated remote function onBlob(Raw content, Event event, Ctx caller) returns error? {
     }
 
-    remote function onBlobDeleted(Event event, Ctx caller) returns error? {
+    isolated remote function onBlobDeleted(Event event, Ctx caller) returns error? {
     }
 }

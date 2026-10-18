@@ -18,12 +18,14 @@
 
 package io.ballerina.lib.azure.storage.blob.client;
 
+import com.azure.core.http.HttpClient;
 import com.azure.core.http.policy.HttpPipelinePolicy;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.BlobErrorCreator;
 import io.ballerina.lib.azure.storage.blob.util.Credentials;
+import io.ballerina.lib.azure.storage.blob.util.SharedTransports;
 import io.ballerina.lib.azure.storage.blob.util.TransportConfigMapper;
 import io.ballerina.runtime.api.utils.StringUtils;
 import io.ballerina.runtime.api.values.BError;
@@ -79,7 +81,10 @@ public final class ClientInit {
             if (container.isEmpty()) {
                 throw BlobErrorCreator.clientError("containerName must not be empty", null);
             }
-            BlobServiceClient serviceClient = buildServiceClient(config);
+            // A listener's Callers are built from the listener's own configuration instance,
+            // which carries its shared transport; every other client builds its own.
+            SharedTransports.Shared shared = SharedTransports.lookup(config);
+            BlobServiceClient serviceClient = shared != null ? shared.serviceClient() : buildServiceClient(config);
             self.addNativeData(BallerinaAzureClient.NATIVE_SERVICE_CLIENT, serviceClient);
             self.addNativeData(BallerinaAzureClient.NATIVE_CONTAINER_CLIENT,
                     serviceClient.getBlobContainerClient(container));
@@ -108,8 +113,20 @@ public final class ClientInit {
      * @param config the configuration record
      * @return the SDK service client
      */
-    @SuppressWarnings("unchecked")
     public static BlobServiceClient buildServiceClient(BMap<BString, Object> config) {
+        return buildServiceClient(config, null);
+    }
+
+    /**
+     * Builds the SDK blob service client from a {@code ClientConfiguration} record over a given
+     * transport, so a listener's blob and queue clients share one connection pool.
+     *
+     * @param config     the configuration record
+     * @param httpClient the transport to use, or {@code null} to build one from the record
+     * @return the SDK service client
+     */
+    @SuppressWarnings("unchecked")
+    public static BlobServiceClient buildServiceClient(BMap<BString, Object> config, HttpClient httpClient) {
         BMap<BString, Object> auth = (BMap<BString, Object>) config.getMapValue(AUTH);
         BlobServiceClientBuilder builder = new BlobServiceClientBuilder();
         Object retryConfig = config.get(RETRY_CONFIG);
@@ -117,7 +134,8 @@ public final class ClientInit {
             builder.retryOptions(TransportConfigMapper.retryOptions((BMap<BString, Object>) retryConfig));
         }
         // transportConfig is defaulted on the record, so the connector's pool values always apply.
-        builder.httpClient(TransportConfigMapper.httpClient((BMap<BString, Object>) config.get(TRANSPORT_CONFIG)));
+        builder.httpClient(httpClient != null ? httpClient
+                : TransportConfigMapper.httpClient((BMap<BString, Object>) config.get(TRANSPORT_CONFIG)));
 
         Credentials.Resolved credential = Credentials.resolve(auth);
         String endpoint;

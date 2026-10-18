@@ -50,6 +50,9 @@ class ContentCsvStream {
 
     private boolean isClosed = false;
     private final stream<record {}|string[], error?> csvStream;
+    // The binding error the last pull returned, so the dispatcher can tell a handler that
+    // returned the stream's own binding error from one that failed on its own account.
+    private error? lastBindingError = ();
 
     public isolated function init(typedesc<record {}|string[]> targetType, stream<byte[], error?> byteStream,
             csv:ParseOptions options) returns error? {
@@ -79,9 +82,16 @@ class ContentCsvStream {
         if nextEntry is error {
             self.isClosed = true;
             closeStreamQuietly(self.csvStream);
-            return error Error("CSV content does not bind to the declared row type: " + nextEntry.message(), nextEntry);
+            Error bindingError = error Error("CSV content does not bind to the declared row type: "
+                    + nextEntry.message(), nextEntry);
+            self.lastBindingError = bindingError;
+            return bindingError;
         }
         return nextEntry;
+    }
+
+    isolated function bindingError() returns error? {
+        return self.lastBindingError;
     }
 
     public isolated function close() returns error? {

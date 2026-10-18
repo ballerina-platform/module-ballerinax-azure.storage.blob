@@ -18,33 +18,39 @@
 
 package io.ballerina.lib.azure.storage.blob.server;
 
-import com.azure.core.util.Context;
-import com.azure.storage.queue.QueueClient;
-
-import java.time.Duration;
+import io.ballerina.lib.azure.storage.blob.server.QueueGateway.QueueCallException;
 
 /**
- * The poison queue, {@code {queue}-poison}: created on first use, and holding its messages
- * for ever (time to live -1), so a poisoned event waits until someone inspects it.
+ * A service's poison queue. The copy is sent first; the queue is created only when that send
+ * fails because the queue does not exist, and the send is then repeated. Poison messages never
+ * expire.
  */
 final class PoisonQueue {
 
-    static final String SUFFIX = "-poison";
-    private static final Duration NEVER_EXPIRE = Duration.ofSeconds(-1);
+    static final String QUEUE_NOT_FOUND = "QueueNotFound";
 
-    private final QueueClient client;
-    private volatile boolean created;
+    private final String name;
+    private final QueueGateway gateway;
 
-    PoisonQueue(ListenerContext ctx) {
-        this.client = QueueClients.build(ctx.listenerConfig, ctx.queueName + SUFFIX);
+    PoisonQueue(String name, QueueGateway gateway) {
+        this.name = name;
+        this.gateway = gateway;
     }
 
-    /** Copies a message body onto the poison queue. */
-    void send(String body) {
-        if (!created) {
-            client.createIfNotExists();
-            created = true;
+    String name() {
+        return name;
+    }
+
+    /** Copies a message body onto the poison queue and returns the copy's message id. */
+    String send(String body) {
+        try {
+            return gateway.send(body);
+        } catch (QueueCallException e) {
+            if (!e.hasCode(QUEUE_NOT_FOUND)) {
+                throw e;
+            }
+            gateway.create();
+            return gateway.send(body);
         }
-        client.sendMessageWithResponse(body, null, NEVER_EXPIRE, null, Context.NONE);
     }
 }

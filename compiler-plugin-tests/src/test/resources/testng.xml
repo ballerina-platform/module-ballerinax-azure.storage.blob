@@ -20,6 +20,8 @@
     <test name="service-validation-tests">
         <classes>
             <class name="io.ballerina.lib.azure.storage.blob.plugin.ServiceValidationTest"/>
+            <class name="io.ballerina.lib.azure.storage.blob.plugin.ServiceConfigValidationTest"/>
+            <class name="io.ballerina.lib.azure.storage.blob.plugin.ListenerPackageValidationTest"/>
         </classes>
     </test>
 </suite>

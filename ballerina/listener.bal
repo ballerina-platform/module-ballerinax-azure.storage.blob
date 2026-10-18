@@ -19,30 +19,47 @@ import ballerina/log;
 
 # Configuration for an `azure.storage.blob` `Listener`.
 public type ListenerConfiguration record {|
-    # The authentication configuration (see `AuthConfig`). A SAS credential must be an account
-    # SAS covering both the queue and the blob services
+    # The authentication configuration (see `AuthConfig`). One credential serves every queue,
+    # every poison queue, and every `Caller` of the listener; a SAS credential must be an
+    # account SAS covering both the queue and the blob services
     AuthConfig auth;
-    # The longest wait between polls of an empty queue, in seconds
-    decimal maxPollingIntervalSeconds = 60;
-    # How many messages one receive fetches, 1 to 32
-    int batchSize = 16;
-    # The number of in-flight events at which the next batch is fetched. Defaults to half the batch size
-    int newBatchThreshold?;
-    # How long a message stays invisible after its handler fails, in seconds, before it is redelivered
-    decimal redeliveryDelaySeconds = 0;
-    # How many deliveries a message gets before it is moved to the poison queue
-    int maxDeliveryCount = 5;
-    # Retry behaviour for service requests; omit for the service defaults
-    RetryConfig retryConfig?;
-    # HTTP transport settings (proxy, connection pool, TLS)
-    TransportConfig transportConfig = {};
     # Relaxed data binding for the typed content handlers: JSON, XML, and CSV record binding
     # treat a null value as an optional field and an absent field as a nilable field
     boolean laxDataBinding = false;
-    # The queue service endpoint URL, including the scheme. Omit to use the default
-    # `https://{accountName}.queue.core.windows.net`
+    # Retry behaviour for service requests; omit to keep the connector's defaults. The
+    # secondary host, if given, serves the blob requests only
+    RetryConfig retryConfig?;
+    # HTTP transport settings (proxy, connection pool, TLS), shared by every service and
+    # `Caller` of the listener
+    TransportConfig transportConfig = {};
+    # The queue service endpoint URL, including the scheme. Omit to derive it from the
+    # credential's blob endpoint or account name
     string queueServiceUrl?;
 |};
+
+# The queue a service consumes and how it is consumed, supplied through the
+# `@blob:ServiceConfig` annotation.
+public type ServiceConfiguration record {|
+    # The storage queue the service's Event Grid subscription delivers to
+    string queueName;
+    # The queue failed messages move to. Defaults to `{queueName}-poison`
+    string poisonQueueName?;
+    # How many messages one receive fetches, 1 to 32
+    int batchSize = 16;
+    # The number of events still being handled at which the next batch is fetched, 0 to
+    # `batchSize`. Defaults to half the batch size, rounded down
+    int newBatchThreshold?;
+    # The longest wait between polls of an empty queue, in seconds
+    decimal maxPollingIntervalSeconds = 60;
+    # How long a message stays invisible after its handler fails, before it is redelivered,
+    # in seconds, 0 to 604,800, rounded up to whole seconds
+    decimal redeliveryDelaySeconds = 0;
+    # How many deliveries a message gets before it is moved to the poison queue, at least 1
+    int maxDeliveryCount = 5;
+|};
+
+# Names the queue a service consumes and sets its consumption settings.
+public annotation ServiceConfiguration ServiceConfig on service, class;
 
 # The per-handler routing configuration, supplied through the `@blob:FunctionConfig`
 # annotation. It overrides the extension-based routing of created events.
@@ -60,66 +77,42 @@ public annotation FunctionConfiguration FunctionConfig on object function;
 public type Service distinct service object {
 };
 
-# Consumes the blob events an Azure Event Grid subscription delivers to an Azure Storage queue,
-# and dispatches each to the service attached for the event's container.
+# Consumes the blob events Azure Event Grid subscriptions deliver to Azure Storage queues,
+# and dispatches each to the service that names the queue it arrived on.
 public isolated class Listener {
 
     // The client settings every Caller of this listener is built from.
     private final ClientConfiguration & readonly clientConfig;
 
-    # Initializes the listener for a queue.
+    # Initializes the listener. Every value is validated locally; no call reaches Azure.
     #
-    # + queueName - The name of the storage queue the Event Grid subscription delivers to
-    # + config - The listener configuration (authentication, polling, delivery, transport)
+    # + config - The listener configuration (authentication, data binding, transport)
     # + return - An `Error` if the listener could not be initialized, otherwise `()`
-    public isolated function init(string queueName, *ListenerConfiguration config) returns Error? {
-        if config.batchSize < 1 || config.batchSize > 32 {
-            return error Error("batchSize must be between 1 and 32");
-        }
-        int newBatchThreshold = config?.newBatchThreshold ?: config.batchSize / 2;
-        if newBatchThreshold < 0 || newBatchThreshold > config.batchSize {
-            return error Error("newBatchThreshold must be between 0 and batchSize");
-        }
-        // The caller's record is left untouched; the resolved threshold goes to the native side.
-        ListenerConfiguration resolved = config.clone();
-        resolved.newBatchThreshold = newBatchThreshold;
-        if config.maxPollingIntervalSeconds <= 0d {
-            return error Error("maxPollingIntervalSeconds must be greater than zero");
-        }
-        if config.redeliveryDelaySeconds < 0d {
-            return error Error("redeliveryDelaySeconds must not be negative");
-        }
-        if config.maxDeliveryCount < 1 {
-            return error Error("maxDeliveryCount must be greater than zero");
-        }
-        if queueName.trim() == "" {
-            return error Error("queueName must not be empty");
-        }
+    public isolated function init(*ListenerConfiguration config) returns Error? {
         ClientConfiguration clientConfig = {auth: config.auth, transportConfig: config.transportConfig};
         RetryConfig? retryConfig = config?.retryConfig;
         if retryConfig is RetryConfig {
             clientConfig.retryConfig = retryConfig;
         }
         self.clientConfig = clientConfig.cloneReadOnly();
-        return externInit(self, queueName, resolved);
+        return externInit(self, config);
     }
 
-    # Attaches a service for the container named by its attach point. A service with no attach
-    # point handles the events of every container no other service claims.
+    # Attaches a service, which names the queue it consumes in its `@blob:ServiceConfig`
+    # annotation. On a running listener the service's queue is polled at once.
     #
     # + serviceRef - The service to attach
-    # + name - The container name, from the service's attach point
+    # + name - The attach point, which must be empty
     # + return - An `error` if the service could not be attached, otherwise `()`
     public isolated function attach(Service serviceRef, string[]|string? name = ()) returns error? {
-        string? container = check attachContainer(name);
-        Caller? caller = ();
-        if container is string {
-            caller = check new Caller(container, self.clientConfig);
+        if name is string || (name is string[] && name.length() > 0) {
+            return error Error("a service attaches with no name; it names its queue in '@blob:ServiceConfig'");
         }
-        return externAttach(self, serviceRef, container, caller);
+        return externAttach(self, serviceRef);
     }
 
-    # Detaches a service from the listener. Detaching a service that is not attached fails.
+    # Detaches a service: its queue is no longer polled, while its running handlers finish and
+    # settle their messages. Detaching a service that is not attached fails.
     #
     # + serviceRef - The service to detach
     # + return - An `error` if the service could not be detached, otherwise `()`
@@ -127,22 +120,23 @@ public isolated class Listener {
         return externDetach(self, serviceRef);
     }
 
-    # Starts consuming the queue. Starting a listener that is already running fails.
+    # Starts polling the queue of every attached service. Starting a listener that is already
+    # running fails, and a stopped listener cannot be started again.
     #
     # + return - An `error` if the listener could not be started, otherwise `()`
     public isolated function 'start() returns error? {
         return externStart(self);
     }
 
-    # Stops polling and waits for the handlers already running to finish.
+    # Stops polling and waits for the handlers still running, for up to ten minutes.
     #
     # + return - An `error` if the listener could not be stopped, otherwise `()`
     public isolated function gracefulStop() returns error? {
         return externGracefulStop(self);
     }
 
-    # Stops polling and returns without waiting. Messages whose handlers were still running
-    # reappear on the queue when their visibility window expires.
+    # Stops polling and returns at once. Handlers still running keep their messages hidden
+    # and settle normally.
     #
     # + return - An `error` if the listener could not be stopped, otherwise `()`
     public isolated function immediateStop() returns error? {
@@ -150,62 +144,59 @@ public isolated class Listener {
     }
 }
 
-// Resolves the attach point to a container name: one segment (a leading slash removed) that
-// satisfies the service's container-name rule, or `$root` / `$logs`; nil is the catch-all.
-isolated function attachContainer(string[]|string? name) returns string?|error {
-    if name is () {
-        return ();
-    }
-    string value;
-    if name is string[] {
-        if name.length() != 1 {
-            return error("the attach point must be a single container name");
-        }
-        value = name[0];
-    } else {
-        value = name;
-    }
-    if value.startsWith("/") {
-        value = value.substring(1);
-    }
-    if value == "$root" || value == "$logs" {
-        return value;
-    }
-    if value.length() > 63 || !re `^[a-z0-9](?:-?[a-z0-9]){2,62}$`.isFullMatch(value) {
-        return error(string `'${value}' is not a valid container name: 3 to 63 lowercase letters, digits `
-                + "and single hyphens, starting and ending with a letter or digit");
-    }
-    return value;
-}
-
-// Builds the Caller a catch-all service receives for one event's container. Called from the
-// native dispatcher on a strand.
+// Builds the Caller for one event's container. Called from the native dispatcher on a strand.
 isolated function newCaller(string containerName, ClientConfiguration config) returns Caller|Error {
     return new (containerName, config);
 }
 
-// The listener's Java side reports its diagnostics through these, so they reach the user's log.
-// Calling `log` from Java would need an slf4j binding, which the distribution does not carry.
-isolated function logListenerWarn(string message) {
-    log:printWarn(message);
+// How a handler's returned error settles its message: recognised by the module's own types,
+// and only on the returned value itself, so a wrapped settlement error stays an ordinary failure.
+type HandlerOutcome record {|
+    # `deadLetter`, `retry`, or `failure`
+    string kind;
+    # The requested delay of a `RetryError`
+    decimal delaySeconds = 0;
+    # The error's message
+    string message;
+|};
+
+isolated function classifyHandlerError(error e) returns HandlerOutcome {
+    if e is DeadLetterError {
+        return {kind: "deadLetter", message: e.message()};
+    }
+    if e is RetryError {
+        return {kind: "retry", delaySeconds: e.detail().delaySeconds, message: e.message()};
+    }
+    return {kind: "failure", message: e.message()};
 }
 
-isolated function logListenerError(string message) {
-    log:printError(message);
+// The listener's Java side reports its diagnostics through this, so they reach the user's log
+// with their key-value fields. Calling `log` from Java would need an slf4j binding, which the
+// distribution does not carry.
+isolated function logListener(string level, string message, map<anydata> fields) {
+    log:KeyValues keyValues = {};
+    foreach [string, anydata] [key, value] in fields.entries() {
+        keyValues[key] = value;
+    }
+    match level {
+        "error" => {
+            log:printError(message, (), (), keyValues);
+        }
+        "warn" => {
+            log:printWarn(message, (), (), keyValues);
+        }
+        _ => {
+            log:printDebug(message, (), (), keyValues);
+        }
+    }
 }
 
-isolated function logListenerDebug(string message) {
-    log:printDebug(message);
-}
-
-isolated function externInit(Listener listenerObj, string queueName, ListenerConfiguration config)
-        returns Error? = @java:Method {
+isolated function externInit(Listener listenerObj, ListenerConfiguration config) returns Error? = @java:Method {
     name: "initListener",
     'class: "io.ballerina.lib.azure.storage.blob.server.Listener"
 } external;
 
-isolated function externAttach(Listener listenerObj, Service serviceRef, string? container, Caller? caller)
-        returns error? = @java:Method {
+isolated function externAttach(Listener listenerObj, Service serviceRef) returns error? = @java:Method {
     name: "attachService",
     'class: "io.ballerina.lib.azure.storage.blob.server.Listener"
 } external;

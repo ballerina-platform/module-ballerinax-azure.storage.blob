@@ -1,0 +1,4 @@
+[package]
+org = "azure_blob_test"
+name = "invalid_redelivery_delay_over_week"
+version = "0.9.0"

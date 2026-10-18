@@ -1,0 +1,4 @@
+[package]
+org = "azure_blob_test"
+name = "valid_service_config_full"
+version = "0.9.0"

@@ -25,10 +25,13 @@ import io.ballerina.compiler.api.symbols.TypeSymbol;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ParameterNode;
 import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
+import io.ballerina.lib.azure.storage.blob.plugin.PluginUtils.OptionalParameter;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
 
 import java.util.Optional;
 
+import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.BLOB_EVENT;
+import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.CALLER;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.ERROR_TYPE;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.ON_ERROR_FUNC;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.PACKAGE_ORG;
@@ -36,14 +39,17 @@ import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.PACKAGE
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.CompilationErrors.CONTENT_METHOD_MUST_BE_REMOTE;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.CompilationErrors.INVALID_ON_ERROR_FIRST_PARAMETER;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.CompilationErrors.INVALID_ON_ERROR_SECOND_PARAMETER;
+import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.CompilationErrors.INVALID_ON_ERROR_THIRD_PARAMETER;
+import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.CompilationErrors.ON_ERROR_PARAMETER_NOT_NILABLE;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.CompilationErrors.TOO_MANY_PARAMETERS_ON_ERROR;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginUtils.isRemoteFunction;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginUtils.reportErrorDiagnostic;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginUtils.unwrapTypeReference;
 
 /**
- * Validates the error notification handler: remote, {@code (error|blob:Error, Caller?)},
- * returning {@code error?}.
+ * Validates the error notification handler: remote, {@code (error|blob:Error, BlobEvent?,
+ * Caller?)} with the two optional parameters nilable and in that order, returning
+ * {@code error?}.
  */
 public class OnErrorFunctionValidator {
 
@@ -67,13 +73,33 @@ public class OnErrorFunctionValidator {
             reportErrorDiagnostic(context, INVALID_ON_ERROR_FIRST_PARAMETER, functionDefinitionNode.location());
             return;
         }
-        if (paramCount > 2) {
+        if (paramCount > 3) {
             reportErrorDiagnostic(context, TOO_MANY_PARAMETERS_ON_ERROR, functionDefinitionNode.location());
             return;
         }
         validateErrorParameter(parameters.get(0));
-        if (paramCount == 2 && !PluginUtils.validateCallerParameter(parameters.get(1), context)) {
-            reportErrorDiagnostic(context, INVALID_ON_ERROR_SECOND_PARAMETER, parameters.get(1).location());
+        OptionalParameter second = paramCount >= 2
+                ? PluginUtils.classifyOptionalParameter(parameters.get(1), context) : null;
+        OptionalParameter third = paramCount == 3
+                ? PluginUtils.classifyOptionalParameter(parameters.get(2), context) : null;
+        if (second != null) {
+            // The second is the event, or the Caller when it is the last; a Caller followed by
+            // another Caller means the event was meant.
+            boolean secondAllowed = second.isEvent() || (second.isCaller() && (third == null || !third.isCaller()));
+            if (!secondAllowed) {
+                reportErrorDiagnostic(context, INVALID_ON_ERROR_SECOND_PARAMETER, parameters.get(1).location());
+            } else if (!second.nilable()) {
+                reportErrorDiagnostic(context, ON_ERROR_PARAMETER_NOT_NILABLE, parameters.get(1).location(),
+                        second.name(), second.isEvent() ? BLOB_EVENT : CALLER);
+            }
+        }
+        if (third != null) {
+            if (!third.isCaller()) {
+                reportErrorDiagnostic(context, INVALID_ON_ERROR_THIRD_PARAMETER, parameters.get(2).location());
+            } else if (!third.nilable()) {
+                reportErrorDiagnostic(context, ON_ERROR_PARAMETER_NOT_NILABLE, parameters.get(2).location(),
+                        third.name(), CALLER);
+            }
         }
         PluginUtils.validateReturnTypeErrorOrNil(functionDefinitionNode, context);
     }

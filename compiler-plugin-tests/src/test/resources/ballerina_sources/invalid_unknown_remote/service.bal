@@ -16,12 +16,13 @@
 
 import ballerinax/azure.storage.blob as blob;
 
-listener blob:Listener lsn = new ("events", auth = {accountName: "acc", accountKey: "a2V5"});
+listener blob:Listener lsn = new (auth = {accountName: "acc", accountKey: "a2V5"});
 
-service /invoices on lsn {
-    remote function onUpload(byte[] content) returns error? {
+@blob:ServiceConfig {queueName: "events"}
+isolated service on lsn {
+    isolated remote function onUpload(byte[] content) returns error? {
     }
 
-    remote function onBlob(byte[] content) returns error? {
+    isolated remote function onBlob(byte[] content) returns error? {
     }
 }

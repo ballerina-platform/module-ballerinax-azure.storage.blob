@@ -1,0 +1,4 @@
+[package]
+org = "azure_blob_test"
+name = "invalid_queue_name_too_short"
+version = "0.9.0"

@@ -38,7 +38,7 @@ import static io.ballerina.lib.azure.storage.blob.plugin.PluginUtils.validateMod
 
 /**
  * Validates the services attached to this module's {@code Listener}; services on any other
- * listener are left alone, as are sources that already carry compile errors.
+ * listener are left alone, as are services in a document that already carries compile errors.
  */
 public class ServiceAnalysisTask implements AnalysisTask<SyntaxNodeAnalysisContext> {
 
@@ -46,8 +46,12 @@ public class ServiceAnalysisTask implements AnalysisTask<SyntaxNodeAnalysisConte
 
     @Override
     public void perform(SyntaxNodeAnalysisContext context) {
+        // A source that already carries compile errors in the service's own document is left
+        // alone; errors elsewhere in the module do not hide this service's diagnostics.
+        String document = context.node().location().lineRange().fileName();
         for (Diagnostic diagnostic : context.semanticModel().diagnostics()) {
-            if (diagnostic.diagnosticInfo().severity() == DiagnosticSeverity.ERROR) {
+            if (diagnostic.diagnosticInfo().severity() == DiagnosticSeverity.ERROR
+                    && document.equals(diagnostic.location().lineRange().fileName())) {
                 return;
             }
         }
@@ -62,10 +66,12 @@ public class ServiceAnalysisTask implements AnalysisTask<SyntaxNodeAnalysisConte
         SemanticModel semanticModel = context.semanticModel();
         ServiceDeclarationNode serviceDeclarationNode = (ServiceDeclarationNode) context.node();
         Optional<Symbol> symbol = semanticModel.symbol(serviceDeclarationNode);
-        if (symbol.isEmpty()) {
-            return false;
-        }
-        List<TypeSymbol> listeners = ((ServiceDeclarationSymbol) symbol.get()).listenerTypes();
+        return symbol.isPresent() && symbol.get() instanceof ServiceDeclarationSymbol declaration
+                && attachesToBlobListener(declaration);
+    }
+
+    static boolean attachesToBlobListener(ServiceDeclarationSymbol declaration) {
+        List<TypeSymbol> listeners = declaration.listenerTypes();
         if (listeners.isEmpty()) {
             return false;
         }
@@ -77,7 +83,7 @@ public class ServiceAnalysisTask implements AnalysisTask<SyntaxNodeAnalysisConte
         return true;
     }
 
-    private boolean isAzureBlobListener(TypeSymbol listener) {
+    private static boolean isAzureBlobListener(TypeSymbol listener) {
         if (listener.typeKind() == TypeDescKind.UNION) {
             for (TypeSymbol member : ((UnionTypeSymbol) listener).memberTypeDescriptors()) {
                 Optional<ModuleSymbol> module = member.getModule();

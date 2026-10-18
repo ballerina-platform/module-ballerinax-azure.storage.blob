@@ -131,21 +131,27 @@ public class ServiceValidationTest {
     }
 
     @Test
-    public void testValidCatchAll() {
-        DiagnosticResult result = loadPackage("valid_catch_all");
-        assertNoErrors(result, "valid_catch_all");
+    public void testValidNonIsolated() {
+        DiagnosticResult result = loadPackage("valid_non_isolated");
+        assertNoErrors(result, "valid_non_isolated");
     }
 
     @Test
-    public void testValidStringAttachPoint() {
-        DiagnosticResult result = loadPackage("valid_string_attach_point");
-        assertNoErrors(result, "valid_string_attach_point");
+    public void testValidOnErrorWithEvent() {
+        DiagnosticResult result = loadPackage("valid_on_error_with_event");
+        assertNoErrors(result, "valid_on_error_with_event");
     }
 
     @Test
-    public void testValidHyphenatedAttachPoint() {
-        DiagnosticResult result = loadPackage("valid_hyphenated_attach_point");
-        assertNoErrors(result, "valid_hyphenated_attach_point");
+    public void testValidOnErrorFull() {
+        DiagnosticResult result = loadPackage("valid_on_error_full");
+        assertNoErrors(result, "valid_on_error_full");
+    }
+
+    @Test
+    public void testValidReturnSettlementErrors() {
+        DiagnosticResult result = loadPackage("valid_return_settlement_errors");
+        assertNoErrors(result, "valid_return_settlement_errors");
     }
 
     @Test
@@ -287,7 +293,8 @@ public class ServiceValidationTest {
     public void testInvalidAttachPointTwoSegments() {
         DiagnosticResult result = loadPackage("invalid_attach_point_two_segments");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_111", "Invalid attach point 'invoices/archive'");
+        assertError(result, 0, "AZURE_BLOB_111",
+                "Invalid attach point 'invoices/archive'. A service attaches with no name");
     }
 
     @Test
@@ -305,6 +312,13 @@ public class ServiceValidationTest {
     }
 
     @Test
+    public void testInvalidAttachPointString() {
+        DiagnosticResult result = loadPackage("invalid_attach_point_string");
+        assertEquals(result.errorCount(), 1, describe(result));
+        assertError(result, 0, "AZURE_BLOB_111", "Invalid attach point '$root'");
+    }
+
+    @Test
     public void testInvalidOnErrorFirstParam() {
         DiagnosticResult result = loadPackage("invalid_on_error_first_param");
         assertEquals(result.errorCount(), 1, describe(result));
@@ -319,17 +333,38 @@ public class ServiceValidationTest {
     }
 
     @Test
-    public void testInvalidOnErrorSecondParam() {
+    public void testInvalidOnErrorSecondParamNotNilable() {
         DiagnosticResult result = loadPackage("invalid_on_error_second_param");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_113", "Optional second parameter must be");
+        assertError(result, 0, "AZURE_BLOB_117", "The 'event' parameter must be nilable ('BlobEvent?')");
+    }
+
+    @Test
+    public void testInvalidOnErrorSecondNonNilableCaller() {
+        DiagnosticResult result = loadPackage("invalid_on_error_second_non_nilable_caller");
+        assertEquals(result.errorCount(), 1, describe(result));
+        assertError(result, 0, "AZURE_BLOB_117", "The 'caller' parameter must be nilable ('Caller?')");
+    }
+
+    @Test
+    public void testInvalidOnErrorThirdNotCaller() {
+        DiagnosticResult result = loadPackage("invalid_on_error_third_not_caller");
+        assertEquals(result.errorCount(), 1, describe(result));
+        assertError(result, 0, "AZURE_BLOB_118", "Optional third parameter must be 'Caller?'");
+    }
+
+    @Test
+    public void testInvalidOnErrorCallerThenEvent() {
+        DiagnosticResult result = loadPackage("invalid_on_error_caller_then_event");
+        assertEquals(result.errorCount(), 1, describe(result));
+        assertError(result, 0, "AZURE_BLOB_118", "Optional third parameter must be 'Caller?'");
     }
 
     @Test
     public void testInvalidOnErrorTooManyParams() {
         DiagnosticResult result = loadPackage("invalid_on_error_too_many_params");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_114", "Too many parameters for 'onError'");
+        assertError(result, 0, "AZURE_BLOB_114", "It accepts at most 3 parameters");
     }
 
     @Test

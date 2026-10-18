@@ -60,7 +60,7 @@ public final class EventParser {
     private static final String DFS_LABEL = ".dfs.";
     private static final String BLOB_LABEL = ".blob.";
     // Created events whose operation commits no content (spec 5.7).
-    private static final Set<String> NO_CONTENT_APIS = Set.of("CreateFile", "SftpCreate", "SftpWrite");
+    static final Set<String> NO_CONTENT_APIS = Set.of("CreateFile", "SftpCreate", "SftpWrite");
     private static final String PUT_BLOB = "PutBlob";
     private static final Set<String> NO_CONTENT_BLOB_TYPES = Set.of("AppendBlob", "PageBlob");
 

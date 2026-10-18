@@ -16,8 +16,9 @@
 
 import ballerina/jballerina.java;
 
-# The context object passed to a listener service's handlers, exposing a container-scoped
-# subset of `Client` to act on the event's blob. It cannot be instantiated by user code.
+# The context object passed to a listener service's handlers, bound to the event's container
+# and exposing a subset of `Client` to act on the event's blob. It cannot be instantiated by
+# user code.
 public isolated client class Caller {
 
     private final Client 'client;
@@ -64,7 +65,7 @@ public isolated client class Caller {
         return self.'client->download(sourcePath, destinationPath, options);
     }
 
-    # Uploads in-memory content to the service's container.
+    # Uploads in-memory content to the event's container.
     #
     # + content - The content to upload. A record, a record array, or another `json` value is
     #             serialized per the resolved format; `byte[]` and `string` are written as-is
@@ -86,7 +87,7 @@ public isolated client class Caller {
     }
 
     # Starts a copy from any readable blob URL, such as `BlobEvent.url`, to a path in the
-    # service's container. The copy is asynchronous; read its state through `getBlobProperties`.
+    # event's container. The copy is asynchronous; read its state through `getBlobProperties`.
     #
     # + sourceUrl - The URL of the blob to copy, including any SAS it needs
     # + destinationPath - The container-relative path to write

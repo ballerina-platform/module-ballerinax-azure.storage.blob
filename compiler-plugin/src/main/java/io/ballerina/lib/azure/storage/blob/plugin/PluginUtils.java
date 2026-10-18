@@ -182,18 +182,19 @@ public final class PluginUtils {
         if (methodSymbol == null) {
             return;
         }
+        TypeSymbol errorType = context.semanticModel().types().ERROR;
         Optional<TypeSymbol> returnTypeDesc = methodSymbol.typeDescriptor().returnTypeDescriptor();
         if (returnTypeDesc.isEmpty()) {
             return;
         }
         TypeSymbol returnType = returnTypeDesc.get();
         TypeDescKind kind = returnType.typeKind();
-        if (kind == TypeDescKind.NIL || isErrorType(returnType)) {
+        if (kind == TypeDescKind.NIL || isErrorType(returnType, errorType)) {
             return;
         }
         if (kind == TypeDescKind.UNION && returnType instanceof UnionTypeSymbol unionTypeSymbol) {
             for (TypeSymbol memberType : unionTypeSymbol.memberTypeDescriptors()) {
-                if (memberType.typeKind() != TypeDescKind.NIL && !isErrorType(memberType)) {
+                if (memberType.typeKind() != TypeDescKind.NIL && !isErrorType(memberType, errorType)) {
                     context.reportDiagnostic(getDiagnostic(INVALID_RETURN_TYPE_ERROR_OR_NIL, DiagnosticSeverity.ERROR,
                             functionDefinitionNode.functionSignature().location()));
                     return;
@@ -205,7 +206,70 @@ public final class PluginUtils {
                 functionDefinitionNode.functionSignature().location()));
     }
 
-    private static boolean isErrorType(TypeSymbol typeSymbol) {
-        return unwrapTypeReference(typeSymbol).typeKind() == TypeDescKind.ERROR;
+    // A subtype check rather than a kind check, so the module's intersection-typed settlement
+    // errors (distinct Error & error<Detail>) count as errors.
+    private static boolean isErrorType(TypeSymbol typeSymbol, TypeSymbol errorType) {
+        TypeSymbol resolved = unwrapTypeReference(typeSymbol);
+        return resolved.typeKind() == TypeDescKind.ERROR || resolved.subtypeOf(errorType);
+    }
+
+    // How a parameter after the first of onError is declared.
+    record OptionalParameter(String name, String moduleTypeName, boolean nilable) {
+
+        boolean isEvent() {
+            return BLOB_EVENT.equals(moduleTypeName);
+        }
+
+        boolean isCaller() {
+            return CALLER.equals(moduleTypeName);
+        }
+    }
+
+    /**
+     * Classifies an optional parameter of {@code onError}: which module type it names, through
+     * a nilable union or directly, and whether it is nilable.
+     */
+    public static OptionalParameter classifyOptionalParameter(ParameterNode parameterNode,
+                                                              SyntaxNodeAnalysisContext context) {
+        String name = parameterNode instanceof RequiredParameterNode required
+                ? required.paramName().map(token -> token.text()).orElse("") : "";
+        Optional<TypeSymbol> typeSymbol = getParameterTypeSymbol(parameterNode, context);
+        if (typeSymbol.isEmpty()) {
+            return new OptionalParameter(name, null, false);
+        }
+        TypeSymbol resolved = unwrapTypeReference(typeSymbol.get());
+        boolean nilable = false;
+        String moduleTypeName = null;
+        if (resolved.typeKind() == TypeDescKind.UNION && resolved instanceof UnionTypeSymbol union) {
+            for (TypeSymbol member : union.memberTypeDescriptors()) {
+                if (unwrapTypeReference(member).typeKind() == TypeDescKind.NIL) {
+                    nilable = true;
+                } else if (moduleTypeName == null) {
+                    moduleTypeName = moduleTypeName(member);
+                } else {
+                    moduleTypeName = null;
+                    break;
+                }
+            }
+        } else {
+            moduleTypeName = moduleTypeName(typeSymbol.get());
+        }
+        return new OptionalParameter(name, moduleTypeName, nilable);
+    }
+
+    // The name of the module's type a symbol refers to, through a bounded reference chain.
+    private static String moduleTypeName(TypeSymbol typeSymbol) {
+        TypeSymbol resolved = typeSymbol;
+        for (int depth = 0; resolved != null && depth < PluginConstants.MAX_TYPE_REFERENCE_DEPTH; depth++) {
+            Optional<ModuleSymbol> moduleSymbol = resolved.getModule();
+            if (moduleSymbol.isPresent() && validateModuleId(moduleSymbol.get()) && resolved.getName().isPresent()) {
+                return resolved.getName().get();
+            }
+            if (!(resolved instanceof TypeReferenceTypeSymbol reference)) {
+                return null;
+            }
+            resolved = reference.typeDescriptor();
+        }
+        return null;
     }
 }

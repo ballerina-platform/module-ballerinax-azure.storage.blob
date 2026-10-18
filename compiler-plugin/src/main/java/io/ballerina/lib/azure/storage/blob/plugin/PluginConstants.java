@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 /**
  * Constants for the {@code azure.storage.blob} listener compiler plugin: the module identity
  * used to recognize the connector's listener, the handler names, the parameter type names, the
- * attach-point rule, and the diagnostic catalog.
+ * service configuration rules, and the diagnostic catalog.
  */
 public final class PluginConstants {
 
@@ -62,9 +62,24 @@ public final class PluginConstants {
     public static final String BLOB_EVENT = "BlobEvent";
     public static final String ERROR_TYPE = "Error";
 
-    // The container attach point: Azure's container name rule, or the two special containers.
-    public static final Pattern CONTAINER_NAME = Pattern.compile("^[a-z0-9](?:-?[a-z0-9]){2,62}$");
-    public static final Set<String> SPECIAL_CONTAINERS = Set.of("$root", "$logs");
+    // The service configuration annotation and its fields.
+    public static final String SERVICE_CONFIG_ANNOTATION = "ServiceConfig";
+    public static final String QUEUE_NAME_FIELD = "queueName";
+    public static final String POISON_QUEUE_NAME_FIELD = "poisonQueueName";
+    public static final String BATCH_SIZE_FIELD = "batchSize";
+    public static final String NEW_BATCH_THRESHOLD_FIELD = "newBatchThreshold";
+    public static final String MAX_POLLING_INTERVAL_SECONDS_FIELD = "maxPollingIntervalSeconds";
+    public static final String REDELIVERY_DELAY_SECONDS_FIELD = "redeliveryDelaySeconds";
+    public static final String MAX_DELIVERY_COUNT_FIELD = "maxDeliveryCount";
+
+    // Azure's queue name rule, the length a queue name may have before its default poison queue
+    // name exceeds the limit, and the ranges of the consumption settings; the runtime applies
+    // the same rules at attach.
+    public static final Pattern QUEUE_NAME = Pattern.compile("^(?=.{3,63}$)[a-z0-9]+(?:-[a-z0-9]+)*$");
+    public static final String POISON_SUFFIX = "-poison";
+    public static final int MAX_QUEUE_NAME_WITH_DEFAULT_POISON = 56;
+    public static final int MAX_BATCH_SIZE = 32;
+    public static final long MAX_REDELIVERY_DELAY_SECONDS = 604_800;
 
     /**
      * The diagnostics the plugin can report, each paired with its stable code. The messages are
@@ -88,20 +103,36 @@ public final class PluginConstants {
                 "AZURE_BLOB_108"),
         TOO_MANY_PARAMETERS("Too many parameters for '%s'. Handlers accept at most 3 parameters: "
                 + "(content, event?, caller?).", "AZURE_BLOB_109"),
-        INVALID_RETURN_TYPE_ERROR_OR_NIL("Invalid return type. Expected 'error?' or 'blob:Error?'.",
-                "AZURE_BLOB_110"),
-        INVALID_ATTACH_POINT("Invalid attach point '%s'. Expected one container name (3 to 63 lowercase letters, "
-                + "digits and single hyphens), '$root', or '$logs'.", "AZURE_BLOB_111"),
+        INVALID_RETURN_TYPE_ERROR_OR_NIL("Invalid return type. Expected 'error?' or 'blob:Error?'; a handler may "
+                + "also name 'blob:DeadLetterError' and 'blob:RetryError'.", "AZURE_BLOB_110"),
+        INVALID_ATTACH_POINT("Invalid attach point '%s'. A service attaches with no name; it names its queue in "
+                + "'@blob:ServiceConfig'.", "AZURE_BLOB_111"),
         INVALID_ON_ERROR_FIRST_PARAMETER("Invalid parameter for 'onError'. The first parameter must be "
                 + "'error' or 'blob:Error'.", "AZURE_BLOB_112"),
         INVALID_ON_ERROR_SECOND_PARAMETER("Invalid parameter for 'onError'. Optional second parameter must be "
-                + "'Caller'.", "AZURE_BLOB_113"),
-        TOO_MANY_PARAMETERS_ON_ERROR("Too many parameters for 'onError'. It accepts at most 2 parameters: "
-                + "(error, caller?).", "AZURE_BLOB_114"),
+                + "'BlobEvent?' or 'Caller?'.", "AZURE_BLOB_113"),
+        TOO_MANY_PARAMETERS_ON_ERROR("Too many parameters for 'onError'. It accepts at most 3 parameters: "
+                + "(error, event?, caller?).", "AZURE_BLOB_114"),
         INVALID_DELETED_CALLER_PARAMETER("Invalid parameter for 'onBlobDeleted'. Optional second parameter must "
                 + "be 'Caller'.", "AZURE_BLOB_115"),
         TOO_MANY_PARAMETERS_DELETED("Too many parameters for 'onBlobDeleted'. It accepts at most 2 parameters: "
-                + "(event, caller?).", "AZURE_BLOB_116");
+                + "(event, caller?).", "AZURE_BLOB_116"),
+        ON_ERROR_PARAMETER_NOT_NILABLE("Invalid parameter for 'onError'. The '%s' parameter must be nilable "
+                + "('%s?'): it is '()' for a failure that carries none.", "AZURE_BLOB_117"),
+        INVALID_ON_ERROR_THIRD_PARAMETER("Invalid parameter for 'onError'. Optional third parameter must be "
+                + "'Caller?'.", "AZURE_BLOB_118"),
+        MISSING_SERVICE_CONFIG("Missing '@blob:ServiceConfig'. A service names the queue it consumes in the "
+                + "annotation's 'queueName'.", "AZURE_BLOB_119"),
+        INVALID_QUEUE_NAME("Invalid %s '%s'. Expected 3 to 63 lowercase letters, digits and single hyphens, "
+                + "beginning and ending with a letter or digit.", "AZURE_BLOB_120"),
+        POISON_QUEUE_NAME_REQUIRED("Missing 'poisonQueueName'. The default '%s-poison' exceeds 63 characters.",
+                "AZURE_BLOB_121"),
+        POISON_QUEUE_EQUALS_QUEUE("Invalid 'poisonQueueName'. It must differ from 'queueName' ('%s').",
+                "AZURE_BLOB_122"),
+        INVALID_SETTING_VALUE("Invalid '%s' %s. Expected %s.", "AZURE_BLOB_123"),
+        DUPLICATE_QUEUE("Duplicate queue '%s'. Another service of listener '%s' already consumes it.",
+                "AZURE_BLOB_124"),
+        POISON_QUEUE_CYCLE("Poison queue cycle on listener '%s': %s.", "AZURE_BLOB_125");
 
         private final String error;
         private final String errorCode;

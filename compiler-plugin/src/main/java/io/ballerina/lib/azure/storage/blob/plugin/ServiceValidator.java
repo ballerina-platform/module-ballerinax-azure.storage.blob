@@ -27,6 +27,7 @@ import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.Token;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
+import io.ballerina.tools.diagnostics.Diagnostic;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 
 import java.util.ArrayList;
@@ -44,9 +45,9 @@ import static io.ballerina.lib.azure.storage.blob.plugin.PluginUtils.getMethodSy
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginUtils.isRemoteFunction;
 
 /**
- * Validates a listener service: its attach point names one container (or none, for the
- * catch-all), it declares at least one event handler, and every member is a known handler
- * of the right shape.
+ * Validates a listener service: it attaches with no name, carries a valid
+ * {@code @blob:ServiceConfig}, declares at least one event handler, and every member is a
+ * known handler of the right shape.
  */
 public class ServiceValidator {
 
@@ -58,6 +59,9 @@ public class ServiceValidator {
     public void validate(SyntaxNodeAnalysisContext context) {
         ServiceDeclarationNode serviceDeclarationNode = (ServiceDeclarationNode) context.node();
         validateAttachPoint(context, serviceDeclarationNode);
+        List<Diagnostic> configDiagnostics = new ArrayList<>();
+        ServiceConfigValidator.validate(context.semanticModel(), serviceDeclarationNode, configDiagnostics);
+        configDiagnostics.forEach(context::reportDiagnostic);
 
         NodeList<Node> members = serviceDeclarationNode.members();
         List<FunctionDefinitionNode> contentMethods = new ArrayList<>();
@@ -112,8 +116,7 @@ public class ServiceValidator {
         }
     }
 
-    // The attach point is one segment satisfying the container name rule, or one of the two
-    // special containers; no attach point is the catch-all.
+    // A service attaches with no name: any attach point, a name or a path, is rejected.
     private void validateAttachPoint(SyntaxNodeAnalysisContext context, ServiceDeclarationNode service) {
         NodeList<Node> path = service.absoluteResourcePath();
         if (path.isEmpty()) {
@@ -132,15 +135,8 @@ public class ServiceValidator {
                 segments.add(node.toSourceCode().strip());
             }
         }
-        String joined = String.join("/", segments);
-        // The pattern bounds the hyphen groups, not the total length, so the limit is checked apart.
-        String name = segments.isEmpty() ? "" : segments.get(0);
-        boolean valid = segments.size() == 1 && (PluginConstants.SPECIAL_CONTAINERS.contains(name)
-                || (name.length() <= 63 && PluginConstants.CONTAINER_NAME.matcher(name).matches()));
-        if (!valid) {
-            context.reportDiagnostic(getDiagnostic(INVALID_ATTACH_POINT, DiagnosticSeverity.ERROR,
-                    path.get(0).location(), joined));
-        }
+        context.reportDiagnostic(getDiagnostic(INVALID_ATTACH_POINT, DiagnosticSeverity.ERROR,
+                path.get(0).location(), String.join("/", segments)));
     }
 
     private static String unquote(String literal) {

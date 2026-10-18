@@ -1,0 +1,4 @@
+[package]
+org = "azure_blob_test"
+name = "invalid_batch_size_33"
+version = "0.9.0"

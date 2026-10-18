@@ -16,14 +16,15 @@
 
 import ballerinax/azure.storage.blob as blob;
 
-listener blob:Listener lsn = new ("events", auth = {accountName: "acc", accountKey: "a2V5"});
+listener blob:Listener lsn = new (auth = {accountName: "acc", accountKey: "a2V5"});
 
 type Person record {|
     string name;
     int age;
 |};
 
-service /invoices on lsn {
-    remote function onBlobCsv(Person[] rows) returns error? {
+@blob:ServiceConfig {queueName: "events"}
+isolated service on lsn {
+    isolated remote function onBlobCsv(Person[] rows) returns error? {
     }
 }

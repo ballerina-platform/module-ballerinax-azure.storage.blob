@@ -1,0 +1,4 @@
+[package]
+org = "azure_blob_test"
+name = "valid_consumes_other_poison"
+version = "0.9.0"

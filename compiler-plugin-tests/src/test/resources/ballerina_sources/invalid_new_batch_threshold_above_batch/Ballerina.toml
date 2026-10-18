@@ -1,0 +1,4 @@
+[package]
+org = "azure_blob_test"
+name = "invalid_new_batch_threshold_above_batch"
+version = "0.9.0"

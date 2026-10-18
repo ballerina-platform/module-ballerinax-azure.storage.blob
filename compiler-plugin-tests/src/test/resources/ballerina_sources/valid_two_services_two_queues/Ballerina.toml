@@ -1,0 +1,4 @@
+[package]
+org = "azure_blob_test"
+name = "valid_two_services_two_queues"
+version = "0.9.0"

@@ -36,6 +36,11 @@ public final class BlobErrorCreator {
     private static final String SERVICE_ERROR_DETAIL = "ServiceErrorDetail";
     private static final BString HTTP_STATUS = StringUtils.fromString("httpStatus");
     private static final BString ERROR_CODE = StringUtils.fromString("errorCode");
+    private static final String CONTENT_BINDING_ERROR = "ContentBindingError";
+    private static final String CONTENT_BINDING_ERROR_DETAIL = "ContentBindingErrorDetail";
+    private static final BString CONTAINER_NAME = StringUtils.fromString("containerName");
+    private static final BString PATH = StringUtils.fromString("path");
+    private static final BString CONTENT = StringUtils.fromString("content");
 
     private BlobErrorCreator() {
     }
@@ -70,6 +75,46 @@ public final class BlobErrorCreator {
     public static BError clientError(String message, Throwable cause) {
         return ErrorCreator.createError(ModuleUtils.getModule(), GENERIC_ERROR,
                 StringUtils.fromString(message == null ? "" : message), toCause(cause), null);
+    }
+
+    /**
+     * Creates the listener's {@code ContentBindingError}: the blob whose content failed to bind,
+     * with the content itself only when it was already read into memory.
+     *
+     * @param message       the human-readable message
+     * @param cause         the binding failure
+     * @param containerName the blob's container
+     * @param path          the blob's container-relative path
+     * @param content       the content bytes, or {@code null} when nothing was read into memory
+     * @return the Ballerina error
+     */
+    public static BError contentBindingError(String message, BError cause, String containerName, String path,
+                                             byte[] content) {
+        BMap<BString, Object> detail = ValueCreator.createRecordValue(ModuleUtils.getModule(),
+                CONTENT_BINDING_ERROR_DETAIL);
+        detail.put(CONTAINER_NAME, StringUtils.fromString(containerName));
+        detail.put(PATH, StringUtils.fromString(path));
+        if (content != null) {
+            detail.put(CONTENT, ValueCreator.createReadonlyArrayValue(content));
+        }
+        return ErrorCreator.createError(ModuleUtils.getModule(), CONTENT_BINDING_ERROR,
+                StringUtils.fromString(message == null ? "" : message), cause, detail);
+    }
+
+    /**
+     * Re-creates an error of the same type and detail with another message, for the places the
+     * listener prefixes context to a service's own description.
+     *
+     * @param original the error
+     * @param message  the new message
+     * @return the Ballerina error
+     */
+    @SuppressWarnings("unchecked")
+    public static BError withMessage(BError original, String message) {
+        Object details = original.getDetails();
+        return ErrorCreator.createError(ModuleUtils.getModule(), original.getType().getName(),
+                StringUtils.fromString(message), original.getCause(),
+                details instanceof BMap ? (BMap<BString, Object>) details : null);
     }
 
     private static BError toCause(Throwable cause) {

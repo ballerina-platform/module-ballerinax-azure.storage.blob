@@ -1,0 +1,4 @@
+[package]
+org = "azure_blob_test"
+name = "invalid_max_polling_interval_zero"
+version = "0.9.0"

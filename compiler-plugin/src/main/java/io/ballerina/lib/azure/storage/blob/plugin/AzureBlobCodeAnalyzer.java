@@ -23,12 +23,14 @@ import io.ballerina.projects.plugins.CodeAnalysisContext;
 import io.ballerina.projects.plugins.CodeAnalyzer;
 
 /**
- * Registers the listener service analysis on every service declaration.
+ * Registers the listener service analysis on every service declaration, and the checks across
+ * the services of one listener on the compilation.
  */
 public class AzureBlobCodeAnalyzer extends CodeAnalyzer {
 
     @Override
     public void init(CodeAnalysisContext codeAnalysisContext) {
         codeAnalysisContext.addSyntaxNodeAnalysisTask(new ServiceAnalysisTask(), SyntaxKind.SERVICE_DECLARATION);
+        codeAnalysisContext.addCompilationAnalysisTask(new ListenerQueueAnalysisTask());
     }
 }

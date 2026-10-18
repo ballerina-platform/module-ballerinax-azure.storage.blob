@@ -134,8 +134,23 @@ public final class TransportConfigMapper {
                 withSecondary ? ValueUtils.optString(retry, SECONDARY_HOST_URL) : null);
     }
 
-    @SuppressWarnings("unchecked")
+    // A built transport: the SDK HTTP client and the connection provider behind it.
+    public record Transport(com.azure.core.http.HttpClient httpClient, ConnectionProvider provider) {
+    }
+
     public static com.azure.core.http.HttpClient httpClient(BMap<BString, Object> transport) {
+        return transport(transport).httpClient();
+    }
+
+    /**
+     * Builds the Netty transport a {@code TransportConfig} record describes, returning its
+     * connection provider too, so an owner that outlives its clients can dispose of the pool.
+     *
+     * @param transport the record
+     * @return the transport
+     */
+    @SuppressWarnings("unchecked")
+    public static Transport transport(BMap<BString, Object> transport) {
         BMap<BString, Object> pool = (BMap<BString, Object>) transport.get(CONNECTION_POOL);
         ConnectionProvider provider = ConnectionProvider.builder("azure-storage-blob")
                 .maxConnections(Math.toIntExact((Long) pool.get(MAX_CONNECTIONS)))
@@ -156,7 +171,19 @@ public final class TransportConfigMapper {
         if (proxy != null) {
             builder.proxy(proxyOptions(proxy));
         }
-        return builder.build();
+        return new Transport(builder.build(), provider);
+    }
+
+    /**
+     * The retry options of a retry-free call: one try with the configured try timeout, for the
+     * calls whose failures the listener interprets itself.
+     *
+     * @param retry the {@code RetryConfig} record, or {@code null} for the connector's defaults
+     * @return the SDK retry options
+     */
+    public static RequestRetryOptions singleTry(BMap<BString, Object> retry) {
+        Duration tryTimeout = retry == null ? null : seconds(retry.get(TRY_TIMEOUT_SECONDS));
+        return new RequestRetryOptions(RetryPolicyType.FIXED, 1, tryTimeout, null, null, null);
     }
 
     private static ProxyOptions proxyOptions(BMap<BString, Object> proxy) {

@@ -35,6 +35,7 @@ import io.ballerina.runtime.api.Environment;
 import io.ballerina.runtime.api.creators.ValueCreator;
 import io.ballerina.runtime.api.utils.StringUtils;
 import io.ballerina.runtime.api.values.BArray;
+import io.ballerina.runtime.api.values.BError;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
@@ -61,6 +62,7 @@ public final class TransferOps {
 
     // Key under which an open content input stream is stored on a stream generator object.
     private static final String NATIVE_INPUT_STREAM = "inputStream";
+    private static final String NATIVE_STREAM_FAILURE = "streamFailure";
     /** The chunk size handed to Ballerina byte-stream consumers. */
     private static final int READ_CHUNK_BYTES = 64 * 1024;
     // Media types applied when the connector itself serialized the content.
@@ -199,9 +201,22 @@ public final class TransferOps {
                 // A service failure on a chunk read arrives wrapped in a RuntimeException; the
                 // close and the typed mapping must both still happen.
                 closeQuietly(generator);
-                throw BallerinaAzureClient.mapFailure(e);
+                BError failure = BallerinaAzureClient.mapFailure(e);
+                generator.addNativeData(NATIVE_STREAM_FAILURE, failure);
+                throw failure;
             }
         });
+    }
+
+    /**
+     * The transport failure a content stream ended with, if any; the listener tells it apart
+     * from a binding failure the handler returned.
+     *
+     * @param generator the stream generator
+     * @return the failure, or {@code null}
+     */
+    public static BError streamFailure(BObject generator) {
+        return (BError) generator.getNativeData(NATIVE_STREAM_FAILURE);
     }
 
     /** Stores an already-open blob stream on a generator the listener created. */

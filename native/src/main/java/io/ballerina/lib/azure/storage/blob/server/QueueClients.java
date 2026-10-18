@@ -19,60 +19,43 @@
 package io.ballerina.lib.azure.storage.blob.server;
 
 import com.azure.core.http.policy.HttpPipelinePolicy;
+import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.queue.QueueClient;
 import com.azure.storage.queue.QueueClientBuilder;
 import com.azure.storage.queue.QueueMessageEncoding;
-import io.ballerina.lib.azure.storage.blob.client.ClientInit;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.BlobErrorCreator;
 import io.ballerina.lib.azure.storage.blob.util.Credentials;
-import io.ballerina.lib.azure.storage.blob.util.TransportConfigMapper;
-import io.ballerina.lib.azure.storage.blob.util.ValueUtils;
-import io.ballerina.runtime.api.utils.StringUtils;
-import io.ballerina.runtime.api.values.BMap;
-import io.ballerina.runtime.api.values.BString;
 
 /**
- * Builds the SDK queue clients from the Ballerina {@code ListenerConfiguration}: the same
- * credential, retry and transport settings as the blob clients, aimed at the queue endpoint.
- * Messages are received undecoded; the listener decides the encoding itself.
+ * Builds the SDK queue clients of a listener's services on the listener's shared transport and
+ * credential, aimed at the queue endpoint derived at {@code init}.
  */
 final class QueueClients {
-
-    private static final BString QUEUE_SERVICE_URL = StringUtils.fromString("queueServiceUrl");
 
     private QueueClients() {
     }
 
     /**
-     * Builds a client for one queue of the listener's account.
+     * Builds a queue client.
      *
-     * @param config    the {@code ListenerConfiguration} record
+     * @param ctx       the listener
      * @param queueName the queue
-     * @return the SDK queue client
+     * @param retry     the retry options, or {@code null} for the SDK's defaults
+     * @return the client
      */
-    @SuppressWarnings("unchecked")
-    static QueueClient build(BMap<BString, Object> config, String queueName) {
-        BMap<BString, Object> auth = (BMap<BString, Object>) config.getMapValue(ClientInit.AUTH);
+    static QueueClient build(ListenerContext ctx, String queueName, RequestRetryOptions retry) {
         QueueClientBuilder builder = new QueueClientBuilder()
                 .queueName(queueName)
-                .messageEncoding(QueueMessageEncoding.NONE);
-        Object retryConfig = config.get(ClientInit.RETRY_CONFIG);
-        if (retryConfig != null) {
-            builder.retryOptions(TransportConfigMapper.retryOptions((BMap<BString, Object>) retryConfig, false));
+                .messageEncoding(QueueMessageEncoding.NONE)
+                .httpClient(ctx.transport.httpClient());
+        if (retry != null) {
+            builder.retryOptions(retry);
         }
-        builder.httpClient(TransportConfigMapper.httpClient(
-                (BMap<BString, Object>) config.get(ClientInit.TRANSPORT_CONFIG)));
-
-        String queueServiceUrl = ValueUtils.optString(config, QUEUE_SERVICE_URL);
-        if (queueServiceUrl != null) {
-            queueServiceUrl = Credentials.validateUrl(queueServiceUrl, "queueServiceUrl");
-        }
-        Credentials.Resolved credential = Credentials.resolve(auth);
-        String endpoint = QueueEndpoints.derive(queueServiceUrl, credential);
+        Credentials.Resolved credential = ctx.credential;
         if (credential.connectionString() != null) {
-            // The SDK's parser validates the string and supplies the credential; the endpoint is
-            // the one derived above, so an explicit blob endpoint is honoured.
+            // The SDK's parser supplies the credential; the endpoint set after it is the one
+            // derived at init, so an explicit blob endpoint is honoured.
             try {
                 builder.connectionString(credential.connectionString());
             } catch (IllegalArgumentException | IllegalStateException e) {
@@ -85,12 +68,10 @@ final class QueueClients {
         } else {
             builder.credential(credential.token());
         }
-        builder.endpoint(endpoint);
-        if (endpoint != null) {
-            HttpPipelinePolicy override = Credentials.portOverride(endpoint);
-            if (override != null) {
-                builder.addPolicy(override);
-            }
+        builder.endpoint(ctx.queueEndpoint);
+        HttpPipelinePolicy override = Credentials.portOverride(ctx.queueEndpoint);
+        if (override != null) {
+            builder.addPolicy(override);
         }
         try {
             return builder.buildClient();
