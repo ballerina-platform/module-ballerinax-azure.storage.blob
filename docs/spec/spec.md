@@ -387,7 +387,9 @@ blob:Client invoices = check new ("invoices", auth = {accountName: "myacct", acc
 
 The service writes the access level and the policies together. Each of the two setters
 therefore reads the current access control list first and resends the half it does not
-change, so each call is two requests.
+change, so each call is two requests, and two processes changing the two halves at the same
+time can overwrite each other: the last writer wins. An application that changes both
+concurrently serialises its own calls.
 
 A stored access policy carries a validity window and a permission string under an identifier.
 Container SAS tokens minted against a policy (via the `identifier` field of the signature
@@ -640,8 +642,10 @@ original.
 
 Index tags differ from metadata: the service indexes them, so they answer queries without
 listing, and they carry their own SAS permission (`tag`, and `filter` for queries). Tags are
-set and read whole. The tag index is eventually consistent: a `findBlobsByTags` query may
-briefly lag a `setTags` write, while `getTags` always reads the blob's current tags.
+set and read whole. The service refuses index tags on an account with a hierarchical
+namespace, so the three operations fail there with the service's error. The tag index is
+eventually consistent: a `findBlobsByTags` query may briefly lag a `setTags` write, while
+`getTags` always reads the blob's current tags.
 
 A blob carries at most ten tags. A tag key is 1 to 128 characters and a value 0 to 256, both
 case sensitive, and both admit only letters, digits, and the characters ` +-.:=_/`. `setTags`
