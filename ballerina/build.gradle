@@ -140,12 +140,18 @@ test.dependsOn copyToLib
 // The tests run against Azurite unless live credentials are configured. The emulator is
 // started here because the connector build runs `bal test` inside the ballerina/ballerina
 // docker image with host networking, so a container published on the host is reachable at
-// localhost. Only when the test task is in the graph, so `build -x test` starts nothing.
+// localhost. Locally it starts only when the test task is in the graph, so `build -x test`
+// starts nothing, and it is stopped once the tests finish. On CI it starts with every build
+// and is left running: the shared GraalVM workflow runs the host `bal test --graalvm` as a
+// later step of the same job, after the gradle build, and that run needs the emulator too.
+// The runner is discarded at the end of the job, which is what stops it.
 def azuriteExecHelper = project.objects.newInstance(BallerinaExecHelper)
 def azuriteCompose = "docker compose -p azure-storage-blob-tests -f tests/resources/docker/compose.yaml"
 
+def onCI = System.getenv('CI') == 'true'
+
 task startAzurite {
-    onlyIf { gradle.taskGraph.hasTask(":${packageName}-ballerina:test") }
+    onlyIf { onCI || gradle.taskGraph.hasTask(":${packageName}-ballerina:test") }
     doLast {
         azuriteExecHelper.execOperations.exec {
             workingDir project.projectDir
@@ -155,7 +161,7 @@ task startAzurite {
 }
 
 task stopAzurite {
-    onlyIf { gradle.taskGraph.hasTask(":${packageName}-ballerina:test") }
+    onlyIf { !onCI && gradle.taskGraph.hasTask(":${packageName}-ballerina:test") }
     doLast {
         azuriteExecHelper.execOperations.exec {
             workingDir project.projectDir
@@ -165,6 +171,7 @@ task stopAzurite {
     }
 }
 
+build.dependsOn startAzurite
 test.dependsOn startAzurite
 test.finalizedBy stopAzurite
 
