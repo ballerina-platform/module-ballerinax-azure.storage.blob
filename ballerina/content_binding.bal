@@ -15,6 +15,7 @@
 // under the License.
 
 import ballerina/data.csv;
+import ballerina/log;
 
 // The listener's CSV binding runs here, on a Ballerina strand, because the data.csv parser
 // needs one; the native dispatcher calls in through the runtime.
@@ -103,10 +104,12 @@ class ContentCsvStream {
     }
 }
 
+// Closing is best effort: the stream is done with, whether it ended or failed, so a close
+// failure changes nothing for the caller and is only recorded.
 isolated function closeStreamQuietly(stream<anydata, error?> streamValue) {
     error? closed = streamValue.close();
     if closed is error {
-        // Best effort cleanup.
+        log:printDebug("a content stream could not be closed", 'error = closed);
     }
 }
 

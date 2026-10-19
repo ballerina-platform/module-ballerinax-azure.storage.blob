@@ -31,7 +31,7 @@ groupId = "com.azure"
 artifactId = "azure-storage-queue"
 version = "12.30.0"
 
-[[platform.java21.dependency]]
+[[platform.java25.dependency]]
 groupId = "com.azure"
 artifactId = "azure-storage-internal-avro"
 version = "12.20.0"
@@ -82,23 +82,8 @@ artifactId = "slf4j-api"
 version = "1.7.36"
 scope="testOnly"
 
-[[platform.java25.dependency]]
-groupId = "io.ballerina.lib"
-artifactId = "data.jsondata-native"
-version = "1.1.6"
-path = "./lib/data.jsondata-native-1.1.6.jar"
 
-[[platform.java25.dependency]]
-groupId = "io.ballerina.lib"
-artifactId = "data.xmldata-native"
-version = "1.7.1"
-path = "./lib/data.xmldata-native-1.7.1.jar"
 
-[[platform.java25.dependency]]
-groupId = "io.ballerina.lib"
-artifactId = "data.csv-native"
-version = "1.0.1"
-path = "./lib/data.csv-native-1.0.1.jar"
 
 [[platform.java25.dependency]]
 groupId = "com.azure"

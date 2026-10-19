@@ -162,12 +162,26 @@ type HandlerOutcome record {|
 
 isolated function classifyHandlerError(error e) returns HandlerOutcome {
     if e is DeadLetterError {
-        return {kind: "deadLetter", message: e.message()};
+        return {kind: "deadLetter", message: messageWithCauses(e)};
     }
     if e is RetryError {
-        return {kind: "retry", delaySeconds: e.detail().delaySeconds, message: e.message()};
+        return {kind: "retry", delaySeconds: e.detail().delaySeconds, message: messageWithCauses(e)};
     }
-    return {kind: "failure", message: e.message()};
+    return {kind: "failure", message: messageWithCauses(e)};
+}
+
+// The error's message followed by its causes', so a wrapped failure keeps its detail in the
+// log line and the poison move's reason.
+isolated function messageWithCauses(error e) returns string {
+    string message = e.message();
+    error? cause = e.cause();
+    int depth = 0;
+    while cause is error && depth < 8 {
+        message += ": " + cause.message();
+        cause = cause.cause();
+        depth += 1;
+    }
+    return message;
 }
 
 // The listener's Java side reports its diagnostics through this, so they reach the user's log

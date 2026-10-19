@@ -15,6 +15,7 @@
 // under the License.
 
 import ballerina/data.xmldata;
+import ballerina/log;
 
 // Resolves the serialization format: the explicit override wins, else the destination extension.
 isolated function resolveUploadFormat(string destinationPath, FileFormat? override) returns FileFormat? {
@@ -141,17 +142,18 @@ isolated function csvField(string cell) returns string {
     return "\"" + escaped + "\"";
 }
 
-// A failed upload releases the caller's source stream; a close failure has nothing left to affect.
+// A failed upload releases the caller's source stream. The upload's own error is what the
+// caller gets; a close failure has nothing left to affect and is only recorded.
 isolated function closeByteStreamQuietly(stream<byte[], error?> byteStream) {
     error? closed = byteStream.close();
     if closed is error {
-        return;
+        log:printDebug("the source stream could not be closed after a failed upload", 'error = closed);
     }
 }
 
 isolated function closeRecordStreamQuietly(stream<record {}, error?> recordStream) {
     error? closed = recordStream.close();
     if closed is error {
-        return;
+        log:printDebug("the source stream could not be closed after a failed upload", 'error = closed);
     }
 }

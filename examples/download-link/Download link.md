@@ -1,4 +1,4 @@
-# Download link
+# Time-limited download link
 
 This example shares a blob with a third party without sharing the account credentials. It uploads a report to a container and generates a time-limited, read-only shared access signature (SAS) URL scoped to that single blob. Anyone with the URL can read the report, and nothing else in the account, for 24 hours; after that the link expires on its own.
 
