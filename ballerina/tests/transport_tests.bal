@@ -125,24 +125,29 @@ function testSecureSocketTrustMaterialGovernsTheHandshake() returns error? {
 @test:Config {}
 function testNettyVersionAdvisoryIsSuppressed() returns error? {
     _ = check new AdminClient(auth = sharedKeyAuth());
-    handle logger = julLogger(java:fromString("com.azure.core.http.netty.implementation.NettyUtility"));
-    test:assertFalse(julIsLoggable(logger, julInfoLevel()), "the Netty version advisory logger admits INFO");
+    test:assertFalse(loggerAdmitsInfo("com.azure.core.http.netty.implementation.NettyUtility"),
+            "the Netty version advisory logger admits INFO");
 }
 
-function julLogger(handle name) returns handle = @java:Method {
+// Whether a JUL logger would publish an INFO record, which is the check the SDK transport
+// makes before it scans the classpath for Netty versions.
+function loggerAdmitsInfo(string loggerName) returns boolean {
+    handle logger = getLogger(java:fromString(loggerName));
+    return isLoggable(logger, infoLevel());
+}
+
+function getLogger(handle name) returns handle = @java:Method {
     'class: "java.util.logging.Logger",
-    name: "getLogger",
     paramTypes: ["java.lang.String"]
 } external;
 
-function julInfoLevel() returns handle = @java:FieldGet {
+function infoLevel() returns handle = @java:FieldGet {
     'class: "java.util.logging.Level",
     name: "INFO"
 } external;
 
-function julIsLoggable(handle logger, handle level) returns boolean = @java:Method {
-    'class: "java.util.logging.Logger",
-    name: "isLoggable"
+function isLoggable(handle logger, handle level) returns boolean = @java:Method {
+    'class: "java.util.logging.Logger"
 } external;
 
 function assertRefused(Client|Error result, string messagePart) {
