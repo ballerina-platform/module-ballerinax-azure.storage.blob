@@ -49,6 +49,8 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.KeyManagerFactory;
@@ -71,6 +73,20 @@ public final class TransportConfigMapper {
     private static final String RETRY_POLICY_FIXED = "fixed";
     private static final String PROXY_TYPE_SOCKS4 = "SOCKS4";
     private static final String PROXY_TYPE_SOCKS5 = "SOCKS5";
+
+    // The SDK's Netty transport logs an advisory at INFO whenever the Netty jars it finds are not
+    // the versions it was built against. The connector ships Netty 4.2 under an adapter built
+    // against 4.1 on purpose (the Update 14 platform line), so the advisory is expected and
+    // carries nothing a user can act on; a built program cannot even report the real versions,
+    // because one Netty version manifest survives the jar merge. Raising the logger to WARNING
+    // makes the adapter skip its classpath scan, while its warnings and errors still pass. The
+    // field keeps the logger alive: the log manager holds loggers weakly.
+    private static final Logger NETTY_VERSION_LOGGER =
+            Logger.getLogger("com.azure.core.http.netty.implementation.NettyUtility");
+
+    static {
+        NETTY_VERSION_LOGGER.setLevel(Level.WARNING);
+    }
 
     // Field names of the retry, connection-pool, proxy, and TLS records (read only here).
     private static final BString RETRY_POLICY_TYPE = StringUtils.fromString("retryPolicyType");
