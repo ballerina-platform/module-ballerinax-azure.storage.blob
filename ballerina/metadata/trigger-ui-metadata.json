@@ -1567,9 +1567,9 @@
         {
           "target": "$service.onBlob",
           "metadata": {
-            "label": "On Blob Created",
+            "label": "On Create",
             "description": "Invoked when a blob no typed handler takes is created or replaced. The content arrives as raw bytes.",
-            "addLabel": "Add On Blob Created Handler (Raw Bytes)",
+            "addLabel": "Add On Create Handler (Raw Bytes)",
             "addDescription": "Invoked when a blob is created or replaced.",
             "badge": "onCreate"
           },
@@ -2117,9 +2117,9 @@
         {
           "target": "$service.onBlobText",
           "metadata": {
-            "label": "On Blob Created",
+            "label": "On Create",
             "description": "Invoked when a .txt blob is created or replaced. The content arrives as plain text.",
-            "addLabel": "Add On Blob Created Handler (Text)",
+            "addLabel": "Add On Create Handler (Text)",
             "addDescription": "Invoked when a blob is created or replaced.",
             "badge": "onCreate"
           },
@@ -2633,9 +2633,9 @@
         {
           "target": "$service.onBlobJson",
           "metadata": {
-            "label": "On Blob Created",
+            "label": "On Create",
             "description": "Invoked when a .json blob is created or replaced. Define a content schema below to receive the content as a custom type.",
-            "addLabel": "Add On Blob Created Handler (JSON)",
+            "addLabel": "Add On Create Handler (JSON)",
             "addDescription": "Invoked when a blob is created or replaced.",
             "badge": "onCreate"
           },
@@ -3163,9 +3163,9 @@
         {
           "target": "$service.onBlobXml",
           "metadata": {
-            "label": "On Blob Created",
+            "label": "On Create",
             "description": "Invoked when an .xml blob is created or replaced. Define a content schema below to receive the content as a custom type.",
-            "addLabel": "Add On Blob Created Handler (XML)",
+            "addLabel": "Add On Create Handler (XML)",
             "addDescription": "Invoked when a blob is created or replaced.",
             "badge": "onCreate"
           },
@@ -3683,9 +3683,9 @@
         {
           "target": "$service.onBlobCsv",
           "metadata": {
-            "label": "On Blob Created",
+            "label": "On Create",
             "description": "Invoked when a .csv blob is created or replaced. Define a row schema below to receive the rows as custom types (e.g., User[], Order[]).",
-            "addLabel": "Add On Blob Created Handler (CSV)",
+            "addLabel": "Add On Create Handler (CSV)",
             "addDescription": "Invoked when a blob is created or replaced.",
             "badge": "onCreate"
           },
@@ -4248,9 +4248,9 @@
         {
           "target": "$service.onBlobDeleted",
           "metadata": {
-            "label": "On Blob Deleted",
+            "label": "On Delete",
             "description": "Invoked when a blob is deleted.",
-            "addLabel": "Add On Blob Deleted Handler",
+            "addLabel": "Add On Delete Handler",
             "badge": "onDelete"
           },
           "parameters": [
