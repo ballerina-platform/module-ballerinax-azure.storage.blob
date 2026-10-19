@@ -94,7 +94,7 @@
           "path": "poisonQueueName"
         },
         "state": {
-          "enabled": false,
+          "enabled": true,
           "editable": true,
           "optional": true,
           "advanced": true
@@ -140,7 +140,7 @@
           "path": "batchSize"
         },
         "state": {
-          "enabled": false,
+          "enabled": true,
           "editable": true,
           "optional": true,
           "advanced": true
@@ -185,7 +185,7 @@
           "path": "newBatchThreshold"
         },
         "state": {
-          "enabled": false,
+          "enabled": true,
           "editable": true,
           "optional": true,
           "advanced": true
@@ -230,7 +230,7 @@
           "path": "maxPollingIntervalSeconds"
         },
         "state": {
-          "enabled": false,
+          "enabled": true,
           "editable": true,
           "optional": true,
           "advanced": true
@@ -275,7 +275,7 @@
           "path": "redeliveryDelaySeconds"
         },
         "state": {
-          "enabled": false,
+          "enabled": true,
           "editable": true,
           "optional": true,
           "advanced": true
@@ -320,7 +320,7 @@
           "path": "maxDeliveryCount"
         },
         "state": {
-          "enabled": false,
+          "enabled": true,
           "editable": true,
           "optional": true,
           "advanced": true
@@ -1457,7 +1457,7 @@
             "path": "laxDataBinding"
           },
           "state": {
-            "enabled": false,
+            "enabled": true,
             "editable": true,
             "optional": true,
             "advanced": true
@@ -1483,7 +1483,7 @@
             "path": "queueServiceUrl"
           },
           "state": {
-            "enabled": false,
+            "enabled": true,
             "editable": true,
             "optional": true,
             "advanced": true
@@ -1502,41 +1502,6 @@
             "selectedIndex": 0
           },
           "placeholder": "https://mystorageaccount.queue.core.windows.net"
-        }
-      },
-      "serviceProperties": {
-        "path": {
-          "key": "path",
-          "placeholder": "invoices",
-          "default": "",
-          "metadata": {
-            "label": "Container",
-            "description": "The container whose blob events this service handles. Leave empty to handle the events of every container no other service claims."
-          },
-          "source": {
-            "construct": {
-              "kind": "SERVICE_BASE_PATH"
-            }
-          },
-          "state": {
-            "enabled": true,
-            "editable": true,
-            "optional": true,
-            "advanced": false
-          },
-          "widget": {
-            "alternatives": [
-              {
-                "widgetKind": "TEXT",
-                "ballerinaType": "string"
-              },
-              {
-                "widgetKind": "EXPRESSION",
-                "ballerinaType": "string"
-              }
-            ],
-            "selectedIndex": 0
-          }
         }
       }
     }
