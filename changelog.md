@@ -18,6 +18,7 @@ This file documents all notable changes to the Ballerina Azure Blob Storage pack
 - A compiler plugin validating listener services: the empty attach point, the `@blob:ServiceConfig` values given as literals, the queues of one listener's services, the handler set, and every handler's parameters and return type
 - A test suite that runs against the Azurite emulator without credentials, and against a live storage account when credentials are configured
 - Examples: folder archive, download link, blob event processor, tag search, and blob events from Service Bus
+- Standard observability support shared with the file connectors: the connector's tags on every client operation's span, the `file_active_connections`, `file_bytes_transferred_total`, `file_events_total`, `file_databinding_duration_seconds`, and `file_resource_execution_duration_seconds` metrics, and a per-message trace of the listener's stages and settlement
 
 ### Changed
 

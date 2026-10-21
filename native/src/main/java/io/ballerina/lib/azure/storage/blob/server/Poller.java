@@ -20,6 +20,7 @@ package io.ballerina.lib.azure.storage.blob.server;
 
 import com.azure.core.util.Context;
 import com.azure.storage.queue.models.QueueMessageItem;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.server.QueueGateway.QueueCallException;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.BlobErrorCreator;
@@ -90,6 +91,8 @@ final class Poller implements Runnable {
                     backoff = sleepBackoff(backoff);
                     continue;
                 }
+                BlobMetricsUtil.reportPollCycle(ctx.remoteUrl, ctx.protocol, svc.queueName(),
+                        BlobMetricsUtil.OUTCOME_SUCCESS);
                 if (!running) {
                     releaseLateBatch(batch);
                     return;
@@ -120,6 +123,7 @@ final class Poller implements Runnable {
     // The failed receive is logged, and the owning service's onError runs here, on the poller's
     // thread, with a warning at each full window it is still running.
     private void reportPollFailure(RuntimeException e) {
+        BlobMetricsUtil.reportPollCycle(ctx.remoteUrl, ctx.protocol, svc.queueName(), BlobMetricsUtil.OUTCOME_FAILURE);
         BError mapped = BallerinaAzureClient.mapFailure(e);
         BError error = BlobErrorCreator.withMessage(mapped, "polling queue '" + svc.queueName() + "' failed: "
                 + mapped.getErrorMessage().getValue());
@@ -138,7 +142,7 @@ final class Poller implements Runnable {
         }, period.toMillis(), period.toMillis(), TimeUnit.MILLISECONDS);
         ctx.enter();
         try {
-            Dispatcher.notifyOnError(ctx, svc, null, error, null, null);
+            Dispatcher.notifyOnError(ctx, svc, null, null, error, null, null);
         } finally {
             warning.cancel(false);
             ctx.exit();

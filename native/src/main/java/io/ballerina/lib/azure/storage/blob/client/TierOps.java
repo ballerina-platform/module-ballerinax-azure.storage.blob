@@ -19,6 +19,7 @@
 package io.ballerina.lib.azure.storage.blob.client;
 
 import com.azure.storage.blob.models.AccessTier;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.OptionsReader;
 import io.ballerina.runtime.api.Environment;
@@ -36,7 +37,8 @@ public final class TierOps {
     /** Moves a blob to an access tier, with an optional rehydration priority when leaving Archive. */
     public static Object setAccessTier(Environment env, BObject self, BString path, BString accessTier,
                                        Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                path.getValue(), null, () -> {
             BlobOps.blobClient(self, path).setAccessTierWithResponse(AccessTier.fromString(accessTier.getValue()),
                     OptionsReader.rehydratePriority(options), OptionsReader.leaseId(options), null, null);
             return null;

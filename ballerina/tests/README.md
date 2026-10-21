@@ -10,7 +10,11 @@ bal test
 
 ## Backend selection
 
-`backend.bal` reads `liveAccountName`/`liveAccountKey` from Config.toml, or from the `LIVE_ACCOUNT_NAME`/`LIVE_ACCOUNT_KEY` environment variables (a Config.toml entry takes precedence). A live run never silently falls back to the emulator. To force an emulator run on a machine that has credentials, move `tests/Config.toml` aside for that run.
+`backend.bal` reads `liveAccountName`/`liveAccountKey` from the configuration files a run is given, or from the `LIVE_ACCOUNT_NAME`/`LIVE_ACCOUNT_KEY` environment variables (a configured entry takes precedence). A live run never silently falls back to the emulator. To force an emulator run on a machine that has credentials, run without the live configuration file (below).
+
+## Observability
+
+`tests/Config.toml` is committed and holds no secrets: it enables metrics and the Prometheus reporter on `127.0.0.1:9797`, so the suite runs with observability on and the tests in `observability_tests.bal` can read back what the connector records (`ballerinax/prometheus` is a test-only dependency). `bal test --disable-groups observability` skips those tests, for a run with observability off, for example with `BAL_CONFIG_FILES` pointing at an empty file.
 
 A few tests need what the emulator cannot provide and enable themselves only in a live run, each stating its reason in a comment: blob and container undelete, Append Block From URL and Put Block From URL (Azurite 3.36 answers 501 `APINotImplemented`), and the user-delegation SAS test, which additionally needs the Entra credentials below. Two emulator differences are tolerated by the tests rather than hidden: a wrong account key answers `AuthorizationFailure` where the service answers `AuthenticationFailed` (both map to `AuthorizationError`), and a page write past the end of a page blob answers 416 with a code outside the service catalogue, which the code-keyed mapping leaves as a plain `ServiceError`. One service difference is tolerated the same way: the service deletes a container asynchronously, so an immediate restore answers 409 `ContainerBeingDeleted` until the deletion completes (the restore test retries), and a repeated delete of the same container races that deletion, so the not-found check uses a name that never existed.
 
@@ -32,7 +36,7 @@ The connector has no queue client of its own, so `queue_backend.bal` talks to th
 
 ### Configure and run
 
-Create `ballerina/tests/Config.toml` (gitignored; never commit it) with the following values:
+Create `ballerina/tests/live/Config.toml` (gitignored; never commit it) with the following values:
 
 ```toml
 liveAccountName = "<storage account name>"
@@ -45,9 +49,16 @@ liveAccountKey = "<key1>"
 # liveEntraClientSecret = "<client secret>"
 ```
 
-Note the location: for `bal test`, configurable values are read from `Config.toml` inside the `tests/` directory, not the package root. Role assignments can take a few minutes to propagate; if a freshly configured Entra test fails with an authorization error, wait and rerun.
+Then run the suite with both configuration files, the committed one first:
 
-The credential values can also be supplied as environment variables: `LIVE_ACCOUNT_NAME`, `LIVE_ACCOUNT_KEY`, `LIVE_ENTRA_TENANT_ID`, `LIVE_ENTRA_CLIENT_ID`, `LIVE_ENTRA_CLIENT_SECRET`.
+```sh
+cd ballerina
+BAL_CONFIG_FILES=tests/Config.toml:tests/live/Config.toml bal test
+```
+
+`BAL_CONFIG_FILES` replaces the default lookup of `tests/Config.toml`, so the committed file has to be listed too. Role assignments can take a few minutes to propagate; if a freshly configured Entra test fails with an authorization error, wait and rerun.
+
+The credential values can also be supplied as environment variables, with a plain `bal test`: `LIVE_ACCOUNT_NAME`, `LIVE_ACCOUNT_KEY`, `LIVE_ENTRA_TENANT_ID`, `LIVE_ENTRA_CLIENT_ID`, `LIVE_ENTRA_CLIENT_SECRET`.
 
 ### Container naming, cost, and cleanup
 

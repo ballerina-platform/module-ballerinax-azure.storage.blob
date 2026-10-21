@@ -23,6 +23,7 @@ import com.azure.storage.blob.models.BlockListType;
 import com.azure.storage.blob.options.BlockBlobCommitBlockListOptions;
 import com.azure.storage.blob.options.BlockBlobStageBlockFromUrlOptions;
 import com.azure.storage.blob.specialized.BlockBlobClient;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.BlobErrorCreator;
 import io.ballerina.lib.azure.storage.blob.util.OptionsReader;
@@ -51,10 +52,12 @@ public final class BlockOps {
     /** Stages a block under a base64 id. */
     public static Object stageBlock(Environment env, BObject self, BString path, BString blockId, BArray content,
                                     Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_PUT,
+                path.getValue(), null, () -> {
             byte[] bytes = content.getBytes();
             blockClient(self, path).stageBlockWithResponse(validBlockId(blockId.getValue()),
                     new ByteArrayInputStream(bytes), bytes.length, null, OptionsReader.leaseId(options), null, null);
+            BallerinaAzureClient.reportBytes(self, BlobMetricsUtil.OPERATION_TYPE_PUT, bytes.length);
             return null;
         });
     }
@@ -62,7 +65,8 @@ public final class BlockOps {
     /** Stages a block from a readable blob URL, or a range of it. */
     public static Object stageBlockFromUrl(Environment env, BObject self, BString path, BString blockId,
                                            BString sourceUrl, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_PUT,
+                path.getValue(), null, () -> {
             BMap<BString, Object> record = OptionsReader.record(options);
             BlobRange sourceRange = record == null ? null : OptionsReader.range(record.get(OptionsReader.SOURCE_RANGE));
             blockClient(self, path).stageBlockFromUrlWithResponse(
@@ -75,7 +79,8 @@ public final class BlockOps {
 
     /** Commits staged blocks, in order, as the blob's content, replacing any existing blob. */
     public static Object commitBlockList(Environment env, BObject self, BString path, BArray blockIds, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_PUT,
+                path.getValue(), null, () -> {
             List<String> ids = Arrays.asList(blockIds.getStringArray());
             int length = -1;
             for (String id : ids) {
@@ -97,7 +102,7 @@ public final class BlockOps {
 
     /** Lists the committed and uncommitted blocks of a block blob. */
     public static Object listBlocks(Environment env, BObject self, BString path) {
-        return BallerinaAzureClient.invoke(env,
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET, path.getValue(), null,
                 () -> RecordMapper.blockList(blockClient(self, path).listBlocks(BlockListType.ALL)));
     }
 

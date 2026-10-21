@@ -1,0 +1,10 @@
+# The test run's configuration. Live credentials never go here; see tests/README.md.
+
+# Metrics on, so the observability tests can read back what the connector records.
+[ballerina.observe]
+metricsEnabled = true
+metricsReporter = "prometheus"
+
+[ballerinax.prometheus]
+port = 9797
+host = "127.0.0.1"

@@ -22,6 +22,7 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.options.BlobInputStreamOptions;
 import com.azure.storage.blob.specialized.BlobInputStream;
 import io.ballerina.lib.azure.storage.blob.client.TransferOps;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.server.ServiceContext.HandlerConfig;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.BlobErrorCreator;
@@ -106,6 +107,8 @@ final class ContentFetcher {
         } catch (RuntimeException e) {
             return serviceFailure(e);
         }
+        BlobMetricsUtil.reportBytesTransferred(ctx.remoteUrl, ctx.protocol, BlobMetricsUtil.CONTEXT_LISTENER,
+                BlobMetricsUtil.OPERATION_TYPE_GET, bytes.length);
         boolean typed = !Listener.ON_BLOB.equals(handler.methodName())
                 && !Listener.ON_BLOB_TEXT.equals(handler.methodName());
         if (typed && bytes.length == 0) {
@@ -131,7 +134,8 @@ final class ContentFetcher {
             return serviceFailure(e);
         }
         BObject generator = ValueCreator.createObjectValue(ModuleUtils.getModule(), CONTENT_STREAM_GENERATOR_CLASS);
-        TransferOps.attachContentStream(generator, stream);
+        TransferOps.attachContentStream(generator, stream, ctx.remoteUrl, ctx.protocol,
+                BlobMetricsUtil.CONTEXT_LISTENER);
         Type constraint = TypeUtils.getReferredType(streamType.getConstrainedType());
         if (!Listener.ON_BLOB_CSV.equals(handler.methodName())) {
             return Fetch.stream(ValueCreator.createStreamValue(

@@ -68,6 +68,7 @@ package. Every capability of that module has a path in this library.
    * 5.13 [The Caller](#513-the-caller)
    * 5.14 [Parsing Events Outside the Listener](#514-parsing-events-outside-the-listener)
 6. [Errors](#6-errors)
+7. [Observability](#7-observability)
 
 ## 1. Overview
 
@@ -1665,3 +1666,146 @@ if properties is blob:NotFoundError {
     return properties;
 }
 ```
+
+## 7. Observability
+
+The module reports metrics and traces through the Ballerina observability framework, in the
+vocabulary the file connectors share, so one dashboard or alert rule covers them all. Nothing
+is recorded unless the program is built with `observabilityIncluded` and run with metrics or
+tracing enabled in the `ballerina.observe` configuration; with both off, no reporting runs and
+no behaviour changes.
+
+### 7.1 Identity Tags
+
+Every metric series and span the module writes carries the same identity: `module` is
+`azure_blob`; `type` is `client` for the `AdminClient`, the `Client`, and the `Caller`, and
+`listener` for the `Listener`; `remote.url` is the blob endpoint's host, with the port when the
+service URL names one (`myaccount.blob.core.windows.net`, or `127.0.0.1:10000` against the
+emulator); `protocol` is the endpoint's scheme; `host` is the local host name. A listener's
+series carry the blob endpoint's identity, not the queue's: the queue endpoint follows the blob
+endpoint in every configuration but an explicit `queueServiceUrl`, and a `Caller` the listener
+hands out reports under the same identity as a `Client` on that account. Listener series also
+carry `watched.path`, the service's queue name, the one thing that tells a listener's services
+apart. A tag that does not apply to a series holds the value `none`, so every series of a metric
+has the same label set.
+
+### 7.2 Client Operations
+
+The runtime opens a span for each remote method call, and the module tags that span with the
+identity above, `action.type` set to `client_operation`, `operation.type`, and the outcome:
+`outcome` is `success` or `failure`, and a failure also carries `error.type`, the type name of
+the returned error (`NotFoundError`, `ServiceError`, `Error`, and so on). The span alone carries
+`file.path`, the blob or container path the operation addresses, and for a copy
+`destination.path`. Because the runtime counts these spans in its own `requests_total` and
+`response_time_seconds` metrics, the module keeps no operation counter of its own; those metrics
+carry the module's tags. A `Caller` operation appears as the `Client` span of the call it
+delegates to; the Caller's own span is the untagged wrapper above it.
+
+`operation.type` classes the operations by what they do to the account:
+
+* `get`: reads, including property reads, existence checks, and listings. `getBlob`, `download`,
+  `getBlobProperties`, `hasBlob`, `listBlobs`, `listBlobsPage`, `getTags`, `findBlobsByTags`,
+  `listBlocks`, `listPageRanges`, `getContainerProperties`, `getContainerAccessPolicy`,
+  `hasContainer`, `listContainers`, `getServiceProperties`, `getAccountInfo`, and
+  `getUserDelegationKey`.
+* `put`: content writes. `upload`, `uploadFromFile`, `createAppendBlob`, `appendBlock`,
+  `appendBlockFromUrl`, `createPageBlob`, `uploadPages`, `stageBlock`, `stageBlockFromUrl`, and
+  `commitBlockList`.
+* `manage`: everything else. Deletion and restore of blobs and containers, the metadata and
+  content header setters, the copies and `abortCopy`, the access tier, `setTags`, snapshots,
+  the lease operations, `clearPages`, container creation, the access policy setters, and
+  `setServiceProperties`.
+
+The SAS methods compute locally and open no span, so they are not reported. A listing opens one
+span for the call that creates its stream; the page pulls the stream makes afterwards are not
+separate operations.
+
+### 7.3 Bytes
+
+`file_bytes_transferred_total` counts the content bytes that pass through the connector, tagged
+with the identity and `operation.type` (`get` or `put`): the content `upload` sends, the local
+file `uploadFromFile` reads, each block `appendBlock`, `uploadPages`, and `stageBlock` sends and
+each staged chunk of a stream upload, the bytes `getBlob` returns in its materialised forms,
+each chunk its stream forms read, the local file `download` writes, and, under the listener's
+identity, the content fetched for a handler, as a whole or chunk by chunk for a stream handler.
+Copies and the from-URL block operations move nothing through the connector and are not
+counted.
+
+### 7.4 Connections
+
+`file_active_connections` is a gauge of the client and listener instances alive under each
+identity: it rises by one when an `AdminClient`, a `Client`, or a `Listener` is created, and
+falls by one when a listener releases its transport, after a stop once its in-flight work is
+done. Clients have no close, so their count only rises. A `Caller` shares its listener's
+transport and is not counted.
+
+### 7.5 The Listener's Events
+
+`file_events_total` counts the listener's work, with `action.type` set to `poll_cycle` for
+receives and `file_event` for the stages a received message passes through.
+
+A poll cycle is one receive call on a service's queue, `outcome` `success` whether or not it
+returned messages, or `failure` when the call failed.
+
+Each received message is counted at four stages, `file.stage`, in the order of checks of
+section 5.8, with `event.type` `create` or `delete` once the message has parsed as a blob event:
+
+* `found`, once per message: `none` when the message goes on to a handler, since its outcome is
+  the later stages' to tell; `failure` with
+  `error.type` `delivery_limit_exceeded` for a message received past its delivery limit, or
+  `unparseable_message` for one that does not decode or parse; `skipped` with `error.type`
+  `event_type_not_dispatched`, `no_content_event`, `foreign_account`, or `no_handler_matched`
+  for the acknowledged kinds.
+* `dispatched`, with `handler.name`, once a handler has been chosen.
+* `handled`, with `handler.name`: `success` when the handler returned `()`; `failure` with
+  `error.type` the type name of the error it returned (`DeadLetterError` and `RetryError`
+  included) or of the panic it ended with. When the content cannot be fetched or bound and the
+  handler never runs, the stage still closes the dispatch: `skipped` with `blob_not_found`,
+  or `failure` with `archived_blob`, `binding_failed`, or the type name of the fetch failure.
+* `cleaned_up`, once per settlement, with `cleanup.action` `acknowledge`, `redeliver`, or
+  `poison`: `success` when the queue accepted the call (an acknowledgement of a message that
+  was already gone counts as success); `failure` with `error.type` `acknowledge_failed`,
+  `redeliver_failed`, or `poison_move_failed`; `skipped` with `message_not_held` for a poison
+  move skipped because another consumer holds the message or it is gone.
+
+`file_databinding_duration_seconds` records, per `handler.name` and `outcome`, the time from the
+start of the content fetch to the bound value, or to the failure, and for a stream handler the
+time to open the stream. `file_resource_execution_duration_seconds` records the handler call
+itself, per `handler.name` and `outcome`. Both are gauges with the 50th, 75th, 90th, 95th, and
+99th percentiles over a five-minute window. An `onError` call is spanned (below) but not timed.
+
+### 7.6 The Listener's Traces
+
+Each received message gets a `file-lifecycle` span, open from its receipt to its disposal,
+carrying the identity, `watched.path`, and, once parsed, `file.path`, `event.type`,
+`file.size` (the event's content length), and `file.modified_time` (the event time); it closes
+with the message's `outcome` (`success`, or the last `failure` or `skipped` of its stages, with
+that stage's `error.type`). The
+runtime's span for the handler call is its child, with the same tags and `handler.name`, so a
+trace shows the message, the handler, and every client operation the handler made through the
+`Caller` or a `Client` in one tree. Each settlement runs in a `file-cleanup` child span tagged
+with `cleanup.action` and the outcome, and each `onError` call in a `file-error` child span
+tagged with the error's type and the call's outcome; the `onError` call for a failed poll,
+which belongs to no message, gets a root `file-error` span.
+
+### 7.7 Enabling Observability
+
+```toml
+# Ballerina.toml
+[build-options]
+observabilityIncluded = true
+```
+
+```toml
+# Config.toml
+[ballerina.observe]
+metricsEnabled = true
+metricsReporter = "prometheus"
+tracingEnabled = true
+tracingProvider = "jaeger"
+```
+
+With `ballerinax/prometheus` and `ballerinax/jaeger` imported, the metrics are scraped from the
+Prometheus reporter's endpoint and the traces exported to Jaeger. The Prometheus page suffixes
+counters and gauges with `_value` and writes the dots in tag keys as underscores, so the series
+above appear as `file_events_total_value{module="azure_blob",file_stage="handled",...}`.

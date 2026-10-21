@@ -20,6 +20,7 @@ package io.ballerina.lib.azure.storage.blob.client;
 
 import com.azure.storage.blob.specialized.BlobLeaseClient;
 import com.azure.storage.blob.specialized.BlobLeaseClientBuilder;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.BlobErrorCreator;
 import io.ballerina.runtime.api.Environment;
@@ -43,7 +44,8 @@ public final class LeaseOps {
     /** Acquires a lease on a blob and returns the lease id. */
     public static Object acquireLease(Environment env, BObject self, BString path, long leaseDurationSeconds,
                                       Object proposedLeaseId) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                path.getValue(), null, () -> {
             if (leaseDurationSeconds != INFINITE_LEASE
                     && (leaseDurationSeconds < MIN_LEASE_SECONDS || leaseDurationSeconds > MAX_LEASE_SECONDS)) {
                 throw BlobErrorCreator.clientError("leaseDurationSeconds must be between " + MIN_LEASE_SECONDS
@@ -56,7 +58,8 @@ public final class LeaseOps {
 
     /** Renews an active lease. */
     public static Object renewLease(Environment env, BObject self, BString path, BString leaseId) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                path.getValue(), null, () -> {
             leaseClient(self, path, leaseId.getValue()).renewLease();
             return null;
         });
@@ -64,7 +67,8 @@ public final class LeaseOps {
 
     /** Releases an active lease. */
     public static Object releaseLease(Environment env, BObject self, BString path, BString leaseId) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                path.getValue(), null, () -> {
             leaseClient(self, path, leaseId.getValue()).releaseLease();
             return null;
         });
@@ -72,7 +76,8 @@ public final class LeaseOps {
 
     /** Breaks the current lease and returns the seconds until it is fully broken. */
     public static Object breakLease(Environment env, BObject self, BString path, Object breakPeriodSeconds) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                path.getValue(), null, () -> {
             Integer breakPeriod = breakPeriodSeconds == null ? null : Math.toIntExact((Long) breakPeriodSeconds);
             Integer remaining = leaseClient(self, path, null)
                     .breakLeaseWithResponse(breakPeriod, null, null, null).getValue();
@@ -83,7 +88,8 @@ public final class LeaseOps {
     /** Changes the id of an active lease and returns the new id. */
     public static Object changeLease(Environment env, BObject self, BString path, BString leaseId,
                                      BString proposedLeaseId) {
-        return BallerinaAzureClient.invoke(env, () -> StringUtils.fromString(
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                path.getValue(), null, () -> StringUtils.fromString(
                 leaseClient(self, path, leaseId.getValue()).changeLease(proposedLeaseId.getValue())));
     }
 

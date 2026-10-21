@@ -22,6 +22,7 @@ import com.azure.core.http.HttpClient;
 import com.azure.core.http.policy.HttpPipelinePolicy;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.BlobErrorCreator;
 import io.ballerina.lib.azure.storage.blob.util.Credentials;
@@ -57,8 +58,12 @@ public final class ClientInit {
      */
     public static Object initAdminClient(BObject self, BMap<BString, Object> config) {
         try {
-            self.addNativeData(BallerinaAzureClient.NATIVE_SERVICE_CLIENT, buildServiceClient(config));
+            BlobServiceClient serviceClient = buildServiceClient(config);
+            self.addNativeData(BallerinaAzureClient.NATIVE_SERVICE_CLIENT, serviceClient);
             storeSasSignature(self, config);
+            BallerinaAzureClient.storeEndpointIdentity(self, serviceClient.getAccountUrl());
+            BlobMetricsUtil.reportNewConnection(BallerinaAzureClient.getRemoteUrl(self),
+                    BallerinaAzureClient.getProtocol(self), BlobMetricsUtil.CONTEXT_CLIENT);
             return null;
         } catch (BError e) {
             return e;
@@ -89,6 +94,12 @@ public final class ClientInit {
             self.addNativeData(BallerinaAzureClient.NATIVE_CONTAINER_CLIENT,
                     serviceClient.getBlobContainerClient(container));
             storeSasSignature(self, config);
+            BallerinaAzureClient.storeEndpointIdentity(self, serviceClient.getAccountUrl());
+            // A listener's Callers share its transport, so they are not connections of their own.
+            if (shared == null) {
+                BlobMetricsUtil.reportNewConnection(BallerinaAzureClient.getRemoteUrl(self),
+                        BallerinaAzureClient.getProtocol(self), BlobMetricsUtil.CONTEXT_CLIENT);
+            }
             return null;
         } catch (BError e) {
             return e;

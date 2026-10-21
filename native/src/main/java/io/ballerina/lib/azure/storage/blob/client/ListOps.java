@@ -27,6 +27,7 @@ import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobListDetails;
 import com.azure.storage.blob.models.ListBlobContainersOptions;
 import com.azure.storage.blob.models.ListBlobsOptions;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.OptionsReader;
 import io.ballerina.lib.azure.storage.blob.util.RecordMapper;
@@ -53,7 +54,8 @@ public final class ListOps {
 
     /** Lists containers: every container without a limit, or one page of up to {@code 'limit}. */
     public static Object listContainers(Environment env, BObject self, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET,
+                null, null, () -> {
             BMap<BString, Object> record = OptionsReader.record(options);
             ListBlobContainersOptions sdkOptions = new ListBlobContainersOptions();
             Integer limit = null;
@@ -97,7 +99,8 @@ public final class ListOps {
      * the scheduler because the SDK's paged iterable fetches its first page eagerly.
      */
     public static Object newBlobIterator(Environment env, BObject self, BObject generator, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET,
+                null, null, () -> {
             generator.addNativeData(NATIVE_ITERATOR, listing(self, options, null, null).iterator());
             return null;
         });
@@ -123,7 +126,8 @@ public final class ListOps {
 
     /** Lists one page of the bound container's blobs, with the marker to resume from. */
     public static Object listBlobsPage(Environment env, BObject self, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET,
+                null, null, () -> {
             BMap<BString, Object> record = OptionsReader.record(options);
             Integer pageSize = null;
             String marker = null;

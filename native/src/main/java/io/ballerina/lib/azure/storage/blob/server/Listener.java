@@ -21,6 +21,7 @@ package io.ballerina.lib.azure.storage.blob.server;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import io.ballerina.lib.azure.storage.blob.client.ClientInit;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.server.ListenerContext.State;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.BlobErrorCreator;
@@ -104,7 +105,8 @@ public final class Listener {
             HoldTiming timing = HoldTiming.fromSystemProperty();
             ListenerContext ctx = new ListenerContext(clientConfig, credential, queueEndpoint, transport,
                     retrying, retryFree, maxConnections, Credentials.listenerAccountName(credential),
-                    Boolean.TRUE.equals(config.get(LAX_DATA_BINDING)), timing, env.getRuntime());
+                    serviceClient.getAccountUrl(), Boolean.TRUE.equals(config.get(LAX_DATA_BINDING)), timing,
+                    env.getRuntime());
             SharedTransports.register(clientConfig, new SharedTransports.Shared(transport.httpClient(),
                     transport.provider(), serviceClient, sasSignature));
             if (timing.scaled()) {
@@ -112,6 +114,7 @@ public final class Listener {
                         + HoldTiming.PROPERTY + " system property, a test setting");
             }
             listenerObj.addNativeData(NATIVE_LISTENER_CONTEXT, ctx);
+            BlobMetricsUtil.reportNewConnection(ctx.remoteUrl, ctx.protocol, BlobMetricsUtil.CONTEXT_LISTENER);
             return null;
         } catch (ConfigurationException e) {
             return BlobErrorCreator.clientError(e.getMessage(), null);

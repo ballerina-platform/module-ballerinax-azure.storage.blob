@@ -19,6 +19,8 @@
 package io.ballerina.lib.azure.storage.blob.server;
 
 import com.azure.storage.common.policy.RequestRetryOptions;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
+import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.Credentials;
 import io.ballerina.lib.azure.storage.blob.util.ModuleUtils;
 import io.ballerina.lib.azure.storage.blob.util.SharedTransports;
@@ -66,6 +68,9 @@ final class ListenerContext {
     final RequestRetryOptions retryFree;
     final int maxConnections;
     final String accountName;
+    // The blob endpoint's host and scheme, the identity every metric and span of this listener carries.
+    final String remoteUrl;
+    final String protocol;
     final boolean laxDataBinding;
     final HoldTiming timing;
     final Clock clock = Clock.systemUTC();
@@ -89,8 +94,8 @@ final class ListenerContext {
 
     ListenerContext(BMap<BString, Object> clientConfig, Credentials.Resolved credential, String queueEndpoint,
                     TransportConfigMapper.Transport transport, RequestRetryOptions retrying,
-                    RequestRetryOptions retryFree, int maxConnections, String accountName, boolean laxDataBinding,
-                    HoldTiming timing, Runtime runtime) {
+                    RequestRetryOptions retryFree, int maxConnections, String accountName, String blobEndpoint,
+                    boolean laxDataBinding, HoldTiming timing, Runtime runtime) {
         this.clientConfig = clientConfig;
         this.credential = credential;
         this.queueEndpoint = queueEndpoint;
@@ -99,6 +104,8 @@ final class ListenerContext {
         this.retryFree = retryFree;
         this.maxConnections = maxConnections;
         this.accountName = accountName;
+        this.remoteUrl = BallerinaAzureClient.extractHost(blobEndpoint);
+        this.protocol = BallerinaAzureClient.extractProtocol(blobEndpoint);
         this.laxDataBinding = laxDataBinding;
         this.timing = timing;
         this.runtime = runtime;
@@ -178,6 +185,7 @@ final class ListenerContext {
         SharedTransports.unregister(clientConfig);
         scheduler.shutdownNow();
         transport.provider().dispose();
+        BlobMetricsUtil.reportConnectionClose(remoteUrl, protocol, BlobMetricsUtil.CONTEXT_LISTENER);
     }
 
     /** The Caller bound to a container, built on its first event and kept for the listener's life. */

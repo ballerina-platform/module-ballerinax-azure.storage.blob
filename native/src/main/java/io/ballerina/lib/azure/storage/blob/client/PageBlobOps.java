@@ -26,6 +26,7 @@ import com.azure.storage.blob.models.PageRangeItem;
 import com.azure.storage.blob.options.ListPageRangesOptions;
 import com.azure.storage.blob.options.PageBlobCreateOptions;
 import com.azure.storage.blob.specialized.PageBlobClient;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.BlobErrorCreator;
 import io.ballerina.lib.azure.storage.blob.util.OptionsReader;
@@ -51,7 +52,8 @@ public final class PageBlobOps {
 
     /** Creates a page blob of the given size, replacing any existing blob at the path. */
     public static Object createPageBlob(Environment env, BObject self, BString path, long sizeInBytes, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_PUT,
+                path.getValue(), null, () -> {
             requireAligned(sizeInBytes, "sizeInBytes");
             pageClient(self, path, null).createWithResponse(new PageBlobCreateOptions(sizeInBytes)
                     .setHeaders(OptionsReader.contentHeadersOf(options))
@@ -65,12 +67,14 @@ public final class PageBlobOps {
     /** Writes pages at an offset. */
     public static Object uploadPages(Environment env, BObject self, BString path, long offset, BArray content,
                                      Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_PUT,
+                path.getValue(), null, () -> {
             byte[] bytes = content.getBytes();
             requireAligned(offset, "offset");
             requireAligned(bytes.length, "the content length");
             pageClient(self, path, null).uploadPagesWithResponse(pageRange(offset, bytes.length),
                     new ByteArrayInputStream(bytes), null, conditions(options), null, null);
+            BallerinaAzureClient.reportBytes(self, BlobMetricsUtil.OPERATION_TYPE_PUT, bytes.length);
             return null;
         });
     }
@@ -78,7 +82,8 @@ public final class PageBlobOps {
     /** Clears a page range. */
     public static Object clearPages(Environment env, BObject self, BString path, long offset, long length,
                                     Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                path.getValue(), null, () -> {
             requireAligned(offset, "offset");
             requireAligned(length, "length");
             pageClient(self, path, null).clearPagesWithResponse(pageRange(offset, length), conditions(options),
@@ -89,7 +94,8 @@ public final class PageBlobOps {
 
     /** Lists the written page ranges of a page blob (or of one of its snapshots). */
     public static Object listPageRanges(Environment env, BObject self, BString path, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET,
+                path.getValue(), null, () -> {
             BMap<BString, Object> record = OptionsReader.record(options);
             BlobRange range = record == null ? null : OptionsReader.range(record.get(OptionsReader.RANGE));
             BArray ranges = RecordMapper.recordArray(RecordMapper.RECORD_PAGE_RANGE);

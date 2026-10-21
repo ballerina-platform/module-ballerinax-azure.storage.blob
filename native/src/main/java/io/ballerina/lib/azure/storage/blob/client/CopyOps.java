@@ -21,6 +21,7 @@ package io.ballerina.lib.azure.storage.blob.client;
 import com.azure.core.util.polling.SyncPoller;
 import com.azure.storage.blob.models.BlobCopyInfo;
 import com.azure.storage.blob.options.BlobBeginCopyOptions;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.OptionsReader;
 import io.ballerina.lib.azure.storage.blob.util.RecordMapper;
@@ -45,7 +46,8 @@ public final class CopyOps {
      */
     public static Object copyBlob(Environment env, BObject self, BString sourcePath, BString destinationPath,
                                   Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                sourcePath.getValue(), destinationPath.getValue(), () -> {
             String sourceUrl = BlobOps.blobClient(self, sourcePath).getBlobUrl();
             String signature = (String) self.getNativeData(BallerinaAzureClient.NATIVE_SAS_SIGNATURE);
             if (signature != null) {
@@ -58,13 +60,14 @@ public final class CopyOps {
     /** Starts a copy from any readable blob URL to a path in the bound container. */
     public static Object copyBlobFromUrl(Environment env, BObject self, BString sourceUrl, BString destinationPath,
                                          Object options) {
-        return BallerinaAzureClient.invoke(env,
-                () -> beginCopy(self, sourceUrl.getValue(), destinationPath, options));
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE, sourceUrl.getValue(),
+                destinationPath.getValue(), () -> beginCopy(self, sourceUrl.getValue(), destinationPath, options));
     }
 
     /** Aborts a pending copy by its id. */
     public static Object abortCopy(Environment env, BObject self, BString path, BString copyId, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                path.getValue(), null, () -> {
             BlobOps.blobClient(self, path).abortCopyFromUrlWithResponse(copyId.getValue(),
                     OptionsReader.leaseId(options), null, null);
             return null;

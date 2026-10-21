@@ -22,6 +22,7 @@ import com.azure.core.util.Context;
 import com.azure.storage.blob.models.TaggedBlobItem;
 import com.azure.storage.blob.options.BlobSetTagsOptions;
 import com.azure.storage.blob.options.FindBlobsOptions;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.BlobErrorCreator;
 import io.ballerina.lib.azure.storage.blob.util.OptionsReader;
@@ -63,7 +64,8 @@ public final class TagOps {
     /** Replaces a blob's index tags. */
     public static Object setTags(Environment env, BObject self, BString path, BMap<BString, BString> tags,
                                  Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                path.getValue(), null, () -> {
             Map<String, String> values = ValueUtils.toStringMap(tags);
             validateTags(values);
             BlobOps.blobClient(self, path).setTagsWithResponse(new BlobSetTagsOptions(values)
@@ -74,7 +76,7 @@ public final class TagOps {
 
     /** Reads a blob's index tags. */
     public static Object getTags(Environment env, BObject self, BString path) {
-        return BallerinaAzureClient.invoke(env,
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET, path.getValue(), null,
                 () -> ValueUtils.toBStringMap(BlobOps.blobClient(self, path).getTags()));
     }
 
@@ -83,7 +85,8 @@ public final class TagOps {
      * is validated locally and scoped to the bound container before the request.
      */
     public static Object newTaggedBlobIterator(Environment env, BObject self, BObject generator, BString query) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET,
+                null, null, () -> {
             String scoped = "@container = '" + BallerinaAzureClient.getContainerClient(self).getBlobContainerName()
                     + "' AND " + validateQuery(query.getValue());
             generator.addNativeData(NATIVE_ITERATOR, BallerinaAzureClient.getServiceClient(self)

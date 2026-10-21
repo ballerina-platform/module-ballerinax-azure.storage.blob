@@ -20,6 +20,7 @@ package io.ballerina.lib.azure.storage.blob.client;
 
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.models.DeleteSnapshotsOptionType;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.OptionsReader;
 import io.ballerina.lib.azure.storage.blob.util.RecordMapper;
@@ -43,12 +44,14 @@ public final class BlobOps {
 
     /** Checks whether the blob exists; {@code false} only on a confirmed 404. */
     public static Object hasBlob(Environment env, BObject self, BString path) {
-        return BallerinaAzureClient.invoke(env, () -> blobClient(self, path).exists());
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET,
+                path.getValue(), null, () -> blobClient(self, path).exists());
     }
 
     /** Deletes a blob, one of its snapshots, or the blob together with (or only) its snapshots. */
     public static Object deleteBlob(Environment env, BObject self, BString path, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                path.getValue(), null, () -> {
             BMap<BString, Object> record = OptionsReader.record(options);
             DeleteSnapshotsOptionType snapshots = null;
             if (record != null) {
@@ -66,7 +69,8 @@ public final class BlobOps {
 
     /** Restores a soft-deleted blob along with its soft-deleted snapshots. */
     public static Object undeleteBlob(Environment env, BObject self, BString path) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                path.getValue(), null, () -> {
             blobClient(self, path).undelete();
             return null;
         });
@@ -74,14 +78,15 @@ public final class BlobOps {
 
     /** Fetches a blob's properties, metadata, and copy state as a {@code BlobProperties} record. */
     public static Object getBlobProperties(Environment env, BObject self, BString path) {
-        return BallerinaAzureClient.invoke(env,
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET, path.getValue(), null,
                 () -> RecordMapper.blobProperties(blobClient(self, path).getProperties()));
     }
 
     /** Replaces a blob's user-defined metadata. */
     public static Object setBlobMetadata(Environment env, BObject self, BString path, BMap<BString, BString> metadata,
                                          Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                path.getValue(), null, () -> {
             blobClient(self, path).setMetadataWithResponse(ValueUtils.toStringMap(metadata),
                     OptionsReader.leaseConditions(options), null, null);
             return null;
@@ -91,7 +96,8 @@ public final class BlobOps {
     /** Replaces a blob's content headers as a whole set. */
     public static Object setContentHeaders(Environment env, BObject self, BString path, BMap<BString, Object> headers,
                                            Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                path.getValue(), null, () -> {
             blobClient(self, path).setHttpHeadersWithResponse(OptionsReader.contentHeaders(headers),
                     OptionsReader.leaseConditions(options), null, null);
             return null;

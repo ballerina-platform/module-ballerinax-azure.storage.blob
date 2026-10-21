@@ -23,6 +23,7 @@ import com.azure.storage.blob.models.BlobRange;
 import com.azure.storage.blob.options.AppendBlobAppendBlockFromUrlOptions;
 import com.azure.storage.blob.options.AppendBlobCreateOptions;
 import com.azure.storage.blob.specialized.AppendBlobClient;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.OptionsReader;
 import io.ballerina.runtime.api.Environment;
@@ -42,7 +43,8 @@ public final class AppendBlobOps {
 
     /** Creates an empty append blob, replacing any existing blob at the path. */
     public static Object createAppendBlob(Environment env, BObject self, BString path, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_PUT,
+                path.getValue(), null, () -> {
             appendClient(self, path).createWithResponse(new AppendBlobCreateOptions()
                     .setHeaders(OptionsReader.contentHeadersOf(options))
                     .setMetadata(OptionsReader.metadata(options))
@@ -54,10 +56,12 @@ public final class AppendBlobOps {
 
     /** Appends a block of bytes to an append blob. */
     public static Object appendBlock(Environment env, BObject self, BString path, BArray content, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_PUT,
+                path.getValue(), null, () -> {
             byte[] bytes = content.getBytes();
             appendClient(self, path).appendBlockWithResponse(new ByteArrayInputStream(bytes), bytes.length, null,
                     conditions(options), null, null);
+            BallerinaAzureClient.reportBytes(self, BlobMetricsUtil.OPERATION_TYPE_PUT, bytes.length);
             return null;
         });
     }
@@ -65,7 +69,8 @@ public final class AppendBlobOps {
     /** Appends the content of a readable blob URL to an append blob. */
     public static Object appendBlockFromUrl(Environment env, BObject self, BString path, BString sourceUrl,
                                             Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_PUT,
+                path.getValue(), null, () -> {
             appendClient(self, path).appendBlockFromUrlWithResponse(
                     new AppendBlobAppendBlockFromUrlOptions(sourceUrl.getValue())
                             .setSourceRange(new BlobRange(0))

@@ -53,6 +53,8 @@ dependencies {
     implementation group: 'com.azure', name: 'azure-storage-queue', version: "${azureStorageQueueVersion}"
     implementation group: 'com.azure', name: 'azure-identity', version: "${azureIdentityVersion}"
     implementation group: 'org.slf4j', name: 'slf4j-api', version: "${slf4jVersion}"
+    // BSpan's API references OpenTelemetry types; compile-time only, the runtime carries it.
+    compileOnly group: 'io.opentelemetry', name: 'opentelemetry-api', version: "${opentelemetryVersion}"
     implementation group: 'io.ballerina.lib', name: 'data.jsondata-native', version: "${stdlibDataJsonDataVersion}"
     implementation group: 'io.ballerina.lib', name: 'data.xmldata-native', version: "${stdlibDataXmlDataVersion}"
     implementation group: 'io.ballerina.lib', name: 'data.csv-native', version: "${stdlibDataCsvVersion}"

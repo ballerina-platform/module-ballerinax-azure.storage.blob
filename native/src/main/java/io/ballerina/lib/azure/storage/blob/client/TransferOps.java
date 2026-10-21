@@ -28,6 +28,7 @@ import com.azure.storage.blob.options.BlobParallelUploadOptions;
 import com.azure.storage.blob.options.BlobUploadFromFileOptions;
 import com.azure.storage.blob.options.BlockBlobCommitBlockListOptions;
 import com.azure.storage.blob.specialized.BlobInputStream;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.BlobErrorCreator;
 import io.ballerina.lib.azure.storage.blob.util.OptionsReader;
@@ -63,6 +64,9 @@ public final class TransferOps {
     // Key under which an open content input stream is stored on a stream generator object.
     private static final String NATIVE_INPUT_STREAM = "inputStream";
     private static final String NATIVE_STREAM_FAILURE = "streamFailure";
+    private static final String NATIVE_REMOTE_URL = "remoteUrl";
+    private static final String NATIVE_PROTOCOL = "protocol";
+    private static final String NATIVE_CONTEXT = "context";
     /** The chunk size handed to Ballerina byte-stream consumers. */
     private static final int READ_CHUNK_BYTES = 64 * 1024;
     // Media types applied when the connector itself serialized the content.
@@ -78,7 +82,8 @@ public final class TransferOps {
     /** Uploads a local file as a block blob, replacing any existing blob at the path. */
     public static Object uploadFromFile(Environment env, BObject self, BString sourcePath,
                                         BString destinationPath, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_PUT,
+                destinationPath.getValue(), null, () -> {
             Path localPath = Path.of(sourcePath.getValue());
             if (!Files.isRegularFile(localPath)) {
                 throw BlobErrorCreator.clientError("local file not found: " + sourcePath.getValue(), null);
@@ -91,6 +96,7 @@ public final class TransferOps {
                     .setRequestConditions(OptionsReader.leaseConditions(options));
             // The options form carries no if-none-match, so an existing blob is replaced.
             BlobOps.blobClient(self, destinationPath).uploadFromFileWithResponse(sdkOptions, null, null);
+            BallerinaAzureClient.reportBytes(self, BlobMetricsUtil.OPERATION_TYPE_PUT, fileSize(localPath));
             return null;
         });
     }
@@ -102,7 +108,8 @@ public final class TransferOps {
      */
     public static Object upload(Environment env, BObject self, Object content, BString destinationPath,
                                 Object options, Object appliedFormat) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_PUT,
+                destinationPath.getValue(), null, () -> {
             byte[] bytes = contentBytes(content);
             BlobParallelUploadOptions sdkOptions = new BlobParallelUploadOptions(BinaryData.fromBytes(bytes))
                     .setHeaders(headersWithAutoContentType(options, appliedFormat))
@@ -111,6 +118,7 @@ public final class TransferOps {
                     .setTier(OptionsReader.accessTier(options))
                     .setRequestConditions(OptionsReader.leaseConditions(options));
             BlobOps.blobClient(self, destinationPath).uploadWithResponse(sdkOptions, null, null);
+            BallerinaAzureClient.reportBytes(self, BlobMetricsUtil.OPERATION_TYPE_PUT, bytes.length);
             return null;
         });
     }
@@ -121,11 +129,13 @@ public final class TransferOps {
      */
     public static Object stageStreamBlock(Environment env, BObject self, BString destinationPath, BString uploadId,
                                           long index, BArray chunk, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_PUT,
+                destinationPath.getValue(), null, () -> {
             byte[] bytes = chunk.getBytes();
             BlobOps.blobClient(self, destinationPath).getBlockBlobClient().stageBlockWithResponse(
                     blockId(uploadId.getValue(), index),
                     new ByteArrayInputStream(bytes), bytes.length, null, OptionsReader.leaseId(options), null, null);
+            BallerinaAzureClient.reportBytes(self, BlobMetricsUtil.OPERATION_TYPE_PUT, bytes.length);
             return null;
         });
     }
@@ -133,7 +143,8 @@ public final class TransferOps {
     /** Commits the staged blocks of a stream upload, creating (or replacing) the blob. */
     public static Object commitStreamBlocks(Environment env, BObject self, BString destinationPath, BString uploadId,
                                             long blockCount, Object options, Object appliedFormat) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_PUT,
+                destinationPath.getValue(), null, () -> {
             List<String> blockIds = new ArrayList<>();
             for (long i = 0; i < blockCount; i++) {
                 blockIds.add(blockId(uploadId.getValue(), i));
@@ -153,7 +164,8 @@ public final class TransferOps {
     /** Downloads a blob (or a range of it) to a new local file. */
     public static Object download(Environment env, BObject self, BString sourcePath,
                                   BString destinationPath, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET,
+                sourcePath.getValue(), null, () -> {
             Path localPath = Path.of(destinationPath.getValue());
             if (Files.exists(localPath)) {
                 throw BlobErrorCreator.clientError("local file already exists: " + destinationPath.getValue(), null);
@@ -166,6 +178,7 @@ public final class TransferOps {
                 throw BlobErrorCreator.clientError("cannot write local file " + destinationPath.getValue() + ": "
                         + BallerinaAzureClient.describe(e.getCause()), e);
             }
+            BallerinaAzureClient.reportBytes(self, BlobMetricsUtil.OPERATION_TYPE_GET, fileSize(localPath));
             return null;
         });
     }
@@ -173,10 +186,12 @@ public final class TransferOps {
     /** Opens the blob's content stream and stores it on the Ballerina stream generator object. */
     public static Object openContentStream(Environment env, BObject self, BObject generator,
                                            BString path, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET,
+                path.getValue(), null, () -> {
             BlobClient client = BlobOps.blobClient(self, path, OptionsReader.snapshotId(options));
             BlobInputStream stream = client.openInputStream(new BlobInputStreamOptions().setRange(range(options)));
-            generator.addNativeData(NATIVE_INPUT_STREAM, stream);
+            attachContentStream(generator, stream, BallerinaAzureClient.getRemoteUrl(self),
+                    BallerinaAzureClient.getProtocol(self), BlobMetricsUtil.CONTEXT_CLIENT);
             return null;
         });
     }
@@ -195,6 +210,9 @@ public final class TransferOps {
                     closeQuietly(generator);
                     return null;
                 }
+                BlobMetricsUtil.reportBytesTransferred((String) generator.getNativeData(NATIVE_REMOTE_URL),
+                        (String) generator.getNativeData(NATIVE_PROTOCOL),
+                        (String) generator.getNativeData(NATIVE_CONTEXT), BlobMetricsUtil.OPERATION_TYPE_GET, read);
                 byte[] chunk = read == buffer.length ? buffer : Arrays.copyOf(buffer, read);
                 return ValueCreator.createArrayValue(chunk);
             } catch (IOException | RuntimeException e) {
@@ -219,9 +237,31 @@ public final class TransferOps {
         return (BError) generator.getNativeData(NATIVE_STREAM_FAILURE);
     }
 
-    /** Stores an already-open blob stream on a generator the listener created. */
-    public static void attachContentStream(BObject generator, BlobInputStream stream) {
+    /**
+     * Stores an open blob stream on a stream generator, with the identity its chunk reads are
+     * counted against.
+     *
+     * @param generator the Ballerina stream generator object
+     * @param stream    the open blob stream
+     * @param remoteUrl the endpoint host the stream reads from
+     * @param protocol  the wire protocol
+     * @param context   {@code client} or {@code listener}
+     */
+    public static void attachContentStream(BObject generator, BlobInputStream stream, String remoteUrl,
+                                           String protocol, String context) {
         generator.addNativeData(NATIVE_INPUT_STREAM, stream);
+        generator.addNativeData(NATIVE_REMOTE_URL, remoteUrl);
+        generator.addNativeData(NATIVE_PROTOCOL, protocol);
+        generator.addNativeData(NATIVE_CONTEXT, context);
+    }
+
+    // The local file's size, for the bytes counter; a size that cannot be read counts nothing.
+    private static long fileSize(Path localPath) {
+        try {
+            return Files.size(localPath);
+        } catch (IOException e) {
+            return 0;
+        }
     }
 
     /** Closes an open content stream early. */

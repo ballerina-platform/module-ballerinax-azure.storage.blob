@@ -229,13 +229,19 @@ final class MessageHandle {
         return Delays.wouldExpire(clock.instant(), delaySeconds, expiry, timing.hold());
     }
 
-    /** Acknowledges the message: it is deleted and never delivered again. */
-    void acknowledge() {
+    /**
+     * Acknowledges the message: it is deleted and never delivered again.
+     *
+     * @return whether the message is gone, by this delete or already; {@code false} when the
+     *         delete failed and the message returns when its visibility window expires
+     */
+    boolean acknowledge() {
         lock.lock();
         try {
             if (disposed) {
-                return;
+                return false;
             }
+            boolean gone = true;
             try {
                 retrying.delete(messageId, popReceipt);
             } catch (QueueCallException e) {
@@ -243,42 +249,51 @@ final class MessageHandle {
                     log.debug("message " + messageId + " on queue " + queueName + " was already gone when "
                             + "acknowledged", ListenerLog.fields("queue", queueName, "messageId", messageId));
                 } else {
+                    gone = false;
                     log.error("could not acknowledge message " + messageId + " on queue " + queueName
                             + "; it will be redelivered: " + e.getMessage(),
                             ListenerLog.fields("queue", queueName, "messageId", messageId, "errorCode", e.code));
                 }
             }
             dispose();
+            return gone;
         } finally {
             lock.unlock();
         }
     }
 
-    /** Makes the message visible again after the delay. */
-    void redeliver(long delaySeconds) {
-        update(Duration.ofSeconds(delaySeconds), "schedule the redelivery of");
+    /**
+     * Makes the message visible again after the delay.
+     *
+     * @return whether the queue accepted the new visibility
+     */
+    boolean redeliver(long delaySeconds) {
+        return update(Duration.ofSeconds(delaySeconds), "schedule the redelivery of");
     }
 
     /** Makes the message visible again at once, as after a receive that completed too late. */
-    void release() {
-        update(Duration.ZERO, "release");
+    boolean release() {
+        return update(Duration.ZERO, "release");
     }
 
-    private void update(Duration visibility, String what) {
+    private boolean update(Duration visibility, String what) {
         lock.lock();
         try {
             if (disposed) {
-                return;
+                return false;
             }
+            boolean updated = true;
             try {
                 retrying.update(messageId, popReceipt, visibility, null);
             } catch (QueueCallException e) {
+                updated = false;
                 log.error("could not " + what + " message " + messageId + " on queue " + queueName
                         + "; the outcome is unknown and the message returns either as requested or when its "
                         + "visibility window expires: " + e.getMessage(),
                         ListenerLog.fields("queue", queueName, "messageId", messageId, "errorCode", e.code));
             }
             dispose();
+            return updated;
         } finally {
             lock.unlock();
         }

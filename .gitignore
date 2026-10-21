@@ -46,6 +46,8 @@ target/
 generated/
 .ballerina
 **/Config.toml
+# The test run's own configuration holds no secrets.
+!ballerina/tests/Config.toml
 
 # Ignore Gradle project-specific cache directory
 .gradle

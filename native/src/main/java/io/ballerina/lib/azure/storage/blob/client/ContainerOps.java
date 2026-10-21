@@ -23,6 +23,7 @@ import com.azure.core.http.rest.Response;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobContainerAccessPolicies;
 import com.azure.storage.blob.models.BlobRequestConditions;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.BlobErrorCreator;
 import io.ballerina.lib.azure.storage.blob.util.OptionsReader;
@@ -55,14 +56,15 @@ public final class ContainerOps {
 
     /** Reads the bound container's properties and metadata. */
     public static Object getContainerProperties(Environment env, BObject self) {
-        return BallerinaAzureClient.invoke(env,
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET, null, null,
                 () -> RecordMapper.containerProperties(BallerinaAzureClient.getContainerClient(self).getProperties()));
     }
 
     /** Replaces the bound container's metadata. */
     public static Object setContainerMetadata(Environment env, BObject self, BMap<BString, BString> metadata,
                                               Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                null, null, () -> {
             BallerinaAzureClient.getContainerClient(self).setMetadataWithResponse(
                     ValueUtils.toStringMap(metadata), OptionsReader.leaseConditions(options), null, null);
             return null;
@@ -71,13 +73,15 @@ public final class ContainerOps {
 
     /** Reads the anonymous access level together with the stored access policies. */
     public static Object getContainerAccessPolicy(Environment env, BObject self) {
-        return BallerinaAzureClient.invoke(env, () -> RecordMapper.containerAccessPolicy(
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET,
+                null, null, () -> RecordMapper.containerAccessPolicy(
                 BallerinaAzureClient.getContainerClient(self).getAccessPolicy()));
     }
 
     /** Sets the anonymous access level, keeping the current stored access policies. */
     public static Object setPublicAccess(Environment env, BObject self, BString access, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                null, null, () -> {
             BlobContainerClient container = BallerinaAzureClient.getContainerClient(self);
             BlobRequestConditions conditions = writeConditions(options);
             Response<BlobContainerAccessPolicies> current =
@@ -90,7 +94,8 @@ public final class ContainerOps {
 
     /** Replaces the stored access policies, keeping the current anonymous access level. */
     public static Object setContainerAccessPolicy(Environment env, BObject self, BArray identifiers, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                null, null, () -> {
             if (identifiers.size() > MAX_SIGNED_IDENTIFIERS) {
                 throw BlobErrorCreator.clientError(
                         "a container holds at most " + MAX_SIGNED_IDENTIFIERS + " stored access policies", null);

@@ -20,6 +20,9 @@ package io.ballerina.lib.azure.storage.blob.server;
 
 import com.azure.storage.queue.models.QueueMessageItem;
 import io.ballerina.lib.azure.storage.blob.client.TransferOps;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
+import io.ballerina.lib.azure.storage.blob.observability.BlobTracingUtil;
+import io.ballerina.lib.azure.storage.blob.server.ContentFetcher.Disposition;
 import io.ballerina.lib.azure.storage.blob.server.ContentFetcher.Fetch;
 import io.ballerina.lib.azure.storage.blob.server.MessageHandle.PoisonOutcome;
 import io.ballerina.lib.azure.storage.blob.server.ServiceContext.HandlerConfig;
@@ -33,18 +36,21 @@ import io.ballerina.runtime.api.values.BError;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
+import io.ballerina.runtime.observability.tracer.BSpan;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 /**
  * Handles one received message end to end, in the fixed order of checks: the delivery limit,
  * decoding and parsing, the event type, the account, routing; then the Caller, the content,
  * the handler, and the settlement its return decides. Every step runs on the message's own
- * virtual thread, while the message's visibility is renewed.
+ * virtual thread, while the message's visibility is renewed, and is counted on the message's
+ * observation.
  */
 final class Dispatcher {
 
@@ -80,66 +86,79 @@ final class Dispatcher {
                 svc.retrying, svc.retryFree, svc.poison, svc.queueName(), message.getMessageId(),
                 message.getPopReceipt(), message.getMessageText(), message.getDequeueCount(),
                 expiry == null ? null : expiry.toInstant());
+        MessageObservation observation = new MessageObservation(ctx, svc);
         handle.start();
         try {
-            handleMessage(ctx, svc, handle);
+            handleMessage(ctx, svc, handle, observation);
         } catch (Throwable e) {
             ctx.log.error("unexpected failure handling message " + handle.messageId() + " on queue "
                     + svc.queueName() + ": " + BallerinaAzureClient.describe(e),
                     ListenerLog.fields("queue", svc.queueName(), "messageId", handle.messageId()));
         } finally {
             handle.dispose();
+            observation.finish();
         }
     }
 
-    private static void handleMessage(ListenerContext ctx, ServiceContext svc, MessageHandle handle) {
+    private static void handleMessage(ListenerContext ctx, ServiceContext svc, MessageHandle handle,
+                                      MessageObservation observation) {
         String queue = svc.queueName();
         if (handle.dequeueCount() > svc.settings.maxDeliveryCount()) {
-            pastLimit(ctx, svc, handle);
+            pastLimit(ctx, svc, handle, observation);
             return;
         }
         EventParser.Parsed event;
         try {
             event = EventParser.parse(handle.body());
         } catch (EventParser.EventParseException parseFailure) {
+            observation.found(BlobMetricsUtil.OUTCOME_FAILURE, BlobMetricsUtil.REASON_UNPARSEABLE_MESSAGE);
             BError error = BlobErrorCreator.clientError("message " + handle.messageId() + " on queue " + queue
                     + " is not a storage event: " + parseFailure.getMessage(), parseFailure.getCause());
-            notifyOnError(ctx, svc, handle, error, null, null);
-            afterPoison(ctx, svc, handle, handle.poison(REASON_UNPARSEABLE, null), null, null);
+            notifyOnError(ctx, svc, handle, observation, error, null, null);
+            afterPoison(ctx, svc, handle, observation, observation.poison(handle, REASON_UNPARSEABLE, null), null,
+                    null);
             return;
         }
+        observation.event(event);
         if (!event.dispatchable()) {
+            observation.found(BlobMetricsUtil.OUTCOME_SKIPPED, BlobMetricsUtil.REASON_EVENT_TYPE_NOT_DISPATCHED);
             neverOurs(ctx, svc, Routing.typeKey(event.eventType()), Routing.typeWarning(queue, event.eventType()));
-            handle.acknowledge();
+            observation.acknowledge(handle);
             return;
         }
         if (event.noContent()) {
+            observation.found(BlobMetricsUtil.OUTCOME_SKIPPED, BlobMetricsUtil.REASON_NO_CONTENT_EVENT);
             neverOurs(ctx, svc, Routing.noContentKey(event), Routing.noContentWarning(queue, event));
-            handle.acknowledge();
+            observation.acknowledge(handle);
             return;
         }
         if (ctx.isForeign(event.accountName(), queue)) {
-            handle.acknowledge();
+            observation.found(BlobMetricsUtil.OUTCOME_SKIPPED, BlobMetricsUtil.REASON_FOREIGN_ACCOUNT);
+            observation.acknowledge(handle);
             return;
         }
         HandlerConfig handler = event.deleted() ? svc.handlers.get(Listener.ON_BLOB_DELETED)
                 : Routing.resolve(svc.handlers, event.blobName(), event.contentType());
         if (handler == null) {
+            observation.found(BlobMetricsUtil.OUTCOME_SKIPPED, BlobMetricsUtil.REASON_NO_HANDLER_MATCHED);
             if (event.deleted()) {
                 neverOurs(ctx, svc, Routing.typeKey(event.eventType()), Routing.deletedWarning(queue));
             } else {
                 neverOurs(ctx, svc, Routing.UNROUTED_KEY, Routing.unroutedWarning(queue, event.path(), svc.handlers));
             }
-            handle.acknowledge();
+            observation.acknowledge(handle);
             return;
         }
+        observation.found(null, null);
+        observation.dispatched(handler.methodName());
         BMap<BString, Object> record = event.toRecord();
         BObject caller;
         try {
             caller = ctx.callerFor(event.containerName());
         } catch (BError e) {
-            notifyOnError(ctx, svc, handle, e, record, null);
-            ordinaryFailure(ctx, svc, handle, event, record, null);
+            observation.handled(BlobMetricsUtil.OUTCOME_FAILURE, BlobTracingUtil.errorTypeName(e));
+            notifyOnError(ctx, svc, handle, observation, e, record, null);
+            ordinaryFailure(ctx, svc, handle, observation, event, record, null);
             return;
         }
         Object[] args;
@@ -148,26 +167,35 @@ final class Dispatcher {
         if (event.deleted()) {
             args = handler.takesCaller() ? new Object[]{record, caller} : new Object[]{record};
         } else {
+            long bindingStart = System.nanoTime();
             Fetch fetch = ContentFetcher.fetch(ctx, caller, handler, event);
+            observation.binding(fetch.disposition() == Disposition.CONTENT ? BlobMetricsUtil.OUTCOME_SUCCESS
+                    : BlobMetricsUtil.OUTCOME_FAILURE, bindingStart);
             switch (fetch.disposition()) {
                 case NOT_FOUND -> {
-                    notifyOnError(ctx, svc, handle, fetch.error(), record, caller);
-                    handle.acknowledge();
+                    observation.handled(BlobMetricsUtil.OUTCOME_SKIPPED, BlobMetricsUtil.REASON_BLOB_NOT_FOUND);
+                    notifyOnError(ctx, svc, handle, observation, fetch.error(), record, caller);
+                    observation.acknowledge(handle);
                     return;
                 }
                 case ARCHIVED -> {
-                    notifyOnError(ctx, svc, handle, fetch.error(), record, caller);
-                    afterPoison(ctx, svc, handle, handle.poison(REASON_ARCHIVED, event.path()), record, caller);
+                    observation.handled(BlobMetricsUtil.OUTCOME_FAILURE, BlobMetricsUtil.REASON_ARCHIVED_BLOB);
+                    notifyOnError(ctx, svc, handle, observation, fetch.error(), record, caller);
+                    afterPoison(ctx, svc, handle, observation,
+                            observation.poison(handle, REASON_ARCHIVED, event.path()), record, caller);
                     return;
                 }
                 case BINDING -> {
-                    notifyOnError(ctx, svc, handle, fetch.error(), record, caller);
-                    afterPoison(ctx, svc, handle, handle.poison(REASON_BINDING, event.path()), record, caller);
+                    observation.handled(BlobMetricsUtil.OUTCOME_FAILURE, BlobMetricsUtil.REASON_BINDING_FAILED);
+                    notifyOnError(ctx, svc, handle, observation, fetch.error(), record, caller);
+                    afterPoison(ctx, svc, handle, observation,
+                            observation.poison(handle, REASON_BINDING, event.path()), record, caller);
                     return;
                 }
                 case ORDINARY -> {
-                    notifyOnError(ctx, svc, handle, fetch.error(), record, caller);
-                    ordinaryFailure(ctx, svc, handle, event, record, caller);
+                    observation.handled(BlobMetricsUtil.OUTCOME_FAILURE, BlobTracingUtil.errorTypeName(fetch.error()));
+                    notifyOnError(ctx, svc, handle, observation, fetch.error(), record, caller);
+                    ordinaryFailure(ctx, svc, handle, observation, event, record, caller);
                     return;
                 }
                 default -> {
@@ -185,23 +213,29 @@ final class Dispatcher {
                 }
             }
         }
-        Invocation result = invoke(ctx, svc, handler.methodName(), args);
-        settle(ctx, svc, handle, event, record, caller, handler, result, streamGenerator, csvStream);
+        long start = System.nanoTime();
+        Invocation result = invoke(ctx, svc, handler.methodName(), args, observation.handlerStrand());
+        settle(ctx, svc, handle, observation, event, record, caller, handler, result, start, streamGenerator,
+                csvStream);
     }
 
     // Settles the message by the handler's return: nil acknowledges, a DeadLetterError poisons
     // now, a RetryError redelivers after its delay, a stream's own binding error is a binding
     // failure, and any other error or a panic is an ordinary failure.
     private static void settle(ListenerContext ctx, ServiceContext svc, MessageHandle handle,
-                               EventParser.Parsed event, BMap<BString, Object> record, BObject caller,
-                               HandlerConfig handler, Invocation result, BObject streamGenerator, BObject csvStream) {
+                               MessageObservation observation, EventParser.Parsed event,
+                               BMap<BString, Object> record, BObject caller, HandlerConfig handler,
+                               Invocation result, long start, BObject streamGenerator, BObject csvStream) {
         if (result.panic() != null) {
+            handlerFailed(observation, BlobTracingUtil.errorTypeName(result.panic()), start);
             warnHandlerFailure(ctx, svc, handle, handler, event, "panicked: " + result.panic().getErrorMessage(), null);
-            ordinaryFailure(ctx, svc, handle, event, record, caller);
+            ordinaryFailure(ctx, svc, handle, observation, event, record, caller);
             return;
         }
         if (!(result.value() instanceof BError error)) {
-            handle.acknowledge();
+            observation.handled(BlobMetricsUtil.OUTCOME_SUCCESS, null);
+            observation.execution(BlobMetricsUtil.OUTCOME_SUCCESS, start);
+            observation.acknowledge(handle);
             return;
         }
         @SuppressWarnings("unchecked")
@@ -210,36 +244,49 @@ final class Dispatcher {
         String kind = outcome.getStringValue(OUTCOME_KIND).getValue();
         String message = outcome.getStringValue(OUTCOME_MESSAGE).getValue();
         if (KIND_DEAD_LETTER.equals(kind)) {
-            afterPoison(ctx, svc, handle, handle.poison(REASON_DEAD_LETTERED + message, event.path()), record, caller);
+            handlerFailed(observation, BlobTracingUtil.errorTypeName(error), start);
+            afterPoison(ctx, svc, handle, observation,
+                    observation.poison(handle, REASON_DEAD_LETTERED + message, event.path()), record, caller);
             return;
         }
         if (KIND_RETRY.equals(kind)) {
+            handlerFailed(observation, BlobTracingUtil.errorTypeName(error), start);
             long delay = Delays.seconds(((BDecimal) outcome.get(OUTCOME_DELAY)).decimalValue());
             if (handle.dequeueCount() >= svc.settings.maxDeliveryCount()) {
                 warnHandlerFailure(ctx, svc, handle, handler, event, message,
                         "delay not applied: " + REASON_RETRY_ON_FINAL);
-                afterPoison(ctx, svc, handle, handle.poison(REASON_RETRY_ON_FINAL, event.path()), record, caller);
+                afterPoison(ctx, svc, handle, observation,
+                        observation.poison(handle, REASON_RETRY_ON_FINAL, event.path()), record, caller);
             } else if (handle.wouldExpire(delay)) {
                 warnHandlerFailure(ctx, svc, handle, handler, event, message,
                         "delay not applied: " + REASON_WOULD_EXPIRE);
-                afterPoison(ctx, svc, handle, handle.poison(REASON_WOULD_EXPIRE, event.path()), record, caller);
+                afterPoison(ctx, svc, handle, observation,
+                        observation.poison(handle, REASON_WOULD_EXPIRE, event.path()), record, caller);
             } else {
                 warnHandlerFailure(ctx, svc, handle, handler, event, message,
                         "delay applied: " + delay + " seconds");
-                handle.redeliver(delay);
+                observation.redeliver(handle, delay);
             }
             return;
         }
         if (csvStream != null && TransferOps.streamFailure(streamGenerator) == null
                 && isTheStreamsOwnBindingError(error, csvStream.get(LAST_BINDING_ERROR_FIELD))) {
+            handlerFailed(observation, BlobMetricsUtil.REASON_BINDING_FAILED, start);
             BError binding = BlobErrorCreator.contentBindingError(error.getErrorMessage().getValue(), error,
                     event.containerName(), event.path(), null);
-            notifyOnError(ctx, svc, handle, binding, record, caller);
-            afterPoison(ctx, svc, handle, handle.poison(REASON_BINDING, event.path()), record, caller);
+            notifyOnError(ctx, svc, handle, observation, binding, record, caller);
+            afterPoison(ctx, svc, handle, observation, observation.poison(handle, REASON_BINDING, event.path()),
+                    record, caller);
             return;
         }
+        handlerFailed(observation, BlobTracingUtil.errorTypeName(error), start);
         warnHandlerFailure(ctx, svc, handle, handler, event, message, null);
-        ordinaryFailure(ctx, svc, handle, event, record, caller);
+        ordinaryFailure(ctx, svc, handle, observation, event, record, caller);
+    }
+
+    private static void handlerFailed(MessageObservation observation, String reason, long start) {
+        observation.handled(BlobMetricsUtil.OUTCOME_FAILURE, reason);
+        observation.execution(BlobMetricsUtil.OUTCOME_FAILURE, start);
     }
 
     // Whether the error a CSV stream handler returned is the binding error its stream produced.
@@ -265,29 +312,36 @@ final class Dispatcher {
     // Redelivers after the service's delay, or poisons the message on its final delivery or when
     // the delay would outlive it.
     private static void ordinaryFailure(ListenerContext ctx, ServiceContext svc, MessageHandle handle,
-                                        EventParser.Parsed event, BMap<BString, Object> record, BObject caller) {
+                                        MessageObservation observation, EventParser.Parsed event,
+                                        BMap<BString, Object> record, BObject caller) {
         String path = event == null ? null : event.path();
         if (handle.dequeueCount() >= svc.settings.maxDeliveryCount()) {
-            afterPoison(ctx, svc, handle, handle.poison(REASON_LIMIT, path), record, caller);
+            afterPoison(ctx, svc, handle, observation, observation.poison(handle, REASON_LIMIT, path), record, caller);
             return;
         }
         long delay = svc.settings.redeliverySeconds();
         if (handle.wouldExpire(delay)) {
-            afterPoison(ctx, svc, handle, handle.poison(REASON_WOULD_EXPIRE, path), record, caller);
+            afterPoison(ctx, svc, handle, observation, observation.poison(handle, REASON_WOULD_EXPIRE, path), record,
+                    caller);
             return;
         }
-        handle.redeliver(delay);
+        observation.redeliver(handle, delay);
     }
 
     // A message received past its delivery limit: notified and moved without dispatching; the
     // event and Caller go with the notification only when it parses as ours.
-    private static void pastLimit(ListenerContext ctx, ServiceContext svc, MessageHandle handle) {
+    private static void pastLimit(ListenerContext ctx, ServiceContext svc, MessageHandle handle,
+                                  MessageObservation observation) {
         EventParser.Parsed event = null;
         try {
             event = EventParser.parse(handle.body());
         } catch (EventParser.EventParseException ignored) {
             // Past the limit, an unparseable message gets no separate parse notification.
         }
+        if (event != null) {
+            observation.event(event);
+        }
+        observation.found(BlobMetricsUtil.OUTCOME_FAILURE, BlobMetricsUtil.REASON_DELIVERY_LIMIT_EXCEEDED);
         BMap<BString, Object> record = null;
         BObject caller = null;
         if (event != null && event.dispatchable() && !event.noContent() && ctx.sameAccount(event.accountName())) {
@@ -301,15 +355,17 @@ final class Dispatcher {
         BError error = BlobErrorCreator.clientError(REASON_LIMIT_ON_RECEIPT + ": message " + handle.messageId()
                 + " on queue " + svc.queueName() + " was delivered " + handle.dequeueCount()
                 + " times without settling (maxDeliveryCount " + svc.settings.maxDeliveryCount() + ")", null);
-        notifyOnError(ctx, svc, handle, error, record, caller);
-        afterPoison(ctx, svc, handle, handle.poison(REASON_LIMIT_ON_RECEIPT, event == null ? null : event.path()),
-                record, caller);
+        notifyOnError(ctx, svc, handle, observation, error, record, caller);
+        afterPoison(ctx, svc, handle, observation,
+                observation.poison(handle, REASON_LIMIT_ON_RECEIPT, event == null ? null : event.path()), record,
+                caller);
     }
 
     // A failed move, or one skipped after a transient failure of its hold check, notifies onError
     // with an error naming the poison queue; the message is disposed of by the caller afterwards.
     private static void afterPoison(ListenerContext ctx, ServiceContext svc, MessageHandle handle,
-                                    PoisonOutcome outcome, BMap<BString, Object> record, BObject caller) {
+                                    MessageObservation observation, PoisonOutcome outcome,
+                                    BMap<BString, Object> record, BObject caller) {
         if (outcome != PoisonOutcome.FAILED && outcome != PoisonOutcome.SKIPPED_TRANSIENT) {
             return;
         }
@@ -317,7 +373,7 @@ final class Dispatcher {
         BError error = BlobErrorCreator.clientError("message " + handle.messageId() + " on queue " + svc.queueName()
                 + " could not be moved to the poison queue '" + svc.poison.name() + "'" + why
                 + "; it returns when its visibility window expires", null);
-        notifyOnError(ctx, svc, handle, error, record, caller);
+        notifyOnError(ctx, svc, handle, observation, error, record, caller);
     }
 
     private static void warnHandlerFailure(ListenerContext ctx, ServiceContext svc, MessageHandle handle,
@@ -346,10 +402,12 @@ final class Dispatcher {
      * Notifies the service's {@code onError}, if declared, and waits for it: with the event and
      * the Caller where the shape takes them, or {@code ()} where the failure carries none. A
      * service without {@code onError} gets a warning instead. The call never settles the
-     * message; an error it returns is logged.
+     * message; an error it returns is logged. The call runs in its own {@code file-error} span,
+     * under the message's lifecycle span when there is one.
      */
-    static void notifyOnError(ListenerContext ctx, ServiceContext svc, MessageHandle handle, BError error,
-                              BMap<BString, Object> record, BObject caller) {
+    static void notifyOnError(ListenerContext ctx, ServiceContext svc, MessageHandle handle,
+                              MessageObservation observation, BError error, BMap<BString, Object> record,
+                              BObject caller) {
         Map<String, Object> fields = ListenerLog.fields("queue", svc.queueName(),
                 "messageId", handle == null ? null : handle.messageId());
         if (svc.onError == null) {
@@ -368,22 +426,36 @@ final class Dispatcher {
         if (handle != null) {
             handle.activity("onError call");
         }
-        Invocation result = invoke(ctx, svc, Listener.ON_ERROR, args.toArray());
+        BSpan span = MessageObservation.errorSpan(observation);
+        Invocation result = invoke(ctx, svc, Listener.ON_ERROR, args.toArray(),
+                MessageObservation.errorStrand(ctx, svc, span, error));
         if (result.panic() != null) {
             ctx.log.warn("onError panicked; the outcome is unchanged: " + result.panic().getErrorMessage(), fields);
+            BlobTracingUtil.finishSpan(span, BlobMetricsUtil.OUTCOME_FAILURE,
+                    BlobTracingUtil.errorTypeName(result.panic()));
         } else if (result.value() instanceof BError returned) {
             ctx.log.warn("onError returned an error; the outcome is unchanged: " + returned.getErrorMessage(), fields);
+            BlobTracingUtil.finishSpan(span, BlobMetricsUtil.OUTCOME_FAILURE, BlobTracingUtil.errorTypeName(returned));
+        } else {
+            BlobTracingUtil.finishSpan(span, BlobMetricsUtil.OUTCOME_SUCCESS, null);
         }
         if (handle != null) {
             handle.activity("handler");
         }
     }
 
-    // Invokes a service method with the service's isolation; a panic is kept apart from a return.
-    private static Invocation invoke(ListenerContext ctx, ServiceContext svc, String methodName, Object[] args) {
+    // Invokes a service method with the service's isolation and the strand properties the
+    // observation built; a panic is kept apart from a return.
+    private static Invocation invoke(ListenerContext ctx, ServiceContext svc, String methodName, Object[] args,
+                                     Map<String, Object> strandProperties) {
+        StrandMetadata metadata = new StrandMetadata(svc.concurrentSafe(methodName), strandProperties);
+        return onOwnStrand(() -> call(ctx, svc, methodName, metadata, args), methodName);
+    }
+
+    private static Invocation call(ListenerContext ctx, ServiceContext svc, String methodName,
+                                   StrandMetadata metadata, Object[] args) {
         try {
-            return new Invocation(ctx.runtime.callMethod(svc.service, methodName,
-                    new StrandMetadata(svc.concurrentSafe(methodName), null), args), null);
+            return new Invocation(ctx.runtime.callMethod(svc.service, methodName, metadata, args), null);
         } catch (BError panic) {
             // A panic's stack trace is the user's only way to locate it; the warning line that
             // follows carries the handler, the path, and the message.
@@ -393,5 +465,40 @@ final class Dispatcher {
             return new Invocation(null, BlobErrorCreator.clientError(methodName + " invocation failed: "
                     + BallerinaAzureClient.describe(e), e));
         }
+    }
+
+    // The runtime creates a strand for a call only on a thread that has none yet, and only that
+    // strand takes the properties; a thread that has logged or built a Caller keeps its first
+    // strand for every later call. So every handler call runs on a fresh virtual thread, whose
+    // strand carries the observer context the runtime adopts for the handler's span, on one code
+    // path whether or not observability is on.
+    private static Invocation onOwnStrand(Supplier<Invocation> call, String methodName) {
+        Invocation[] result = new Invocation[1];
+        Throwable[] failure = new Throwable[1];
+        Thread thread = Thread.startVirtualThread(() -> {
+            try {
+                result[0] = call.get();
+            } catch (Throwable t) {
+                failure[0] = t;
+            }
+        });
+        boolean interrupted = false;
+        while (true) {
+            try {
+                thread.join();
+                break;
+            } catch (InterruptedException e) {
+                // The handler must finish either way; the interrupt is re-raised afterwards.
+                interrupted = true;
+            }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
+        if (failure[0] != null) {
+            return new Invocation(null, BlobErrorCreator.clientError(methodName + " invocation failed: "
+                    + BallerinaAzureClient.describe(failure[0]), failure[0]));
+        }
+        return result[0];
     }
 }

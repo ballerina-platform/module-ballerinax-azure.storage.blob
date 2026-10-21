@@ -19,6 +19,7 @@
 package io.ballerina.lib.azure.storage.blob.client;
 
 import com.azure.storage.blob.BlobClient;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.BlobErrorCreator;
 import io.ballerina.lib.azure.storage.blob.util.ContentBinder;
@@ -210,14 +211,16 @@ public final class TypedReadOps {
 
     // Downloads the blob's full content (or a range of it) into a Ballerina byte array.
     private static Object readBlobBytes(Environment env, BObject self, BString path, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET, path.getValue(), null, () -> {
             BlobClient client = BlobOps.blobClient(self, path, OptionsReader.snapshotId(options));
             BMap<BString, Object> record = OptionsReader.record(options);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             client.downloadStreamWithResponse(out,
                     record == null ? null : OptionsReader.range(record.get(OptionsReader.RANGE)),
                     null, null, false, null, null);
-            return ValueCreator.createArrayValue(out.toByteArray());
+            byte[] bytes = out.toByteArray();
+            BallerinaAzureClient.reportBytes(self, BlobMetricsUtil.OPERATION_TYPE_GET, bytes.length);
+            return ValueCreator.createArrayValue(bytes);
         });
     }
 

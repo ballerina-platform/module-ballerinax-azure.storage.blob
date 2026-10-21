@@ -18,6 +18,7 @@
 
 package io.ballerina.lib.azure.storage.blob.client;
 
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.OptionsReader;
 import io.ballerina.runtime.api.Environment;
@@ -35,7 +36,8 @@ public final class SnapshotOps {
 
     /** Creates a read-only snapshot of a blob and returns its id. */
     public static Object createSnapshot(Environment env, BObject self, BString path, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> StringUtils.fromString(BlobOps.blobClient(self, path)
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                path.getValue(), null, () -> StringUtils.fromString(BlobOps.blobClient(self, path)
                 .createSnapshotWithResponse(OptionsReader.metadata(options), OptionsReader.leaseConditions(options),
                         null, null)
                 .getValue().getSnapshotId()));

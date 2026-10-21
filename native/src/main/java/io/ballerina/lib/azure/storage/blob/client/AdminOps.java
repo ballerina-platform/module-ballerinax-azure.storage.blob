@@ -19,6 +19,7 @@
 package io.ballerina.lib.azure.storage.blob.client;
 
 import com.azure.storage.blob.BlobServiceClient;
+import io.ballerina.lib.azure.storage.blob.observability.BlobMetricsUtil;
 import io.ballerina.lib.azure.storage.blob.util.BallerinaAzureClient;
 import io.ballerina.lib.azure.storage.blob.util.BlobErrorCreator;
 import io.ballerina.lib.azure.storage.blob.util.OptionsReader;
@@ -41,13 +42,15 @@ public final class AdminOps {
 
     /** Checks whether a container exists; {@code false} only on a confirmed 404. */
     public static Object hasContainer(Environment env, BObject self, BString containerName) {
-        return BallerinaAzureClient.invoke(env, () -> BallerinaAzureClient.getServiceClient(self)
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET,
+                containerName.getValue(), null, () -> BallerinaAzureClient.getServiceClient(self)
                 .getBlobContainerClient(containerName(containerName)).exists());
     }
 
     /** Creates a container with optional metadata and anonymous access level. */
     public static Object createContainer(Environment env, BObject self, BString containerName, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                containerName.getValue(), null, () -> {
             BMap<BString, Object> record = OptionsReader.record(options);
             BallerinaAzureClient.getServiceClient(self).createBlobContainerWithResponse(containerName(containerName),
                     OptionsReader.metadata(options),
@@ -59,7 +62,8 @@ public final class AdminOps {
 
     /** Deletes a container and every blob in it, honouring an active lease. */
     public static Object deleteContainer(Environment env, BObject self, BString containerName, Object options) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                containerName.getValue(), null, () -> {
             BallerinaAzureClient.getServiceClient(self).getBlobContainerClient(containerName(containerName))
                     .deleteWithResponse(OptionsReader.leaseConditions(options), null, null);
             return null;
@@ -69,7 +73,8 @@ public final class AdminOps {
     /** Restores a soft-deleted container by name and deleted version. */
     public static Object undeleteContainer(Environment env, BObject self, BString containerName,
                                            BString deletedContainerVersion) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                containerName.getValue(), null, () -> {
             BallerinaAzureClient.getServiceClient(self).undeleteBlobContainer(containerName(containerName),
                     deletedContainerVersion.getValue());
             return null;
@@ -78,13 +83,14 @@ public final class AdminOps {
 
     /** Reads the blob service configuration as a {@code ServiceProperties} record. */
     public static Object getServiceProperties(Environment env, BObject self) {
-        return BallerinaAzureClient.invoke(env,
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET, null, null,
                 () -> RecordMapper.serviceProperties(BallerinaAzureClient.getServiceClient(self).getProperties()));
     }
 
     /** Writes the blob service configuration; groups absent from the record are left unchanged. */
     public static Object setServiceProperties(Environment env, BObject self, BMap<BString, Object> properties) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                null, null, () -> {
             BallerinaAzureClient.getServiceClient(self).setProperties(OptionsReader.serviceProperties(properties));
             return null;
         });
@@ -92,13 +98,14 @@ public final class AdminOps {
 
     /** Reads the account's SKU, kind, and namespace type. */
     public static Object getAccountInfo(Environment env, BObject self) {
-        return BallerinaAzureClient.invoke(env,
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET, null, null,
                 () -> RecordMapper.accountInfo(BallerinaAzureClient.getServiceClient(self).getAccountInfo()));
     }
 
     /** Obtains a user delegation key for the given validity window. */
     public static Object getUserDelegationKey(Environment env, BObject self, BArray startTime, BArray expiryTime) {
-        return BallerinaAzureClient.invoke(env, () -> {
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+                null, null, () -> {
             BlobServiceClient client = BallerinaAzureClient.getServiceClient(self);
             return RecordMapper.userDelegationKey(
                     client.getUserDelegationKey(ValueUtils.fromUtc(startTime), ValueUtils.fromUtc(expiryTime)));
