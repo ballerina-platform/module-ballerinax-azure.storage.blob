@@ -107,13 +107,13 @@ public class ServiceValidationTest {
     }
 
     @Test
-    public void testValidOnBlobDeleted() {
+    public void testValidOnBlobDelete() {
         DiagnosticResult result = loadPackage("valid_on_blob_delete");
         assertNoErrors(result, "valid_on_blob_delete");
     }
 
     @Test
-    public void testValidOnBlobDeletedWithCaller() {
+    public void testValidOnBlobDeleteWithCaller() {
         DiagnosticResult result = loadPackage("valid_on_blob_delete_with_caller");
         assertNoErrors(result, "valid_on_blob_delete_with_caller");
     }
