@@ -149,7 +149,7 @@ final class Dispatcher {
             observation.acknowledge(handle);
             return;
         }
-        observation.found(null, null);
+        observation.found(BlobMetricsUtil.OUTCOME_SUCCESS, null);
         observation.dispatched(handler.methodName());
         BMap<BString, Object> record = event.toRecord();
         BObject caller;
@@ -169,9 +169,12 @@ final class Dispatcher {
         } else {
             long bindingStart = System.nanoTime();
             Fetch fetch = ContentFetcher.fetch(ctx, caller, handler, event);
-            observation.binding(fetch.disposition() == Disposition.CONTENT ? BlobMetricsUtil.OUTCOME_SUCCESS
-                    : BlobMetricsUtil.OUTCOME_FAILURE, bindingStart);
-            switch (fetch.disposition()) {
+            Disposition disposition = fetch.disposition();
+            if (disposition == Disposition.CONTENT || disposition == Disposition.BINDING) {
+                observation.binding(disposition == Disposition.CONTENT ? BlobMetricsUtil.OUTCOME_SUCCESS
+                        : BlobMetricsUtil.OUTCOME_FAILURE, bindingStart);
+            }
+            switch (disposition) {
                 case NOT_FOUND -> {
                     observation.handled(BlobMetricsUtil.OUTCOME_SKIPPED, BlobMetricsUtil.REASON_BLOB_NOT_FOUND);
                     notifyOnError(ctx, svc, handle, observation, fetch.error(), record, caller);
@@ -444,8 +447,6 @@ final class Dispatcher {
         }
     }
 
-    // Invokes a service method with the service's isolation and the strand properties the
-    // observation built; a panic is kept apart from a return.
     private static Invocation invoke(ListenerContext ctx, ServiceContext svc, String methodName, Object[] args,
                                      Map<String, Object> strandProperties) {
         StrandMetadata metadata = new StrandMetadata(svc.concurrentSafe(methodName), strandProperties);
@@ -467,12 +468,11 @@ final class Dispatcher {
         }
     }
 
-    // The runtime creates a strand for a call only on a thread that has none yet, and only that
-    // strand takes the properties; a thread that has logged or built a Caller keeps its first
-    // strand for every later call. So every handler call runs on a fresh virtual thread, whose
-    // strand carries the observer context the runtime adopts for the handler's span, on one code
-    // path whether or not observability is on.
     private static Invocation onOwnStrand(Supplier<Invocation> call, String methodName) {
+        // The runtime gives a call its own strand, and with it the strand metadata, only on a
+        // thread that has no strand yet (ballerina-platform/ballerina-lang#44814), and this thread
+        // has run Ballerina code already (logging, the Caller). A start and join costs 6 to 7
+        // microseconds on JDK 25.
         Invocation[] result = new Invocation[1];
         Throwable[] failure = new Throwable[1];
         Thread thread = Thread.startVirtualThread(() -> {

@@ -104,7 +104,7 @@ public final class AdminOps {
 
     /** Obtains a user delegation key for the given validity window. */
     public static Object getUserDelegationKey(Environment env, BObject self, BArray startTime, BArray expiryTime) {
-        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_GET,
                 null, null, () -> {
             BlobServiceClient client = BallerinaAzureClient.getServiceClient(self);
             return RecordMapper.userDelegationKey(

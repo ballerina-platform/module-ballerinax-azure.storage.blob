@@ -60,8 +60,8 @@ public final class CopyOps {
     /** Starts a copy from any readable blob URL to a path in the bound container. */
     public static Object copyBlobFromUrl(Environment env, BObject self, BString sourceUrl, BString destinationPath,
                                          Object options) {
-        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE, sourceUrl.getValue(),
-                destinationPath.getValue(), () -> beginCopy(self, sourceUrl.getValue(), destinationPath, options));
+        return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE, destinationPath.getValue(),
+                null, () -> beginCopy(self, sourceUrl.getValue(), destinationPath, options));
     }
 
     /** Aborts a pending copy by its id. */

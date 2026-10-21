@@ -30,6 +30,8 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNullElse;
+
 /**
  * Puts the connector's tags on traces. Client operations enrich the span the runtime opens for
  * the remote call; the listener opens one {@code file-lifecycle} span per received message,
@@ -41,6 +43,7 @@ public final class BlobTracingUtil {
 
     private static final Logger log = LoggerFactory.getLogger(BlobTracingUtil.class);
     private static final String LIFECYCLE_SPAN = "file-lifecycle";
+    private static final String NONE = BlobMetricsUtil.NONE;
 
     private BlobTracingUtil() {
     }
@@ -60,11 +63,7 @@ public final class BlobTracingUtil {
         try {
             BlobObserverContext ctx = new BlobObserverContext(BlobMetricsUtil.CONTEXT_LISTENER, url, protocol);
             ctx.addTag(BlobObserverContext.TAG_ACTION_TYPE, BlobMetricsUtil.ACTION_TYPE_EVENT);
-            ctx.addTag(BlobObserverContext.TAG_WATCHED_PATH, BlobMetricsUtil.orNone(watchedPath));
-            String instanceUrl = BlobMetricsUtil.getInstanceUrl();
-            if (instanceUrl != null) {
-                ctx.addTag(BlobObserverContext.TAG_INSTANCE_URL, instanceUrl);
-            }
+            ctx.addTag(BlobObserverContext.TAG_WATCHED_PATH, requireNonNullElse(watchedPath, NONE));
             BSpan span = BSpan.start(BlobMetricsUtil.MODULE, LIFECYCLE_SPAN, false);
             for (var tag : ctx.getAllTags()) {
                 span.addTag(tag.getKey(), tag.getValue());
@@ -152,10 +151,11 @@ public final class BlobTracingUtil {
                 copyTag(parentCtx, span, BlobObserverContext.TAG_PROTOCOL);
                 copyTag(parentCtx, span, BlobObserverContext.TAG_WATCHED_PATH);
             }
-            span.addTag(BlobObserverContext.TAG_INSTANCE_URL, BlobMetricsUtil.orNone(BlobMetricsUtil.getInstanceUrl()));
-            span.addTag(BlobObserverContext.TAG_FILE_STAGE, BlobMetricsUtil.orNone(fileStage));
-            span.addTag(BlobObserverContext.TAG_CLEANUP_ACTION, BlobMetricsUtil.orNone(cleanupAction));
-            span.addTag(BlobObserverContext.TAG_HANDLER_NAME, BlobMetricsUtil.orNone(handlerName));
+            span.addTag(BlobObserverContext.TAG_INSTANCE_URL,
+                    requireNonNullElse(BlobMetricsUtil.getInstanceUrl(), NONE));
+            span.addTag(BlobObserverContext.TAG_FILE_STAGE, requireNonNullElse(fileStage, NONE));
+            span.addTag(BlobObserverContext.TAG_CLEANUP_ACTION, requireNonNullElse(cleanupAction, NONE));
+            span.addTag(BlobObserverContext.TAG_HANDLER_NAME, requireNonNullElse(handlerName, NONE));
             return span;
         } catch (Throwable t) {
             log.debug("Failed to create the {} span", operation, t);
@@ -219,13 +219,9 @@ public final class BlobTracingUtil {
         try {
             BlobObserverContext ctx = new BlobObserverContext(BlobMetricsUtil.CONTEXT_LISTENER, url, protocol);
             ctx.addTag(BlobObserverContext.TAG_ACTION_TYPE, BlobMetricsUtil.ACTION_TYPE_EVENT);
-            ctx.addTag(BlobObserverContext.TAG_WATCHED_PATH, BlobMetricsUtil.orNone(watchedPath));
-            ctx.addTag(BlobObserverContext.TAG_HANDLER_NAME, BlobMetricsUtil.orNone(handlerName));
-            ctx.addTag(BlobObserverContext.TAG_EVENT_TYPE, BlobMetricsUtil.orNone(eventType));
-            String instanceUrl = BlobMetricsUtil.getInstanceUrl();
-            if (instanceUrl != null) {
-                ctx.addTag(BlobObserverContext.TAG_INSTANCE_URL, instanceUrl);
-            }
+            ctx.addTag(BlobObserverContext.TAG_WATCHED_PATH, requireNonNullElse(watchedPath, NONE));
+            ctx.addTag(BlobObserverContext.TAG_HANDLER_NAME, requireNonNullElse(handlerName, NONE));
+            ctx.addTag(BlobObserverContext.TAG_EVENT_TYPE, requireNonNullElse(eventType, NONE));
             if (parentCtx != null) {
                 ctx.setParent(parentCtx);
             }
@@ -264,7 +260,7 @@ public final class BlobTracingUtil {
         }
         try {
             ObserverContext ctx = (ObserverContext) properties.get(ObservabilityConstants.KEY_OBSERVER_CONTEXT);
-            ctx.addTag(BlobObserverContext.TAG_ERROR_TYPE, BlobMetricsUtil.orNone(errorType));
+            ctx.addTag(BlobObserverContext.TAG_ERROR_TYPE, requireNonNullElse(errorType, NONE));
         } catch (Throwable t) {
             log.debug("Failed to create the error strand properties", t);
         }
@@ -294,13 +290,11 @@ public final class BlobTracingUtil {
             ctx.addTag(BlobObserverContext.TAG_MODULE, BlobMetricsUtil.MODULE);
             ctx.addTag(BlobObserverContext.TAG_ACTION_TYPE, BlobMetricsUtil.ACTION_TYPE_OPERATION);
             ctx.addTag(BlobObserverContext.TAG_CONTEXT, BlobMetricsUtil.CONTEXT_CLIENT);
-            ctx.addTag(BlobObserverContext.TAG_REMOTE_URL, BlobMetricsUtil.orNone(url));
-            ctx.addTag(BlobObserverContext.TAG_PROTOCOL, BlobMetricsUtil.orNone(protocol));
+            ctx.addTag(BlobObserverContext.TAG_REMOTE_URL, requireNonNullElse(url, NONE));
+            ctx.addTag(BlobObserverContext.TAG_PROTOCOL, requireNonNullElse(protocol, NONE));
             ctx.addTag(BlobObserverContext.TAG_OPERATION_TYPE, operationType);
-            String instanceUrl = BlobMetricsUtil.getInstanceUrl();
-            if (instanceUrl != null) {
-                ctx.addTag(BlobObserverContext.TAG_INSTANCE_URL, instanceUrl);
-            }
+            ctx.addTag(BlobObserverContext.TAG_INSTANCE_URL,
+                    requireNonNullElse(BlobMetricsUtil.getInstanceUrl(), NONE));
             BSpan span = ctx.getSpan();
             if (span != null) {
                 if (filePath != null) {

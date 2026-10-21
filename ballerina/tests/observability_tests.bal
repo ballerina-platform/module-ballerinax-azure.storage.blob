@@ -30,6 +30,8 @@ const string REQUESTS = "requests_total_value";
 const string DATABINDING_DURATION = "file_databinding_duration_seconds_value";
 const string EXECUTION_DURATION = "file_resource_execution_duration_seconds_value";
 
+final http:Client metricsClient = check new (METRICS_ENDPOINT);
+
 type Series record {|
     string name;
     map<string> labels;
@@ -37,8 +39,7 @@ type Series record {|
 |};
 
 function scrapeMetrics() returns Series[]|error {
-    http:Client prometheus = check new (METRICS_ENDPOINT);
-    string page = check prometheus->get("/metrics");
+    string page = check metricsClient->get("/metrics");
     Series[] all = [];
     foreach string line in re `\n`.split(page) {
         if line.startsWith("#") || line.trim() == "" {
@@ -101,7 +102,7 @@ function assertLabelKeys(Series[] all, string name, string[] keys) {
     Series[] series = all.filter(s => s.name == name);
     test:assertTrue(series.length() > 0, string `no ${name} series to check`);
     foreach Series s in series {
-        test:assertEquals(s.labels.keys().sort(), keys.sort(), string `label keys of ${name}`);
+        test:assertEquals(s.labels.keys().sort(), keys.clone().sort(), string `label keys of ${name}`);
     }
 }
 
@@ -171,15 +172,19 @@ function testTransfersCountBytesByOperationType() returns error? {
     test:assertEquals(fetched.length(), size);
     test:assertEquals(streamed, size);
     map<string> clientIdentity = identity("client");
-    test:assertEquals(delta(before, after, BYTES, withLabels(clientIdentity, {operation_type: "put"})), <float>(2 * size),
+    test:assertEquals(delta(before, after, BYTES, withLabels(clientIdentity, {operation_type: "put"})),
+            <float>(2 * size),
             "the upload and the file upload count their bytes as put");
-    test:assertEquals(delta(before, after, BYTES, withLabels(clientIdentity, {operation_type: "get"})), <float>(3 * size),
+    test:assertEquals(delta(before, after, BYTES, withLabels(clientIdentity, {operation_type: "get"})),
+            <float>(3 * size),
             "the typed read, the stream, and the download count their bytes as get");
     map<string> operation = withLabels(clientIdentity, {action_type: "client_operation", outcome: "success"});
     test:assertEquals(delta(before, after, REQUESTS, withLabels(operation, {operation_type: "put"})), 2.0,
             "every put operation's own span carries the connector's tags");
     test:assertEquals(delta(before, after, REQUESTS, withLabels(operation, {operation_type: "get"})), 4.0,
             "every get operation's own span carries the connector's tags, property reads included");
+    test:assertTrue(after.filter(s => s.name == REQUESTS && s.labels["module"] == "azure_blob")
+            .every(s => s.labels.hasKey("host")), "every client operation series carries the host");
 }
 
 @test:Config {groups: ["observability"]}
@@ -243,7 +248,8 @@ function testListenerCountsEveryStageOfAMessage() returns error? {
     check lsn.gracefulStop();
     Series[] afterStop = check scrapeMetrics();
 
-    test:assertEquals(recorder.list("handled").sort(), ["ok.bin", "poison.bin"], "both created events reached the handler");
+    test:assertEquals(recorder.list("handled").sort(), ["ok.bin", "poison.bin"],
+            "both created events reached the handler");
     map<string> listenerIdentity = identity("listener");
     test:assertEquals(delta(beforeListener, beforeEvents, CONNECTIONS, listenerIdentity), 1.0,
             "the listener's init raises the connection gauge");
@@ -254,8 +260,8 @@ function testListenerCountsEveryStageOfAMessage() returns error? {
 
     map<string> event = withLabels(listenerIdentity, {action_type: "file_event", watched_path: labelValue(queue)});
     map<string> found = withLabels(event, {file_stage: "found"});
-    test:assertEquals(delta(beforeEvents, afterEvents, EVENTS, withLabels(found, {outcome: "none"})), 2.0,
-            "a message routed to a handler is found once, its outcome left to the later stages");
+    test:assertEquals(delta(beforeEvents, afterEvents, EVENTS, withLabels(found, {outcome: "success"})), 2.0,
+            "a message routed to a handler is found once");
     test:assertEquals(delta(beforeEvents, afterEvents, EVENTS,
             withLabels(found, {outcome: "failure", error_type: "unparseable_message"})), 1.0);
     test:assertEquals(delta(beforeEvents, afterEvents, EVENTS,
@@ -289,12 +295,12 @@ function testListenerCountsEveryStageOfAMessage() returns error? {
     assertLabelKeys(afterEvents, EVENTS, ["action_type", "cleanup_action", "error_type", "event_type", "file_stage",
             "handler_name", "host", "module", "operation_type", "outcome", "protocol", "remote_url", "type",
             "watched_path"]);
-    assertLabelKeys(afterEvents, BYTES, ["module", "operation_type", "protocol", "remote_url", "type"]);
-    assertLabelKeys(afterEvents, CONNECTIONS, ["module", "protocol", "remote_url", "type"]);
-    assertLabelKeys(afterEvents, DATABINDING_DURATION, ["handler_name", "module", "outcome", "protocol", "remote_url",
-            "type"]);
-    assertLabelKeys(afterEvents, EXECUTION_DURATION, ["handler_name", "module", "outcome", "protocol", "remote_url",
-            "type"]);
+    assertLabelKeys(afterEvents, BYTES, ["host", "module", "operation_type", "protocol", "remote_url", "type"]);
+    assertLabelKeys(afterEvents, CONNECTIONS, ["host", "module", "protocol", "remote_url", "type"]);
+    assertLabelKeys(afterEvents, DATABINDING_DURATION, ["handler_name", "host", "module", "outcome", "protocol",
+            "remote_url", "type"]);
+    assertLabelKeys(afterEvents, EXECUTION_DURATION, ["handler_name", "host", "module", "outcome", "protocol",
+            "remote_url", "type"]);
     test:assertEquals(delta(beforeEvents, afterEvents, BYTES, withLabels(listenerIdentity, {operation_type: "get"})),
             <float>(2 * size), "the content fetched for the handlers counts as listener get bytes");
     test:assertTrue(total(afterEvents, DATABINDING_DURATION,

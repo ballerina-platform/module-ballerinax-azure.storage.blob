@@ -1696,10 +1696,11 @@ identity above, `action.type` set to `client_operation`, `operation.type`, and t
 `outcome` is `success` or `failure`, and a failure also carries `error.type`, the type name of
 the returned error (`NotFoundError`, `ServiceError`, `Error`, and so on). The span alone carries
 `file.path`, the blob or container path the operation addresses, and for a copy
-`destination.path`. Because the runtime counts these spans in its own `requests_total` and
-`response_time_seconds` metrics, the module keeps no operation counter of its own; those metrics
-carry the module's tags. A `Caller` operation appears as the `Client` span of the call it
-delegates to; the Caller's own span is the untagged wrapper above it.
+`destination.path`; for a copy from a URL, `file.path` is the destination and the source URL is
+not recorded, since it can carry a SAS token. Because the runtime counts these spans in its own
+`requests_total` and `response_time_seconds` metrics, the module keeps no operation counter of
+its own; those metrics carry the module's tags. A `Caller` operation appears as the `Client`
+span of the call it delegates to; the Caller's own span is the untagged wrapper above it.
 
 `operation.type` classes the operations by what they do to the account:
 
@@ -1750,8 +1751,7 @@ returned messages, or `failure` when the call failed.
 Each received message is counted at four stages, `file.stage`, in the order of checks of
 section 5.8, with `event.type` `create` or `delete` once the message has parsed as a blob event:
 
-* `found`, once per message: `none` when the message goes on to a handler, since its outcome is
-  the later stages' to tell; `failure` with
+* `found`, once per message: `success` when the message goes on to a handler; `failure` with
   `error.type` `delivery_limit_exceeded` for a message received past its delivery limit, or
   `unparseable_message` for one that does not decode or parse; `skipped` with `error.type`
   `event_type_not_dispatched`, `no_content_event`, `foreign_account`, or `no_handler_matched`
@@ -1769,10 +1769,11 @@ section 5.8, with `event.type` `create` or `delete` once the message has parsed 
   move skipped because another consumer holds the message or it is gone.
 
 `file_databinding_duration_seconds` records, per `handler.name` and `outcome`, the time from the
-start of the content fetch to the bound value, or to the failure, and for a stream handler the
-time to open the stream. `file_resource_execution_duration_seconds` records the handler call
-itself, per `handler.name` and `outcome`. Both are gauges with the 50th, 75th, 90th, 95th, and
-99th percentiles over a five-minute window. An `onError` call is spanned (below) but not timed.
+start of the content fetch to the bound value or to the binding failure, and for a stream
+handler the time to open the stream; a fetch that fails before any content arrives is not timed.
+`file_resource_execution_duration_seconds` records the handler call itself, per `handler.name`
+and `outcome`. Both are gauges with the 50th, 75th, 90th, 95th, and 99th percentiles over a
+five-minute window. An `onError` call is spanned (below) but not timed.
 
 ### 7.6 The Listener's Traces
 

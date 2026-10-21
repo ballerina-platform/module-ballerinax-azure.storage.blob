@@ -20,6 +20,8 @@ package io.ballerina.lib.azure.storage.blob.observability;
 
 import io.ballerina.runtime.observability.ObserverContext;
 
+import static java.util.Objects.requireNonNullElse;
+
 /**
  * An observer context carrying the connector's identity tags: {@code module}, {@code type},
  * {@code remote.url} and {@code protocol}. The tag keys are the file-module observability
@@ -54,5 +56,6 @@ public class BlobObserverContext extends ObserverContext {
         addTag(TAG_MODULE, BlobMetricsUtil.MODULE);
         addTag(TAG_REMOTE_URL, remoteUrl != null ? remoteUrl : BlobMetricsUtil.UNKNOWN);
         addTag(TAG_PROTOCOL, protocol != null ? protocol : BlobMetricsUtil.UNKNOWN);
+        addTag(TAG_INSTANCE_URL, requireNonNullElse(BlobMetricsUtil.getInstanceUrl(), BlobMetricsUtil.NONE));
     }
 }

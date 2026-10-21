@@ -41,6 +41,8 @@ import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
 import io.ballerina.runtime.api.values.BXml;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -60,6 +62,8 @@ import java.util.UUID;
  * stream behind {@code getBlob}.
  */
 public final class TransferOps {
+
+    private static final Logger log = LoggerFactory.getLogger(TransferOps.class);
 
     // Key under which an open content input stream is stored on a stream generator object.
     private static final String NATIVE_INPUT_STREAM = "inputStream";
@@ -255,11 +259,11 @@ public final class TransferOps {
         generator.addNativeData(NATIVE_CONTEXT, context);
     }
 
-    // The local file's size, for the bytes counter; a size that cannot be read counts nothing.
     private static long fileSize(Path localPath) {
         try {
             return Files.size(localPath);
         } catch (IOException e) {
+            log.debug("Failed to read the size of {}; no bytes are counted for the transfer", localPath, e);
             return 0;
         }
     }

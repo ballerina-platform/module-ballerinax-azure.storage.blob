@@ -163,14 +163,12 @@ final class MessageObservation {
                 action, handlerName);
     }
 
-    // A settlement that threw, or whose queue call failed, counts as a failure with the reason.
     private void cleanedUp(BSpan span, String action, Boolean settled, String failureReason) {
         boolean ok = Boolean.TRUE.equals(settled);
         cleanedUp(span, action, ok ? BlobMetricsUtil.OUTCOME_SUCCESS : BlobMetricsUtil.OUTCOME_FAILURE,
                 ok ? null : failureReason);
     }
 
-    // The settlement counts with the action and the event type, when the message parsed.
     private void cleanedUp(BSpan span, String action, String outcome, String reason) {
         stage(BlobMetricsUtil.FILE_STAGE_CLEANED_UP, outcome, reason, eventType, action);
         BlobTracingUtil.finishSpan(span, outcome, reason);

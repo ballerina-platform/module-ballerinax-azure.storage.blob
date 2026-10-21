@@ -29,6 +29,8 @@ import org.slf4j.LoggerFactory;
 import java.net.InetAddress;
 import java.time.Duration;
 
+import static java.util.Objects.requireNonNullElse;
+
 /**
  * Records the connector's metrics in the file-module vocabulary: the connection gauge, the bytes
  * counter, the event counter (poll cycles and the four stages of a received message), and the
@@ -110,23 +112,24 @@ public final class BlobMetricsUtil {
 
     private static final MetricRegistry metricRegistry = DefaultMetricRegistry.getInstance();
 
-    private static volatile String instanceUrl;
-    private static volatile boolean instanceUrlResolved;
+    private static final class Host {
+        static final String NAME = resolve();
+
+        private static String resolve() {
+            try {
+                return InetAddress.getLocalHost().getHostName();
+            } catch (Exception e) {
+                return null;
+            }
+        }
+    }
 
     private BlobMetricsUtil() {
     }
 
     /** The local host name, resolved once; {@code null} when it cannot be resolved. */
     public static String getInstanceUrl() {
-        if (!instanceUrlResolved) {
-            try {
-                instanceUrl = InetAddress.getLocalHost().getHostName();
-            } catch (Exception e) {
-                instanceUrl = null;
-            }
-            instanceUrlResolved = true;
-        }
-        return instanceUrl;
+        return Host.NAME;
     }
 
     /**
@@ -215,11 +218,11 @@ public final class BlobMetricsUtil {
         try {
             BlobObserverContext observerContext = eventContext(url, protocol, watchedPath, ACTION_TYPE_EVENT);
             observerContext.addTag(BlobObserverContext.TAG_FILE_STAGE, fileStage);
-            observerContext.addTag(BlobObserverContext.TAG_EVENT_TYPE, orNone(eventType));
-            observerContext.addTag(BlobObserverContext.TAG_OUTCOME, orNone(outcome));
-            observerContext.addTag(BlobObserverContext.TAG_ERROR_TYPE, orNone(errorType));
-            observerContext.addTag(BlobObserverContext.TAG_HANDLER_NAME, orNone(handlerName));
-            observerContext.addTag(BlobObserverContext.TAG_CLEANUP_ACTION, orNone(cleanupAction));
+            observerContext.addTag(BlobObserverContext.TAG_EVENT_TYPE, requireNonNullElse(eventType, NONE));
+            observerContext.addTag(BlobObserverContext.TAG_OUTCOME, requireNonNullElse(outcome, NONE));
+            observerContext.addTag(BlobObserverContext.TAG_ERROR_TYPE, requireNonNullElse(errorType, NONE));
+            observerContext.addTag(BlobObserverContext.TAG_HANDLER_NAME, requireNonNullElse(handlerName, NONE));
+            observerContext.addTag(BlobObserverContext.TAG_CLEANUP_ACTION, requireNonNullElse(cleanupAction, NONE));
             metricRegistry.counter(new MetricId(METRIC_FILE_EVENTS, METRIC_FILE_EVENTS_DESC,
                     observerContext.getAllTags())).increment();
         } catch (Throwable t) {
@@ -243,7 +246,7 @@ public final class BlobMetricsUtil {
             BlobObserverContext observerContext = eventContext(url, protocol, watchedPath, ACTION_TYPE_POLL);
             observerContext.addTag(BlobObserverContext.TAG_FILE_STAGE, NONE);
             observerContext.addTag(BlobObserverContext.TAG_EVENT_TYPE, NONE);
-            observerContext.addTag(BlobObserverContext.TAG_OUTCOME, orNone(outcome));
+            observerContext.addTag(BlobObserverContext.TAG_OUTCOME, requireNonNullElse(outcome, NONE));
             observerContext.addTag(BlobObserverContext.TAG_ERROR_TYPE, NONE);
             observerContext.addTag(BlobObserverContext.TAG_HANDLER_NAME, NONE);
             observerContext.addTag(BlobObserverContext.TAG_CLEANUP_ACTION, NONE);
@@ -291,8 +294,8 @@ public final class BlobMetricsUtil {
         }
         try {
             BlobObserverContext observerContext = new BlobObserverContext(CONTEXT_LISTENER, url, protocol);
-            observerContext.addTag(BlobObserverContext.TAG_HANDLER_NAME, orNone(handlerName));
-            observerContext.addTag(BlobObserverContext.TAG_OUTCOME, orNone(outcome));
+            observerContext.addTag(BlobObserverContext.TAG_HANDLER_NAME, requireNonNullElse(handlerName, NONE));
+            observerContext.addTag(BlobObserverContext.TAG_OUTCOME, requireNonNullElse(outcome, NONE));
             metricRegistry.gauge(new MetricId(name, description, observerContext.getAllTags()),
                     DURATION_STATISTIC_CONFIG).setValue(durationMs / 1000.0);
         } catch (Throwable t) {
@@ -305,12 +308,7 @@ public final class BlobMetricsUtil {
         BlobObserverContext observerContext = new BlobObserverContext(CONTEXT_LISTENER, url, protocol);
         observerContext.addTag(BlobObserverContext.TAG_ACTION_TYPE, actionType);
         observerContext.addTag(BlobObserverContext.TAG_OPERATION_TYPE, NONE);
-        observerContext.addTag(BlobObserverContext.TAG_WATCHED_PATH, orNone(watchedPath));
-        observerContext.addTag(BlobObserverContext.TAG_INSTANCE_URL, orNone(getInstanceUrl()));
+        observerContext.addTag(BlobObserverContext.TAG_WATCHED_PATH, requireNonNullElse(watchedPath, NONE));
         return observerContext;
-    }
-
-    static String orNone(String value) {
-        return value != null ? value : NONE;
     }
 }
