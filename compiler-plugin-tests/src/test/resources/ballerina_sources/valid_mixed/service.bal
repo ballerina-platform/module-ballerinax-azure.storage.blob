@@ -40,7 +40,7 @@ isolated service on lsn {
     isolated remote function onBlobCsv(string[][] rows) returns error? {
     }
 
-    isolated remote function onBlobDeleted(blob:BlobEvent event, blob:Caller caller) returns error? {
+    isolated remote function onBlobDelete(blob:BlobEvent event, blob:Caller caller) returns error? {
     }
 
     isolated remote function onError(blob:Error err, blob:BlobEvent? event, blob:Caller? caller) returns error? {

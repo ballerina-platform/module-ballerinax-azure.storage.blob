@@ -230,9 +230,9 @@ keeps the connector's defaults, which are the values listed below. Its fields:
 * `retryPolicyType`: how the delay between tries grows, `EXPONENTIAL` or `FIXED_INTERVAL`.
   Defaults to `EXPONENTIAL`.
 * `maxTries`: the maximum number of tries, counting the first attempt. Defaults to 4.
-* `tryTimeoutSeconds`: the timeout applied to each individual try. Defaults to 60.
-* `retryDelaySeconds`: the base delay between tries. Defaults to 4.
-* `maxRetryDelaySeconds`: the upper bound on the delay between tries. Defaults to 120.
+* `tryTimeout`: the timeout applied to each individual try. Defaults to 60.
+* `retryDelay`: the base delay between tries. Defaults to 4.
+* `maxRetryDelay`: the upper bound on the delay between tries. Defaults to 120.
 * `secondaryHostUrl`: a secondary endpoint to retry reads against, for geo redundant accounts.
   On a listener it applies to the blob requests only; the queue requests never retry against a
   secondary. No default.
@@ -244,7 +244,7 @@ The `TransportConfig` record covers the HTTP transport. Its fields:
 * `proxy`: routes the connector's traffic through an HTTP, SOCKS4, or SOCKS5 proxy, with
   optional credentials and a bypass list. No default.
 * `connectionPool`: tunes the connection pool. Its `maxConnections` defaults to 50,
-  `idleTimeoutSeconds` to 60, `connectTimeoutSeconds` to 10, and `readTimeoutSeconds` to 60.
+  `idleTimeout` to 60, `connectTimeout` to 10, and `readTimeout` to 60.
   These values apply whenever the pool is not configured. On a listener the connection pool
   is shared by every service and every `Caller`, and it applies per remote address (host and
   port): the blob endpoint and the queue endpoint each get a pool of `maxConnections`, and so
@@ -967,10 +967,10 @@ annotation's fields:
   handled drops to this value, so a service has at most `batchSize + newBatchThreshold`
   messages in flight, whether or not it is isolated (section 5.9).
   Ranges from 0 to `batchSize`. Defaults to half the batch size, rounded down (0 for a batch size of 1).
-* `maxPollingIntervalSeconds`: the ceiling of the empty queue polling backoff. When the queue
+* `maxPollingInterval`: the ceiling of the empty queue polling backoff. When the queue
   is empty, polls back off with randomized exponential delays up to this ceiling. Must be
   above 0. Defaults to 60.
-* `redeliveryDelaySeconds`: how long a message stays invisible after its handler fails,
+* `redeliveryDelay`: how long a message stays invisible after its handler fails,
   before it is redelivered, 0 to 604,800 (seven days), rounded up to whole seconds. Defaults
   to 0 (immediate redelivery).
 * `maxDeliveryCount`: how many deliveries a message gets before it is moved to the poison
@@ -1065,12 +1065,12 @@ A service declares its handlers by name:
   `stream<string[], error?>`, or a `stream<record {}, error?>`. The record forms map each
   row's fields through the blob's first row, the header; the string forms keep every row, the
   header row included.
-* **`onBlobDeleted`**: invoked for each deleted blob. Takes the `BlobEvent`.
+* **`onBlobDelete`**: invoked for each deleted blob. Takes the `BlobEvent`.
 * **`onError`**: the error notification handler (section 5.12).
 
 A content handler takes its content first, then optionally the `BlobEvent` (section 5.7), then
 optionally the `Caller` (section 5.13), in that order; the listener passes only what the
-handler declares. `onBlobDeleted` takes the `BlobEvent` and, optionally, the `Caller`. Every
+handler declares. `onBlobDelete` takes the `BlobEvent` and, optionally, the `Caller`. Every
 event handler returns `error?`; a handler steers the outcome by returning a `DeadLetterError`
 or `RetryError` value, both subtypes of `error` (section 5.9). Declaring them in the return
 type, as in `returns blob:DeadLetterError|blob:RetryError|error?`, is legal but makes the
@@ -1093,7 +1093,7 @@ handler falls back to `onBlob`.
 
 An event the service has no handler for is never its to handle: a created event whose routing
 finds no declared handler and no `onBlob`, and a deleted event on a service that declares no
-`onBlobDeleted`. The listener acknowledges it without dispatching. The first such event of each
+`onBlobDelete`. The listener acknowledges it without dispatching. The first such event of each
 kind on a queue logs a warning naming the queue and the subscription filter that keeps such
 events out of it; repeats log at debug level with a running count. An unrouted created event is
 keyed by its queue alone, and its warning names the first extension seen and an advanced filter
@@ -1299,15 +1299,15 @@ The handler's return settles the message:
   queue at once, with the error's message logged as "dead-lettered by the handler: …". For a
   failure known to be permanent, this saves the remaining deliveries, each a full fetch of the
   blob.
-* Returning a `RetryError`: the message is made visible again after the `delaySeconds` of the
-  error's detail instead of `redeliveryDelaySeconds`, for example to honour a downstream
+* Returning a `RetryError`: the message is made visible again after the `delay` of the
+  error's detail instead of `redeliveryDelay`, for example to honour a downstream
   service's retry hint. The delay is a requested minimum, rounded up to whole seconds; a
   negative delay counts as 0. It is capped at 604,800 seconds (seven days), the queue
   service's limit and the one case where the delay applied is shorter than requested. A delay
   that would end at or within one visibility window of the message's expiry moves the message
   to the poison queue instead (section 5.11).
 * Returning any other error, or panicking: the message is made visible again after
-  `redeliveryDelaySeconds` and redelivered.
+  `redeliveryDelay` and redelivered.
 
 A delivery ended by a `RetryError` still counts toward `maxDeliveryCount`. A message whose
 final delivery ends in a handler failure moves to the poison queue (section 5.10) with the
@@ -1319,7 +1319,7 @@ Processing of other messages continues.
 The two settlement errors are recognised only when the handler returns them as they are: an
 error that carries one as its cause is an ordinary failure, and so is a panic, whatever its
 error value. Recognition is by the module's own types, never by an error's name. They apply in
-all six event handlers, `onBlobDeleted` included. `onError` never settles a message
+all six event handlers, `onBlobDelete` included. `onError` never settles a message
 (section 5.12).
 
 Duplicate delivery is always possible, so handlers must be idempotent; the event's `sequencer`
@@ -1341,7 +1341,7 @@ isolated service on blobListener {
         boolean accepted = check postToLedger(invoice);
         if !accepted {
             // The ledger is busy; try again in two minutes.
-            return error blob:RetryError("ledger busy", delaySeconds = 120);
+            return error blob:RetryError("ledger busy", delay = 120);
         }
     }
 }
@@ -1446,7 +1446,7 @@ Delivery has two independent time bounds, and raising one does not extend the ot
 Both are subscription level setup, outside this module's configuration.
 
 The listener reads each message's expiry time when it receives it. The queue service's Update
-Message operation cannot hide a message past its expiry, so a message whose redelivery delay, `redeliveryDelaySeconds`
+Message operation cannot hide a message past its expiry, so a message whose redelivery delay, `redeliveryDelay`
 or a `RetryError`'s, would end at or within one visibility window of that expiry moves to the
 poison queue at once, with the reason "would expire before redelivery", instead of expiring
 unrecorded. The rule is inactive when the subscription's queue message time to live is
@@ -1604,7 +1604,7 @@ below, which carry their own. The service's description becomes the Ballerina er
 * **`DeadLetterError`**: returned by a listener handler to move its message to the poison
   queue at once (section 5.9). It carries no detail.
 * **`RetryError`**: returned by a listener handler to have its message redelivered later
-  (section 5.9). Its detail carries `delaySeconds`, the requested minimum delay before the
+  (section 5.9). Its detail carries `delay`, the requested minimum delay before the
   message is visible again.
 * **`ServiceError`**: any error raised by the Azure service, carrying `httpStatus` and
   `errorCode` in its `ServiceErrorDetail`. A service failure whose Azure error code maps to

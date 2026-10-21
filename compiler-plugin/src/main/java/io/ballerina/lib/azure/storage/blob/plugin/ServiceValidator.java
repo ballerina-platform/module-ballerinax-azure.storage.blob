@@ -90,7 +90,7 @@ public class ServiceValidator {
             if (CONTENT_HANDLERS.contains(name)) {
                 contentMethods.add(functionDefinitionNode);
                 contentMethodNames.add(name);
-            } else if (PluginConstants.ON_BLOB_DELETED_FUNC.equals(name)) {
+            } else if (PluginConstants.ON_BLOB_DELETE_FUNC.equals(name)) {
                 deletedMethod = functionDefinitionNode;
             } else if (PluginConstants.ON_ERROR_FUNC.equals(name)) {
                 // onError is validated separately and deliberately not counted: a service
@@ -112,7 +112,7 @@ public class ServiceValidator {
             new ContentFunctionValidator(context, contentMethods.get(i), contentMethodNames.get(i)).validate();
         }
         if (deletedMethod != null) {
-            new DeletedFunctionValidator(context, deletedMethod).validate();
+            new DeleteFunctionValidator(context, deletedMethod).validate();
         }
     }
 

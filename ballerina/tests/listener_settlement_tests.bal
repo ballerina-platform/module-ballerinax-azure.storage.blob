@@ -112,7 +112,7 @@ function testRetryErrorRedeliversAfterItsDelayAndCountsTowardTheLimit() returns 
         isolated remote function onBlob(byte[] content) returns error? {
             recorder.add("times", time:utcNow()[0].toString());
             // Fractional delays round up to whole seconds; the final delivery's request is ignored.
-            return error RetryError("later", delaySeconds = 2.5);
+            return error RetryError("later", delay = 2.5);
         }
     };
     check lsn.attach(svc);
@@ -136,7 +136,7 @@ function testRedeliveryDelayAppliesToOrdinaryFailures() returns error? {
     final Recorder recorder = new;
     Listener lsn = check newListener();
     final string queue = src.queue;
-    Service svc = @ServiceConfig {queueName: queue, maxDeliveryCount: 2, redeliveryDelaySeconds: 2}
+    Service svc = @ServiceConfig {queueName: queue, maxDeliveryCount: 2, redeliveryDelay: 2}
     isolated service object {
         isolated remote function onBlob(byte[] content) returns error? {
             recorder.add("times", time:utcNow()[0].toString());
@@ -149,7 +149,7 @@ function testRedeliveryDelayAppliesToOrdinaryFailures() returns error? {
     check lsn.gracefulStop();
     string[] times = recorder.list("times");
     int gap = check int:fromString(times[1]) - check int:fromString(times[0]);
-    test:assertTrue(gap >= 2, string `the second delivery waited redeliveryDelaySeconds (gap ${gap}s)`);
+    test:assertTrue(gap >= 2, string `the second delivery waited redeliveryDelay (gap ${gap}s)`);
 }
 
 @test:Config {}
@@ -170,7 +170,7 @@ function testRedeliveryThatWouldOutliveTheMessagePoisons() returns error? {
         isolated remote function onBlob(byte[] content, BlobEvent event) returns error? {
             recorder.add(event.path, "attempt");
             if event.path == "short.bin" {
-                return error RetryError("busy", delaySeconds = 15);
+                return error RetryError("busy", delay = 15);
             }
             return recorder.count("long.bin") == 1 ? error("once") : ();
         }
@@ -185,7 +185,7 @@ function testRedeliveryThatWouldOutliveTheMessagePoisons() returns error? {
 }
 
 @test:Config {}
-function testSettlementErrorsApplyToOnBlobDeleted() returns error? {
+function testSettlementErrorsApplyToOnBlobDelete() returns error? {
     EventSource src = check setupEventSource("lsn-deleted-settlement");
     check enqueueEvent(src.queue, blobDeletedEvent(src.container, "a.txt"));
 
@@ -193,7 +193,7 @@ function testSettlementErrorsApplyToOnBlobDeleted() returns error? {
     Listener lsn = check newListener();
     final string queue = src.queue;
     Service svc = @ServiceConfig {queueName: queue} isolated service object {
-        isolated remote function onBlobDeleted(BlobEvent event) returns DeadLetterError|error? {
+        isolated remote function onBlobDelete(BlobEvent event) returns DeadLetterError|error? {
             recorder.hit("deleted");
             return error DeadLetterError("no record of " + event.path);
         }
@@ -272,7 +272,7 @@ function testSlowHandlerKeepsItsMessageAcrossRenewals() returns error? {
     final Recorder recorder = new;
     Listener lsn = check newListener();
     final string queue = src.queue;
-    Service svc = @ServiceConfig {queueName: queue, maxPollingIntervalSeconds: 1} isolated service object {
+    Service svc = @ServiceConfig {queueName: queue, maxPollingInterval: 1} isolated service object {
         isolated remote function onBlob(byte[] content) returns error? {
             recorder.hit("attempt");
             // Longer than the hold: only renewal keeps the message from reappearing.
@@ -301,7 +301,7 @@ function testRenewalStopsAtTheExpiryMargin() returns error? {
     final Recorder recorder = new;
     Listener lsn = check newListener();
     final string queue = src.queue;
-    Service svc = @ServiceConfig {queueName: queue, maxPollingIntervalSeconds: 1} isolated service object {
+    Service svc = @ServiceConfig {queueName: queue, maxPollingInterval: 1} isolated service object {
         isolated remote function onBlob(byte[] content) returns error? {
             recorder.hit("attempt");
             runtime:sleep(30);

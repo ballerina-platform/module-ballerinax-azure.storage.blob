@@ -281,7 +281,7 @@ function streamOutcome(string base, string reaction) returns [Recorder, EventSou
                     return error DeadLetterError("unreadable rows");
                 }
                 "retry" => {
-                    return error RetryError("later", delaySeconds = 1);
+                    return error RetryError("later", delay = 1);
                 }
                 "swallow" => {
                     return;

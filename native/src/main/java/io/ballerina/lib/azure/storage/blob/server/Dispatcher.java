@@ -60,7 +60,7 @@ final class Dispatcher {
 
     private static final String CLASSIFY_FUNCTION = "classifyHandlerError";
     private static final BString OUTCOME_KIND = StringUtils.fromString("kind");
-    private static final BString OUTCOME_DELAY = StringUtils.fromString("delaySeconds");
+    private static final BString OUTCOME_DELAY = StringUtils.fromString("delay");
     private static final BString OUTCOME_MESSAGE = StringUtils.fromString("message");
     private static final String KIND_DEAD_LETTER = "deadLetter";
     private static final String KIND_RETRY = "retry";
@@ -122,7 +122,7 @@ final class Dispatcher {
             handle.acknowledge();
             return;
         }
-        HandlerConfig handler = event.deleted() ? svc.handlers.get(Listener.ON_BLOB_DELETED)
+        HandlerConfig handler = event.deleted() ? svc.handlers.get(Listener.ON_BLOB_DELETE)
                 : Routing.resolve(svc.handlers, event.blobName(), event.contentType());
         if (handler == null) {
             if (event.deleted()) {

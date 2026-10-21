@@ -483,14 +483,14 @@
             }
           },
           {
-            "id": "$service.onBlobDeleted",
-            "name": "onBlobDeleted",
+            "id": "$service.onBlobDelete",
+            "name": "onBlobDelete",
             "kind": "remote",
             "doc": "Invoked for each deleted blob. Returning a DeadLetterError moves the message to the poison queue at once, a RetryError redelivers it after the delay it names, and any other error redelivers it.",
             "presence": "optional",
             "params": [
               {
-                "id": "$service.onBlobDeleted.event",
+                "id": "$service.onBlobDelete.event",
                 "name": "event",
                 "doc": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer.",
                 "type": {
@@ -499,7 +499,7 @@
                 "presence": "required"
               },
               {
-                "id": "$service.onBlobDeleted.caller",
+                "id": "$service.onBlobDelete.caller",
                 "name": "caller",
                 "doc": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags.",
                 "type": {
@@ -509,7 +509,7 @@
               }
             ],
             "returns": {
-              "id": "$service.onBlobDeleted.returns",
+              "id": "$service.onBlobDelete.returns",
               "type": [
                 {
                   "name": "error",
@@ -589,7 +589,7 @@
         {
           "id": "$atLeastOneHandler",
           "rule": "structure.atLeastOne",
-          "message": "An Azure Blob Storage service must declare at least one of onBlob, onBlobText, onBlobJson, onBlobXml, onBlobCsv, or onBlobDeleted. onError alone never receives an event, so the service would do nothing.",
+          "message": "An Azure Blob Storage service must declare at least one of onBlob, onBlobText, onBlobJson, onBlobXml, onBlobCsv, or onBlobDelete. onError alone never receives an event, so the service would do nothing.",
           "subjects": [
             {
               "kind": "handler",
@@ -613,7 +613,7 @@
             },
             {
               "kind": "handler",
-              "id": "$service.onBlobDeleted"
+              "id": "$service.onBlobDelete"
             }
           ]
         }

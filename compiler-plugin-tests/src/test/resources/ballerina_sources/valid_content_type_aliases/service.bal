@@ -46,6 +46,6 @@ isolated service on lsn {
     isolated remote function onBlob(Raw content, Event event, Ctx caller) returns error? {
     }
 
-    isolated remote function onBlobDeleted(Event event, Ctx caller) returns error? {
+    isolated remote function onBlobDelete(Event event, Ctx caller) returns error? {
     }
 }

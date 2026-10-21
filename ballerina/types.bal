@@ -163,11 +163,11 @@ public type RetryConfig record {|
     # The maximum number of tries, counting the first attempt
     int maxTries = 4;
     # The timeout applied to each individual try, in seconds
-    decimal tryTimeoutSeconds = 60;
+    decimal tryTimeout = 60;
     # The base delay between tries, in seconds
-    decimal retryDelaySeconds = 4;
+    decimal retryDelay = 4;
     # The upper bound on the delay between tries, in seconds
-    decimal maxRetryDelaySeconds = 120;
+    decimal maxRetryDelay = 120;
     # A secondary endpoint to retry reads against, for geo-redundant accounts
     string secondaryHostUrl?;
 |};
@@ -210,9 +210,9 @@ public type SecureSocket record {|
     # The Server Name Indication host name sent during the handshake
     string sniHostName?;
     # The TLS handshake timeout, in seconds
-    decimal handshakeTimeoutSeconds?;
+    decimal handshakeTimeout?;
     # The TLS session timeout, in seconds
-    decimal sessionTimeoutSeconds?;
+    decimal sessionTimeout?;
 |};
 
 # Proxy settings for the connector's traffic.
@@ -236,11 +236,11 @@ public type ConnectionPoolConfig record {|
     # The maximum number of concurrent connections
     int maxConnections = 50;
     # How long an idle connection is kept before being closed, in seconds
-    decimal idleTimeoutSeconds = 60;
+    decimal idleTimeout = 60;
     # The timeout for establishing a connection, in seconds
-    decimal connectTimeoutSeconds = 10;
+    decimal connectTimeout = 10;
     # The timeout for reading a response, in seconds
-    decimal readTimeoutSeconds = 60;
+    decimal readTimeout = 60;
 |};
 
 # HTTP transport settings: proxying, connection pooling, and TLS.

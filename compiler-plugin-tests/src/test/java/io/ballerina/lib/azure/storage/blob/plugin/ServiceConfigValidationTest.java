@@ -93,9 +93,9 @@ public class ServiceConfigValidationTest {
                 {"invalid_new_batch_threshold_above_batch",
                         "Invalid 'newBatchThreshold' 5. Expected 0 to batchSize (4)"},
                 {"invalid_max_polling_interval_zero",
-                        "Invalid 'maxPollingIntervalSeconds' 0. Expected a value above 0"},
-                {"invalid_redelivery_delay_negative", "Invalid 'redeliveryDelaySeconds' -1. Expected 0 to 604800"},
-                {"invalid_redelivery_delay_over_week", "Invalid 'redeliveryDelaySeconds' 604801. Expected 0 to 604800"},
+                        "Invalid 'maxPollingInterval' 0. Expected a value above 0"},
+                {"invalid_redelivery_delay_negative", "Invalid 'redeliveryDelay' -1. Expected 0 to 604800"},
+                {"invalid_redelivery_delay_over_week", "Invalid 'redeliveryDelay' 604801. Expected 0 to 604800"},
                 {"invalid_max_delivery_count_zero", "Invalid 'maxDeliveryCount' 0. Expected at least 1"},
         };
         for (String[] testCase : cases) {

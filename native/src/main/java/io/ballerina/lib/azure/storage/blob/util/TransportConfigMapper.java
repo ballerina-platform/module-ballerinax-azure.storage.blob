@@ -91,15 +91,15 @@ public final class TransportConfigMapper {
     // Field names of the retry, connection-pool, proxy, and TLS records (read only here).
     private static final BString RETRY_POLICY_TYPE = StringUtils.fromString("retryPolicyType");
     private static final BString MAX_TRIES = StringUtils.fromString("maxTries");
-    private static final BString TRY_TIMEOUT_SECONDS = StringUtils.fromString("tryTimeoutSeconds");
-    private static final BString RETRY_DELAY_SECONDS = StringUtils.fromString("retryDelaySeconds");
-    private static final BString MAX_RETRY_DELAY_SECONDS = StringUtils.fromString("maxRetryDelaySeconds");
+    private static final BString TRY_TIMEOUT = StringUtils.fromString("tryTimeout");
+    private static final BString RETRY_DELAY = StringUtils.fromString("retryDelay");
+    private static final BString MAX_RETRY_DELAY = StringUtils.fromString("maxRetryDelay");
     private static final BString SECONDARY_HOST_URL = StringUtils.fromString("secondaryHostUrl");
     private static final BString CONNECTION_POOL = StringUtils.fromString("connectionPool");
     private static final BString MAX_CONNECTIONS = StringUtils.fromString("maxConnections");
-    private static final BString IDLE_TIMEOUT_SECONDS = StringUtils.fromString("idleTimeoutSeconds");
-    private static final BString CONNECT_TIMEOUT_SECONDS = StringUtils.fromString("connectTimeoutSeconds");
-    private static final BString READ_TIMEOUT_SECONDS = StringUtils.fromString("readTimeoutSeconds");
+    private static final BString IDLE_TIMEOUT = StringUtils.fromString("idleTimeout");
+    private static final BString CONNECT_TIMEOUT = StringUtils.fromString("connectTimeout");
+    private static final BString READ_TIMEOUT = StringUtils.fromString("readTimeout");
     private static final BString SECURE_SOCKET = StringUtils.fromString("secureSocket");
     private static final BString PROXY = StringUtils.fromString("proxy");
     private static final BString PROXY_TYPE = StringUtils.fromString("proxyType");
@@ -115,8 +115,8 @@ public final class TransportConfigMapper {
     private static final BString VERIFY_HOST_NAME = StringUtils.fromString("verifyHostName");
     private static final BString SESSION_RESUMPTION = StringUtils.fromString("sessionResumption");
     private static final BString VALIDATE_REVOCATION = StringUtils.fromString("validateRevocation");
-    private static final BString HANDSHAKE_TIMEOUT_SECONDS = StringUtils.fromString("handshakeTimeoutSeconds");
-    private static final BString SESSION_TIMEOUT_SECONDS = StringUtils.fromString("sessionTimeoutSeconds");
+    private static final BString HANDSHAKE_TIMEOUT = StringUtils.fromString("handshakeTimeout");
+    private static final BString SESSION_TIMEOUT = StringUtils.fromString("sessionTimeout");
     private static final BString SNI_HOST_NAME = StringUtils.fromString("sniHostName");
     // CertStore and CertKey fields.
     private static final BString STORE_PATH = StringUtils.fromString("path");
@@ -144,9 +144,9 @@ public final class TransportConfigMapper {
         return new RequestRetryOptions(
                 RETRY_POLICY_FIXED.equals(policy) ? RetryPolicyType.FIXED : RetryPolicyType.EXPONENTIAL,
                 Math.toIntExact((Long) retry.get(MAX_TRIES)),
-                seconds(retry.get(TRY_TIMEOUT_SECONDS)),
-                seconds(retry.get(RETRY_DELAY_SECONDS)),
-                seconds(retry.get(MAX_RETRY_DELAY_SECONDS)),
+                seconds(retry.get(TRY_TIMEOUT)),
+                seconds(retry.get(RETRY_DELAY)),
+                seconds(retry.get(MAX_RETRY_DELAY)),
                 withSecondary ? ValueUtils.optString(retry, SECONDARY_HOST_URL) : null);
     }
 
@@ -170,7 +170,7 @@ public final class TransportConfigMapper {
         BMap<BString, Object> pool = (BMap<BString, Object>) transport.get(CONNECTION_POOL);
         ConnectionProvider provider = ConnectionProvider.builder("azure-storage-blob")
                 .maxConnections(Math.toIntExact((Long) pool.get(MAX_CONNECTIONS)))
-                .maxIdleTime(seconds(pool.get(IDLE_TIMEOUT_SECONDS)))
+                .maxIdleTime(seconds(pool.get(IDLE_TIMEOUT)))
                 .build();
         HttpClient reactorClient = HttpClient.create(provider);
 
@@ -180,8 +180,8 @@ public final class TransportConfigMapper {
         }
 
         NettyAsyncHttpClientBuilder builder = new NettyAsyncHttpClientBuilder(reactorClient)
-                .connectTimeout(seconds(pool.get(CONNECT_TIMEOUT_SECONDS)))
-                .readTimeout(seconds(pool.get(READ_TIMEOUT_SECONDS)));
+                .connectTimeout(seconds(pool.get(CONNECT_TIMEOUT)))
+                .readTimeout(seconds(pool.get(READ_TIMEOUT)));
 
         BMap<BString, Object> proxy = (BMap<BString, Object>) transport.get(PROXY);
         if (proxy != null) {
@@ -198,7 +198,7 @@ public final class TransportConfigMapper {
      * @return the SDK retry options
      */
     public static RequestRetryOptions singleTry(BMap<BString, Object> retry) {
-        Duration tryTimeout = retry == null ? null : seconds(retry.get(TRY_TIMEOUT_SECONDS));
+        Duration tryTimeout = retry == null ? null : seconds(retry.get(TRY_TIMEOUT));
         return new RequestRetryOptions(RetryPolicyType.FIXED, 1, tryTimeout, null, null, null);
     }
 
@@ -238,7 +238,7 @@ public final class TransportConfigMapper {
             if (ciphers != null && ciphers.size() > 0) {
                 sslBuilder.ciphers(Arrays.asList(ciphers.getStringArray()));
             }
-            Object sessionTimeout = secureSocket.get(SESSION_TIMEOUT_SECONDS);
+            Object sessionTimeout = secureSocket.get(SESSION_TIMEOUT);
             if (sessionTimeout != null) {
                 sslBuilder.sessionTimeout(seconds(sessionTimeout).toSeconds());
             }
@@ -248,7 +248,7 @@ public final class TransportConfigMapper {
             // The two optional flags leave the engine's defaults alone when absent.
             boolean disableSessions = Boolean.FALSE.equals(secureSocket.get(SESSION_RESUMPTION));
             String sniHostName = ValueUtils.optString(secureSocket, SNI_HOST_NAME);
-            Object handshakeTimeout = secureSocket.get(HANDSHAKE_TIMEOUT_SECONDS);
+            Object handshakeTimeout = secureSocket.get(HANDSHAKE_TIMEOUT);
 
             return reactorClient.secure(spec -> {
                 reactor.netty.tcp.SslProvider.Builder providerBuilder = spec.sslContext(sslContext)

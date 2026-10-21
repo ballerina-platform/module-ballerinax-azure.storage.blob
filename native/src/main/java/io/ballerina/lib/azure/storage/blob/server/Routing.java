@@ -117,10 +117,10 @@ final class Routing {
                 + "Microsoft.Storage.BlobDeleted";
     }
 
-    /** The warning for a deleted event on a service without {@code onBlobDeleted}. */
+    /** The warning for a deleted event on a service without {@code onBlobDelete}. */
     static String deletedWarning(String queueName) {
         return "queue " + queueName + " received a Microsoft.Storage.BlobDeleted event, which its service has no "
-                + "onBlobDeleted for; acknowledged. Remove Microsoft.Storage.BlobDeleted from the subscription's "
+                + "onBlobDelete for; acknowledged. Remove Microsoft.Storage.BlobDeleted from the subscription's "
                 + "includedEventTypes";
     }
 

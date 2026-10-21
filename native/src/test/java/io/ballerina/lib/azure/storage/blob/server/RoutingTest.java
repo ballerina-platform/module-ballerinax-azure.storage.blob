@@ -83,7 +83,7 @@ public class RoutingTest {
     public void anUndeclaredTypedHandlerFallsBackToOnBlobOrToNothing() {
         assertEquals(route(handlers(handler("onBlob", null, null)), "a.json", null), "onBlob");
         assertNull(route(handlers(handler("onBlobText", null, null)), "a.json", null));
-        assertNull(route(handlers(handler("onBlobDeleted", null, null)), "a.txt", null));
+        assertNull(route(handlers(handler("onBlobDelete", null, null)), "a.txt", null));
     }
 
     @Test
@@ -111,7 +111,7 @@ public class RoutingTest {
         String type = Routing.typeWarning("q", "Microsoft.Storage.BlobTierChanged");
         assertTrue(type.contains("includedEventTypes") && type.contains("BlobTierChanged"), type);
         String deleted = Routing.deletedWarning("q");
-        assertTrue(deleted.contains("onBlobDeleted") && deleted.contains("includedEventTypes"), deleted);
+        assertTrue(deleted.contains("onBlobDelete") && deleted.contains("includedEventTypes"), deleted);
         EventParser.Parsed createFile = parsed("CreateFile", null);
         String api = Routing.noContentWarning("q", createFile);
         assertTrue(api.contains("StringNotIn on data.api"), api);

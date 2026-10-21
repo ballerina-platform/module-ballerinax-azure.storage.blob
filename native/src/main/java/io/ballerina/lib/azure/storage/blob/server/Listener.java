@@ -60,7 +60,7 @@ public final class Listener {
     static final String ON_BLOB_JSON = "onBlobJson";
     static final String ON_BLOB_XML = "onBlobXml";
     static final String ON_BLOB_CSV = "onBlobCsv";
-    static final String ON_BLOB_DELETED = "onBlobDeleted";
+    static final String ON_BLOB_DELETE = "onBlobDelete";
     static final String ON_ERROR = "onError";
     // Routing patterns are checked in this fixed order, so overlapping patterns resolve the
     // same way on every runtime, independent of method enumeration order.

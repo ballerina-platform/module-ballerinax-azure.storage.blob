@@ -61,7 +61,7 @@ isolated service on invoiceListener {
                 contentType = event.contentType ?: "unknown");
     }
 
-    isolated remote function onBlobDeleted(blob:BlobEvent event) returns error? {
+    isolated remote function onBlobDelete(blob:BlobEvent event) returns error? {
         log:printInfo("blob deleted", path = event.path);
     }
 

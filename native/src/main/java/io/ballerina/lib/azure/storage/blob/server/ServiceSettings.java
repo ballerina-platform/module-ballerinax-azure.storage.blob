@@ -50,9 +50,9 @@ record ServiceSettings(String queueName, String poisonQueueName, int batchSize, 
     private static final BString POISON_QUEUE_NAME_FIELD = StringUtils.fromString("poisonQueueName");
     private static final BString BATCH_SIZE_FIELD = StringUtils.fromString("batchSize");
     private static final BString NEW_BATCH_THRESHOLD_FIELD = StringUtils.fromString("newBatchThreshold");
-    private static final BString MAX_POLLING_INTERVAL_SECONDS_FIELD = StringUtils.fromString(
-            "maxPollingIntervalSeconds");
-    private static final BString REDELIVERY_DELAY_SECONDS_FIELD = StringUtils.fromString("redeliveryDelaySeconds");
+    private static final BString MAX_POLLING_INTERVAL_FIELD = StringUtils.fromString(
+            "maxPollingInterval");
+    private static final BString REDELIVERY_DELAY_FIELD = StringUtils.fromString("redeliveryDelay");
     private static final BString MAX_DELIVERY_COUNT_FIELD = StringUtils.fromString("maxDeliveryCount");
 
     /**
@@ -72,8 +72,8 @@ record ServiceSettings(String queueName, String poisonQueueName, int batchSize, 
                 poison == null ? null : ((BString) poison).getValue(),
                 Math.toIntExact(annotation.getIntValue(BATCH_SIZE_FIELD)),
                 threshold == null ? null : Math.toIntExact((Long) threshold),
-                ((BDecimal) annotation.get(MAX_POLLING_INTERVAL_SECONDS_FIELD)).decimalValue(),
-                ((BDecimal) annotation.get(REDELIVERY_DELAY_SECONDS_FIELD)).decimalValue(),
+                ((BDecimal) annotation.get(MAX_POLLING_INTERVAL_FIELD)).decimalValue(),
+                ((BDecimal) annotation.get(REDELIVERY_DELAY_FIELD)).decimalValue(),
                 Math.toIntExact(annotation.getIntValue(MAX_DELIVERY_COUNT_FIELD)));
     }
 
@@ -84,14 +84,14 @@ record ServiceSettings(String queueName, String poisonQueueName, int batchSize, 
      * @param poisonQueueName           the poison queue, or {@code null} for the default
      * @param batchSize                 messages per receive
      * @param newBatchThreshold         the refill trigger, or {@code null} for the default
-     * @param maxPollingIntervalSeconds the empty-queue backoff ceiling
-     * @param redeliveryDelaySeconds    the invisibility after a handler failure
+     * @param maxPollingInterval the empty-queue backoff ceiling
+     * @param redeliveryDelay    the invisibility after a handler failure
      * @param maxDeliveryCount          deliveries before the poison queue
      * @return the settings
      * @throws ConfigurationException when a value breaks a rule
      */
     static ServiceSettings of(String queueName, String poisonQueueName, int batchSize, Integer newBatchThreshold,
-                              BigDecimal maxPollingIntervalSeconds, BigDecimal redeliveryDelaySeconds,
+                              BigDecimal maxPollingInterval, BigDecimal redeliveryDelay,
                               int maxDeliveryCount) {
         checkQueueName("queueName", queueName);
         String poison = poisonQueueName;
@@ -115,21 +115,21 @@ record ServiceSettings(String queueName, String poisonQueueName, int batchSize, 
             throw new ConfigurationException("newBatchThreshold must be between 0 and batchSize (" + batchSize
                     + "), found " + threshold);
         }
-        if (maxPollingIntervalSeconds == null || maxPollingIntervalSeconds.signum() <= 0) {
-            throw new ConfigurationException("maxPollingIntervalSeconds must be greater than zero, found "
-                    + maxPollingIntervalSeconds);
+        if (maxPollingInterval == null || maxPollingInterval.signum() <= 0) {
+            throw new ConfigurationException("maxPollingInterval must be greater than zero, found "
+                    + maxPollingInterval);
         }
-        if (redeliveryDelaySeconds == null || redeliveryDelaySeconds.signum() < 0
-                || redeliveryDelaySeconds.compareTo(BigDecimal.valueOf(Delays.MAX_SECONDS)) > 0) {
-            throw new ConfigurationException("redeliveryDelaySeconds must be between 0 and 604800, found "
-                    + redeliveryDelaySeconds);
+        if (redeliveryDelay == null || redeliveryDelay.signum() < 0
+                || redeliveryDelay.compareTo(BigDecimal.valueOf(Delays.MAX_SECONDS)) > 0) {
+            throw new ConfigurationException("redeliveryDelay must be between 0 and 604800, found "
+                    + redeliveryDelay);
         }
         if (maxDeliveryCount < 1) {
             throw new ConfigurationException("maxDeliveryCount must be at least 1, found " + maxDeliveryCount);
         }
-        long maxPollingMillis = Math.max(1, maxPollingIntervalSeconds.multiply(BigDecimal.valueOf(1000))
+        long maxPollingMillis = Math.max(1, maxPollingInterval.multiply(BigDecimal.valueOf(1000))
                 .setScale(0, RoundingMode.HALF_UP).longValue());
-        long redelivery = redeliveryDelaySeconds.setScale(0, RoundingMode.CEILING).longValueExact();
+        long redelivery = redeliveryDelay.setScale(0, RoundingMode.CEILING).longValueExact();
         return new ServiceSettings(queueName, poison, batchSize, threshold, maxPollingMillis, redelivery,
                 maxDeliveryCount);
     }

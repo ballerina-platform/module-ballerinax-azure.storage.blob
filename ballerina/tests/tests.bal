@@ -73,7 +73,7 @@ function testListenerErrorTypesAreClientSideSubtypes() {
     // distinguishable by an `is` check, which is how a handler and the listener tell them apart.
     Error[] errors = [
         error DeadLetterError("negative total"),
-        error RetryError("ledger busy", delaySeconds = 2.5d),
+        error RetryError("ledger busy", delay = 2.5d),
         error ContentBindingError("no such field", containerName = "c", path = "a.json")
     ];
     foreach Error e in errors {
@@ -82,7 +82,7 @@ function testListenerErrorTypesAreClientSideSubtypes() {
     Error retryLater = errors[1];
     test:assertTrue(retryLater is RetryError && !(retryLater is DeadLetterError));
     if retryLater is RetryError {
-        test:assertEquals(retryLater.detail().delaySeconds, 2.5d);
+        test:assertEquals(retryLater.detail().delay, 2.5d);
     }
     Error binding = errors[2];
     test:assertTrue(binding is ContentBindingError);

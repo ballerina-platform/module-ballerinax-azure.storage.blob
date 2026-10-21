@@ -211,7 +211,7 @@
           "kind": "serviceAnnotationField",
           "serviceType": "$service",
           "annotation": "$serviceConfig",
-          "path": "maxPollingIntervalSeconds"
+          "path": "maxPollingInterval"
         },
         "metadata": {
           "label": "Maximum Polling Interval (seconds)",
@@ -227,7 +227,7 @@
           "module": {
             "name": "blob"
           },
-          "path": "maxPollingIntervalSeconds"
+          "path": "maxPollingInterval"
         },
         "state": {
           "enabled": true,
@@ -235,7 +235,7 @@
           "optional": true,
           "advanced": true
         },
-        "key": "maxPollingIntervalSeconds",
+        "key": "maxPollingInterval",
         "default": "",
         "widget": {
           "alternatives": [
@@ -256,7 +256,7 @@
           "kind": "serviceAnnotationField",
           "serviceType": "$service",
           "annotation": "$serviceConfig",
-          "path": "redeliveryDelaySeconds"
+          "path": "redeliveryDelay"
         },
         "metadata": {
           "label": "Redelivery Delay (seconds)",
@@ -272,7 +272,7 @@
           "module": {
             "name": "blob"
           },
-          "path": "redeliveryDelaySeconds"
+          "path": "redeliveryDelay"
         },
         "state": {
           "enabled": true,
@@ -280,7 +280,7 @@
           "optional": true,
           "advanced": true
         },
-        "key": "redeliveryDelaySeconds",
+        "key": "redeliveryDelay",
         "default": "",
         "widget": {
           "alternatives": [
@@ -4246,7 +4246,7 @@
           }
         },
         {
-          "target": "$service.onBlobDeleted",
+          "target": "$service.onBlobDelete",
           "metadata": {
             "label": "On Delete",
             "description": "Invoked when a blob is deleted.",
@@ -4255,7 +4255,7 @@
           },
           "parameters": [
             {
-              "target": "$service.onBlobDeleted.event",
+              "target": "$service.onBlobDelete.event",
               "metadata": {
                 "label": "Blob Event (event)",
                 "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
@@ -4324,7 +4324,7 @@
               }
             },
             {
-              "target": "$service.onBlobDeleted.caller",
+              "target": "$service.onBlobDelete.caller",
               "metadata": {
                 "label": "Azure Blob Storage Connection (caller)",
                 "description": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
@@ -4395,7 +4395,7 @@
             }
           ],
           "returnType": {
-            "target": "$service.onBlobDeleted.returns",
+            "target": "$service.onBlobDelete.returns",
             "metadata": {
               "label": "Return Type",
               "description": "The return type of the function."
@@ -4416,7 +4416,7 @@
               "kind": "FUNCTION"
             },
             "argument": {
-              "originalName": "onBlobDeleted"
+              "originalName": "onBlobDelete"
             },
             "module": {
               "name": "blob"

@@ -62,10 +62,10 @@ public type DeadLetterError distinct Error;
 # The detail of a `RetryError`.
 public type RetryErrorDetail record {|
     # The least time, in seconds, before the message is redelivered
-    decimal delaySeconds;
+    decimal delay;
 |};
 
-# Returned by a handler to have the message redelivered after `delaySeconds`.
+# Returned by a handler to have the message redelivered after `delay`.
 public type RetryError distinct (Error & error<RetryErrorDetail>);
 
 # The blob whose content failed to bind.

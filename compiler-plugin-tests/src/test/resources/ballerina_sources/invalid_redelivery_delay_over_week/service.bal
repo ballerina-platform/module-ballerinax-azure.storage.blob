@@ -18,7 +18,7 @@ import ballerinax/azure.storage.blob as blob;
 
 listener blob:Listener lsn = new (auth = {accountName: "acc", accountKey: "a2V5"});
 
-@blob:ServiceConfig {queueName: "events", redeliveryDelaySeconds: 604801}
+@blob:ServiceConfig {queueName: "events", redeliveryDelay: 604801}
 isolated service on lsn {
     isolated remote function onBlob(byte[] content) returns error? {
     }

@@ -255,7 +255,7 @@ function testListenerBareJsonXmlAndCsvForms() returns error? {
 }
 
 @test:Config {}
-function testListenerOnBlobDeleted() returns error? {
+function testListenerOnBlobDelete() returns error? {
     EventSource src = check setupEventSource("lsn-deleted");
     check enqueueEvent(src.queue, blobDeletedEvent(src.container, "old/gone.txt"));
 
@@ -267,7 +267,7 @@ function testListenerOnBlobDeleted() returns error? {
             recorder.hit("blob");
         }
 
-        isolated remote function onBlobDeleted(BlobEvent event, Caller caller) returns error? {
+        isolated remote function onBlobDelete(BlobEvent event, Caller caller) returns error? {
             recorder.put("deleted", event.path);
             recorder.put("eventType", event.eventType);
             recorder.put("contentLength", event.contentLength is () ? "absent" : "present");

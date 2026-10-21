@@ -135,13 +135,13 @@ function testServiceConfigRules() returns error? {
     test:assertTrue(lsn.attach(settingsService("events", newBatchThreshold = -1)) is error, "threshold -1");
     test:assertTrue(lsn.attach(settingsService("events", batchSize = 4, newBatchThreshold = 5)) is error,
             "threshold above batchSize");
-    test:assertTrue(lsn.attach(settingsService("events", maxPollingIntervalSeconds = 0)) is error, "polling 0");
-    test:assertTrue(lsn.attach(settingsService("events", redeliveryDelaySeconds = -1)) is error, "redelivery -1");
-    test:assertTrue(lsn.attach(settingsService("events", redeliveryDelaySeconds = 604801)) is error,
+    test:assertTrue(lsn.attach(settingsService("events", maxPollingInterval = 0)) is error, "polling 0");
+    test:assertTrue(lsn.attach(settingsService("events", redeliveryDelay = -1)) is error, "redelivery -1");
+    test:assertTrue(lsn.attach(settingsService("events", redeliveryDelay = 604801)) is error,
             "redelivery above seven days");
     test:assertTrue(lsn.attach(settingsService("events", maxDeliveryCount = 0)) is error, "maxDeliveryCount 0");
     Service atTheBounds = settingsService("events", batchSize = 32, newBatchThreshold = 32,
-            maxPollingIntervalSeconds = 0.5d, redeliveryDelaySeconds = 604800, maxDeliveryCount = 1);
+            maxPollingInterval = 0.5d, redeliveryDelay = 604800, maxDeliveryCount = 1);
     check lsn.attach(atTheBounds);
     check lsn.detach(atTheBounds);
 
@@ -169,14 +169,14 @@ function testServiceConfigRules() returns error? {
 }
 
 isolated function settingsService(string queue, int batchSize = 16, int newBatchThreshold = batchSize / 2,
-        decimal maxPollingIntervalSeconds = 60, decimal redeliveryDelaySeconds = 0, int maxDeliveryCount = 5)
+        decimal maxPollingInterval = 60, decimal redeliveryDelay = 0, int maxDeliveryCount = 5)
         returns Service {
     return @ServiceConfig {
         queueName: queue,
         batchSize,
         newBatchThreshold,
-        maxPollingIntervalSeconds,
-        redeliveryDelaySeconds,
+        maxPollingInterval,
+        redeliveryDelay,
         maxDeliveryCount
     } isolated service object {
         isolated remote function onBlob(byte[] content) returns error? {

@@ -50,10 +50,10 @@ public type ServiceConfiguration record {|
     # `batchSize`. Defaults to half the batch size, rounded down
     int newBatchThreshold?;
     # The longest wait between polls of an empty queue, in seconds
-    decimal maxPollingIntervalSeconds = 60;
+    decimal maxPollingInterval = 60;
     # How long a message stays invisible after its handler fails, before it is redelivered,
     # in seconds, 0 to 604,800, rounded up to whole seconds
-    decimal redeliveryDelaySeconds = 0;
+    decimal redeliveryDelay = 0;
     # How many deliveries a message gets before it is moved to the poison queue, at least 1
     int maxDeliveryCount = 5;
 |};
@@ -155,7 +155,7 @@ type HandlerOutcome record {|
     # `deadLetter`, `retry`, or `failure`
     string kind;
     # The requested delay of a `RetryError`
-    decimal delaySeconds = 0;
+    decimal delay = 0;
     # The error's message
     string message;
 |};
@@ -165,7 +165,7 @@ isolated function classifyHandlerError(error e) returns HandlerOutcome {
         return {kind: "deadLetter", message: messageWithCauses(e)};
     }
     if e is RetryError {
-        return {kind: "retry", delaySeconds: e.detail().delaySeconds, message: messageWithCauses(e)};
+        return {kind: "retry", delay: e.detail().delay, message: messageWithCauses(e)};
     }
     return {kind: "failure", message: messageWithCauses(e)};
 }

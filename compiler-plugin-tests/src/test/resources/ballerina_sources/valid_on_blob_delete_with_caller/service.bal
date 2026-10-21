@@ -20,6 +20,9 @@ listener blob:Listener lsn = new (auth = {accountName: "acc", accountKey: "a2V5"
 
 @blob:ServiceConfig {queueName: "events"}
 isolated service on lsn {
-    isolated remote function onBlobDeleted(blob:BlobEvent event, string path) returns error? {
+    isolated remote function onBlob(byte[] content) returns error? {
+    }
+
+    isolated remote function onBlobDelete(blob:BlobEvent event, blob:Caller caller) returns error? {
     }
 }

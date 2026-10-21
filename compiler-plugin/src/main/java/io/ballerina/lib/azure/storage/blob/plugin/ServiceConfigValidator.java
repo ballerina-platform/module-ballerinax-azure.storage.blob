@@ -50,15 +50,15 @@ import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.Compila
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.CompilationErrors.POISON_QUEUE_NAME_REQUIRED;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.MAX_BATCH_SIZE;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.MAX_DELIVERY_COUNT_FIELD;
-import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.MAX_POLLING_INTERVAL_SECONDS_FIELD;
+import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.MAX_POLLING_INTERVAL_FIELD;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.MAX_QUEUE_NAME_WITH_DEFAULT_POISON;
-import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.MAX_REDELIVERY_DELAY_SECONDS;
+import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.MAX_REDELIVERY_DELAY;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.NEW_BATCH_THRESHOLD_FIELD;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.POISON_QUEUE_NAME_FIELD;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.POISON_SUFFIX;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.QUEUE_NAME;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.QUEUE_NAME_FIELD;
-import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.REDELIVERY_DELAY_SECONDS_FIELD;
+import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.REDELIVERY_DELAY_FIELD;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.SERVICE_CONFIG_ANNOTATION;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginUtils.getDiagnostic;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginUtils.validateModuleId;
@@ -145,18 +145,18 @@ final class ServiceConfigValidator {
                         }
                     }
                 }
-                case MAX_POLLING_INTERVAL_SECONDS_FIELD -> {
+                case MAX_POLLING_INTERVAL_FIELD -> {
                     if (decimal(literal) instanceof BigDecimal number && number.signum() <= 0) {
                         diagnostics.add(getDiagnostic(INVALID_SETTING_VALUE, DiagnosticSeverity.ERROR,
-                                expression.location(), MAX_POLLING_INTERVAL_SECONDS_FIELD, number.toPlainString(),
+                                expression.location(), MAX_POLLING_INTERVAL_FIELD, number.toPlainString(),
                                 "a value above 0"));
                     }
                 }
-                case REDELIVERY_DELAY_SECONDS_FIELD -> {
+                case REDELIVERY_DELAY_FIELD -> {
                     if (decimal(literal) instanceof BigDecimal number && (number.signum() < 0
-                            || number.compareTo(BigDecimal.valueOf(MAX_REDELIVERY_DELAY_SECONDS)) > 0)) {
+                            || number.compareTo(BigDecimal.valueOf(MAX_REDELIVERY_DELAY)) > 0)) {
                         diagnostics.add(getDiagnostic(INVALID_SETTING_VALUE, DiagnosticSeverity.ERROR,
-                                expression.location(), REDELIVERY_DELAY_SECONDS_FIELD, number.toPlainString(),
+                                expression.location(), REDELIVERY_DELAY_FIELD, number.toPlainString(),
                                 "0 to 604800"));
                     }
                 }

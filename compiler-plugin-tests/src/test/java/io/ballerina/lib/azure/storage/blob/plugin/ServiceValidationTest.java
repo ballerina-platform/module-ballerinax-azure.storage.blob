@@ -108,14 +108,14 @@ public class ServiceValidationTest {
 
     @Test
     public void testValidOnBlobDeleted() {
-        DiagnosticResult result = loadPackage("valid_on_blob_deleted");
-        assertNoErrors(result, "valid_on_blob_deleted");
+        DiagnosticResult result = loadPackage("valid_on_blob_delete");
+        assertNoErrors(result, "valid_on_blob_delete");
     }
 
     @Test
     public void testValidOnBlobDeletedWithCaller() {
-        DiagnosticResult result = loadPackage("valid_on_blob_deleted_with_caller");
-        assertNoErrors(result, "valid_on_blob_deleted_with_caller");
+        DiagnosticResult result = loadPackage("valid_on_blob_delete_with_caller");
+        assertNoErrors(result, "valid_on_blob_delete_with_caller");
     }
 
     @Test
@@ -383,23 +383,23 @@ public class ServiceValidationTest {
 
     @Test
     public void testInvalidDeletedFirstParam() {
-        DiagnosticResult result = loadPackage("invalid_deleted_first_param");
+        DiagnosticResult result = loadPackage("invalid_delete_first_param");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_106", "Invalid parameter type for 'onBlobDeleted'");
+        assertError(result, 0, "AZURE_BLOB_106", "Invalid parameter type for 'onBlobDelete'");
     }
 
     @Test
     public void testInvalidDeletedSecondParam() {
-        DiagnosticResult result = loadPackage("invalid_deleted_second_param");
+        DiagnosticResult result = loadPackage("invalid_delete_second_param");
         assertEquals(result.errorCount(), 1, describe(result));
         assertError(result, 0, "AZURE_BLOB_115", "Optional second parameter must be 'Caller'");
     }
 
     @Test
     public void testInvalidDeletedTooManyParams() {
-        DiagnosticResult result = loadPackage("invalid_deleted_too_many_params");
+        DiagnosticResult result = loadPackage("invalid_delete_too_many_params");
         assertEquals(result.errorCount(), 1, describe(result));
-        assertError(result, 0, "AZURE_BLOB_116", "Too many parameters for 'onBlobDeleted'");
+        assertError(result, 0, "AZURE_BLOB_116", "Too many parameters for 'onBlobDelete'");
     }
 
     private static void assertNoErrors(DiagnosticResult result, String fixture) {

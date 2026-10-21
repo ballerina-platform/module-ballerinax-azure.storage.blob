@@ -26,10 +26,10 @@ import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.BLOB_EVENT;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.CompilationErrors.CONTENT_METHOD_MUST_BE_REMOTE;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.CompilationErrors.INVALID_CONTENT_PARAMETER_TYPE;
-import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.CompilationErrors.INVALID_DELETED_CALLER_PARAMETER;
+import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.CompilationErrors.INVALID_DELETE_CALLER_PARAMETER;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.CompilationErrors.MANDATORY_PARAMETER_NOT_FOUND;
-import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.CompilationErrors.TOO_MANY_PARAMETERS_DELETED;
-import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.ON_BLOB_DELETED_FUNC;
+import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.CompilationErrors.TOO_MANY_PARAMETERS_DELETE;
+import static io.ballerina.lib.azure.storage.blob.plugin.PluginConstants.ON_BLOB_DELETE_FUNC;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginUtils.isRemoteFunction;
 import static io.ballerina.lib.azure.storage.blob.plugin.PluginUtils.reportErrorDiagnostic;
 
@@ -37,12 +37,12 @@ import static io.ballerina.lib.azure.storage.blob.plugin.PluginUtils.reportError
  * Validates the deleted-event handler: remote, {@code (BlobEvent, Caller?)}, returning
  * {@code error?}.
  */
-public class DeletedFunctionValidator {
+public class DeleteFunctionValidator {
 
     private final SyntaxNodeAnalysisContext context;
     private final FunctionDefinitionNode funcDefinitionNode;
 
-    public DeletedFunctionValidator(SyntaxNodeAnalysisContext context, FunctionDefinitionNode funcDefinitionNode) {
+    public DeleteFunctionValidator(SyntaxNodeAnalysisContext context, FunctionDefinitionNode funcDefinitionNode) {
         this.context = context;
         this.funcDefinitionNode = funcDefinitionNode;
     }
@@ -50,22 +50,22 @@ public class DeletedFunctionValidator {
     public void validate() {
         if (!isRemoteFunction(context, funcDefinitionNode)) {
             reportErrorDiagnostic(context, CONTENT_METHOD_MUST_BE_REMOTE, funcDefinitionNode.location(),
-                    ON_BLOB_DELETED_FUNC);
+                    ON_BLOB_DELETE_FUNC);
         }
         SeparatedNodeList<ParameterNode> parameters = funcDefinitionNode.functionSignature().parameters();
         if (parameters.isEmpty()) {
             reportErrorDiagnostic(context, MANDATORY_PARAMETER_NOT_FOUND, funcDefinitionNode.location(),
-                    ON_BLOB_DELETED_FUNC, BLOB_EVENT);
+                    ON_BLOB_DELETE_FUNC, BLOB_EVENT);
         } else if (parameters.size() > 2) {
-            reportErrorDiagnostic(context, TOO_MANY_PARAMETERS_DELETED, funcDefinitionNode.location());
+            reportErrorDiagnostic(context, TOO_MANY_PARAMETERS_DELETE, funcDefinitionNode.location());
         } else {
             ParameterNode first = parameters.get(0);
             if (!PluginUtils.validateEventParameter(first, context)) {
                 reportErrorDiagnostic(context, INVALID_CONTENT_PARAMETER_TYPE, first.location(),
-                        ON_BLOB_DELETED_FUNC, BLOB_EVENT, PluginUtils.getParameterTypeSignature(first, context));
+                        ON_BLOB_DELETE_FUNC, BLOB_EVENT, PluginUtils.getParameterTypeSignature(first, context));
             }
             if (parameters.size() == 2 && !PluginUtils.validateCallerParameter(parameters.get(1), context)) {
-                reportErrorDiagnostic(context, INVALID_DELETED_CALLER_PARAMETER, parameters.get(1).location());
+                reportErrorDiagnostic(context, INVALID_DELETE_CALLER_PARAMETER, parameters.get(1).location());
             }
         }
         PluginUtils.validateReturnTypeErrorOrNil(funcDefinitionNode, context);

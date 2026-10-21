@@ -23,8 +23,8 @@ listener blob:Listener lsn = new (auth = {accountName: "acc", accountKey: "a2V5"
     poisonQueueName: "raw-uploads-dead",
     batchSize: 32,
     newBatchThreshold: 32,
-    maxPollingIntervalSeconds: 0.5,
-    redeliveryDelaySeconds: 604800,
+    maxPollingInterval: 0.5,
+    redeliveryDelay: 604800,
     maxDeliveryCount: 1
 }
 isolated service on lsn {

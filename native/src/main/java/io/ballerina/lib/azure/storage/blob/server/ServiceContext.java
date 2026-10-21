@@ -67,7 +67,7 @@ final class ServiceContext {
     private static final String CALLER_TYPE_NAME = "Caller";
     private static final String BLOB_EVENT_TYPE_NAME = "BlobEvent";
     private static final Set<String> HANDLER_NAMES = Set.of(Listener.ON_BLOB, Listener.ON_BLOB_TEXT,
-            Listener.ON_BLOB_JSON, Listener.ON_BLOB_XML, Listener.ON_BLOB_CSV, Listener.ON_BLOB_DELETED);
+            Listener.ON_BLOB_JSON, Listener.ON_BLOB_XML, Listener.ON_BLOB_CSV, Listener.ON_BLOB_DELETE);
 
     final BObject service;
     final ObjectType type;
@@ -139,7 +139,7 @@ final class ServiceContext {
             }
             boolean takesEvent = false;
             boolean takesCaller = false;
-            int first = Listener.ON_BLOB_DELETED.equals(name) ? 0 : 1;
+            int first = Listener.ON_BLOB_DELETE.equals(name) ? 0 : 1;
             for (int i = first; i < params.length; i++) {
                 String typeName = moduleTypeName(params[i].type);
                 if (CALLER_TYPE_NAME.equals(typeName)) {
@@ -150,11 +150,11 @@ final class ServiceContext {
             }
             Type contentType = params.length >= 1 ? params[0].type : null;
             handlers.put(name, new HandlerConfig(name, namePattern, contentTypePattern,
-                    takesEvent || Listener.ON_BLOB_DELETED.equals(name), takesCaller, contentType));
+                    takesEvent || Listener.ON_BLOB_DELETE.equals(name), takesCaller, contentType));
         }
         if (handlers.isEmpty()) {
             throw new ConfigurationException("a service declares at least one handler: onBlob, onBlobText, "
-                    + "onBlobJson, onBlobXml, onBlobCsv, or onBlobDeleted");
+                    + "onBlobJson, onBlobXml, onBlobCsv, or onBlobDelete");
         }
         QueueClient queue = QueueClients.build(ctx, settings.queueName(), ctx.retrying);
         QueueGateway retryFree = new QueueGateway.SdkQueueGateway(QueueClients.build(ctx, settings.queueName(),

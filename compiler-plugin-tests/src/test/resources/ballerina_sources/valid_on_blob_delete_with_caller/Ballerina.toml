@@ -1,4 +1,4 @@
 [package]
 org = "azure_blob_test"
-name = "valid_on_blob_deleted"
+name = "valid_on_blob_delete_with_caller"
 version = "0.9.0"

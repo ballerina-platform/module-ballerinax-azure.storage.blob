@@ -33,7 +33,7 @@ function testConnectTimeoutIsHonoured() returns error? {
     AdminClient admin = check new (
         auth = {accountName: AZURITE_ACCOUNT, accountKey: AZURITE_KEY, serviceUrl: BLACKHOLE_URL},
         retryConfig = {maxTries: 1},
-        transportConfig = {connectionPool: {connectTimeoutSeconds: 1}}
+        transportConfig = {connectionPool: {connectTimeout: 1}}
     );
     time:Utc started = time:utcNow();
     AccountInfo|Error info = admin->getAccountInfo();
@@ -73,8 +73,8 @@ function testSecureSocketBuildsFromPemMaterial() returns error? {
         protocolVersions: ["TLSv1.3", "TLSv1.2"],
         ciphers: ["TLS_AES_256_GCM_SHA384", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"],
         sniHostName: "fixture.example",
-        sessionTimeoutSeconds: 300,
-        handshakeTimeoutSeconds: 15,
+        sessionTimeout: 300,
+        handshakeTimeout: 15,
         sessionResumption: true,
         verifyHostName: true,
         validateRevocation: true

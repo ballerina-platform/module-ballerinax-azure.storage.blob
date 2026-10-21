@@ -23,6 +23,6 @@ isolated service on lsn {
     isolated remote function onBlobJson(json content) returns blob:DeadLetterError|blob:RetryError|error? {
     }
 
-    isolated remote function onBlobDeleted(blob:BlobEvent event) returns blob:DeadLetterError? {
+    isolated remote function onBlobDelete(blob:BlobEvent event) returns blob:DeadLetterError? {
     }
 }
