@@ -22,4 +22,9 @@ This file documents all notable changes to the Ballerina Azure Blob Storage pack
 
 ### Changed
 
+- The `file_databinding_duration_seconds` and `file_resource_execution_duration_seconds` gauges carry `watched.path`, the service's queue name, and the `file-error` span carries the type of the error `onError` is called with
+
 ### Fixed
+
+- An omitted `retryConfig` now applies the connector's retry defaults, bounding each try at 60 seconds, instead of the SDK's unbounded try timeout
+- `copyBlobFromUrl`, `appendBlockFromUrl`, and `stageBlockFromUrl` attach a SAS-authenticated client's SAS to a same-account source URL that carries none, so `Caller.copyBlobFromUrl(event.url)` works under a SAS listener

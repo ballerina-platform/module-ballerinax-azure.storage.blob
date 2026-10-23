@@ -77,13 +77,13 @@ final class MessageObservation {
     }
 
     void binding(String outcome, long startNanos) {
-        BlobMetricsUtil.reportDatabindingDuration(ctx.remoteUrl, ctx.protocol, handlerName, outcome,
+        BlobMetricsUtil.reportDatabindingDuration(ctx.remoteUrl, ctx.protocol, svc.queueName(), handlerName, outcome,
                 elapsedMillis(startNanos));
     }
 
     void execution(String outcome, long startNanos) {
-        BlobMetricsUtil.reportResourceExecutionDuration(ctx.remoteUrl, ctx.protocol, handlerName, outcome,
-                elapsedMillis(startNanos));
+        BlobMetricsUtil.reportResourceExecutionDuration(ctx.remoteUrl, ctx.protocol, svc.queueName(), handlerName,
+                outcome, elapsedMillis(startNanos));
     }
 
     /** The strand properties of the handler call, parented to the lifecycle span. */
@@ -137,10 +137,13 @@ final class MessageObservation {
                 reason);
     }
 
-    /** The {@code onError} span: a child of the message's lifecycle span, or a root span without one. */
-    static BSpan errorSpan(MessageObservation observation) {
+    /**
+     * The {@code onError} span, tagged with the reported error's type: a child of the message's
+     * lifecycle span, or a root span without one.
+     */
+    static BSpan errorSpan(MessageObservation observation, BError error) {
         return BlobTracingUtil.createChildSpan(observation == null ? null : observation.lifecycle, ERROR_SPAN,
-                null, null, Listener.ON_ERROR);
+                null, null, Listener.ON_ERROR, BlobTracingUtil.errorTypeName(error));
     }
 
     /** The strand properties of an {@code onError} call, placing the call under its span. */
@@ -160,7 +163,7 @@ final class MessageObservation {
 
     private BSpan cleanupSpan(String action) {
         return BlobTracingUtil.createChildSpan(lifecycle, CLEANUP_SPAN, BlobMetricsUtil.FILE_STAGE_CLEANED_UP,
-                action, handlerName);
+                action, handlerName, null);
     }
 
     private void cleanedUp(BSpan span, String action, Boolean settled, String failureReason) {

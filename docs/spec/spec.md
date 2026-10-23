@@ -225,8 +225,8 @@ arguments, for example `new (auth = {accountName, accountKey})`.
 
 ### 2.3 Retry Configuration
 
-The optional `RetryConfig` record shapes the retry behaviour of service requests; omitting it
-keeps the connector's defaults, which are the values listed below. Its fields:
+The `RetryConfig` record shapes the retry behaviour of service requests; omitting it keeps the
+connector's defaults, which are the values listed below. Its fields:
 
 * `retryPolicyType`: how the delay between tries grows, `EXPONENTIAL` or `FIXED_INTERVAL`.
   Defaults to `EXPONENTIAL`.
@@ -315,7 +315,7 @@ if !(check admin->hasContainer("invoices")) {
   whole; a group absent from the record leaves the service's current setting untouched. An
   empty `cors` array therefore deletes every CORS rule, while omitting the `cors` field
   preserves them. To change one group, read the current configuration, modify it, and pass
-  the result back.
+  the result back. Within a present group, an omitted retention policy is written as disabled.
 
 Enabling the blob soft delete retention policy here is the prerequisite for `undeleteBlob`.
 Container soft delete is a storage account setting, enabled on the account rather than through
@@ -388,9 +388,9 @@ blob:Client invoices = check new ("invoices", auth = {accountName: "myacct", acc
 
 The service writes the access level and the policies together. Each of the two setters
 therefore reads the current access control list first and resends the half it does not
-change, so each call is two requests, and two processes changing the two halves at the same
-time can overwrite each other: the last writer wins. An application that changes both
-concurrently serialises its own calls.
+change, so each call is two requests. The second request is conditioned on the container
+being unmodified since the read, so a concurrent change of the other half fails it with a
+`PreconditionFailedError` instead of being overwritten; the caller repeats the call.
 
 A stored access policy carries a validity window and a permission string under an identifier.
 Container SAS tokens minted against a policy (via the `identifier` field of the signature
@@ -604,9 +604,10 @@ stream<byte[], error?> chunks = check invoices->getBlob("2026/q1/large.bin");
   to the source URL; a shared key authorizes a source in the same account on its own.
 * `copyBlobFromUrl(sourceUrl, destinationPath, options)`: copies from any Azure Storage URL
   the service can read: a blob in another container or account, or a file in Azure Files. A
-  source in the same storage account is authorized by this client's own credential. A source
-  elsewhere that is not publicly readable must carry its own authorization in the URL,
-  typically a SAS token.
+  source in the same storage account is authorized by this client's own credential: a client
+  authenticated with a SAS attaches that SAS to a same-account blob source that carries none,
+  as `copyBlob` does. A source elsewhere that is not publicly readable must carry its own
+  authorization in the URL, typically a SAS token.
 * `abortCopy(path, copyId, options)`: cancels a pending copy. `AbortCopyOptions.leaseId`
   passes the destination's active lease.
 
@@ -713,7 +714,9 @@ blob's own lease: the container's lease id is checked only by container operatio
 ### 4.10 Append Blob Operations
 
 * `createAppendBlob(path, options)`: creates an empty append blob. The options carry content
-  headers, metadata, and index tags for the new blob, and the lease id.
+  headers, metadata, and index tags for the new blob, and the lease id. An existing append
+  blob at the path is replaced, its content cleared; a blob of another type is refused with an
+  `InvalidBlobTypeError`.
 * `appendBlock(path, content, options)`: appends a block of content, a `byte[]`, at the blob's
   end. Blocks append strictly in arrival order; each block may be at most 4 MiB, and a blob
   holds at most 50,000 blocks. `AppendBlockOptions.leaseId` passes the active lease.
@@ -738,7 +741,8 @@ check invoices->appendBlock("logs/2026-08.log", line2);
 * `createPageBlob(path, sizeInBytes, options)`: creates an empty page blob of the given fixed
   capacity, a multiple of 512 bytes up to 8 TiB. The options carry content headers, metadata,
   index tags, and the lease id. The capacity is reserved sparsely: unwritten pages read as
-  zeros and only written pages are billed.
+  zeros and only written pages are billed. An existing page blob at the path is replaced, its
+  content cleared; a blob of another type is refused with an `InvalidBlobTypeError`.
 * `uploadPages(path, offset, content, options)`: writes content, a `byte[]`, at the given
   offset. The offset must be 512 byte aligned and the content length a multiple of 512, at
   most 4 MiB per call.
@@ -1684,10 +1688,11 @@ service URL names one (`myaccount.blob.core.windows.net`, or `127.0.0.1:10000` a
 emulator); `protocol` is the endpoint's scheme; `host` is the local host name. A listener's
 series carry the blob endpoint's identity, not the queue's: the queue endpoint follows the blob
 endpoint in every configuration but an explicit `queueServiceUrl`, and a `Caller` the listener
-hands out reports under the same identity as a `Client` on that account. Listener series also
-carry `watched.path`, the service's queue name, the one thing that tells a listener's services
-apart. A tag that does not apply to a series holds the value `none`, so every series of a metric
-has the same label set.
+hands out reports under the same identity as a `Client` on that account. The listener series
+that belong to one service, the event counter and the two duration gauges, also carry
+`watched.path`, the service's queue name, the one thing that tells a listener's services apart;
+the bytes counter and the connection gauge are per listener. A tag that does not apply to a
+series holds the value `none`, so every series of a metric has the same label set.
 
 ### 7.2 Client Operations
 
@@ -1759,20 +1764,23 @@ section 5.8, with `event.type` `create` or `delete` once the message has parsed 
 * `dispatched`, with `handler.name`, once a handler has been chosen.
 * `handled`, with `handler.name`: `success` when the handler returned `()`; `failure` with
   `error.type` the type name of the error it returned (`DeadLetterError` and `RetryError`
-  included) or of the panic it ended with. When the content cannot be fetched or bound and the
-  handler never runs, the stage still closes the dispatch: `skipped` with `blob_not_found`,
-  or `failure` with `archived_blob`, `binding_failed`, or the type name of the fetch failure.
+  included) or of the panic it ended with. A stream's own binding error returned by the
+  handler counts as `binding_failed`, and a `Caller` that cannot be built for the event's
+  container as `failure` with the error's type name. When the content cannot be fetched or
+  bound and the handler never runs, the stage still closes the dispatch: `skipped` with
+  `blob_not_found`, or `failure` with `archived_blob`, `binding_failed`, or the type name of
+  the fetch failure.
 * `cleaned_up`, once per settlement, with `cleanup.action` `acknowledge`, `redeliver`, or
   `poison`: `success` when the queue accepted the call (an acknowledgement of a message that
   was already gone counts as success); `failure` with `error.type` `acknowledge_failed`,
   `redeliver_failed`, or `poison_move_failed`; `skipped` with `message_not_held` for a poison
   move skipped because another consumer holds the message or it is gone.
 
-`file_databinding_duration_seconds` records, per `handler.name` and `outcome`, the time from the
-start of the content fetch to the bound value or to the binding failure, and for a stream
-handler the time to open the stream; a fetch that fails before any content arrives is not timed.
-`file_resource_execution_duration_seconds` records the handler call itself, per `handler.name`
-and `outcome`. Both are gauges with the 50th, 75th, 90th, 95th, and 99th percentiles over a
+`file_databinding_duration_seconds` records, per `watched.path`, `handler.name` and `outcome`,
+the time from the start of the content fetch to the bound value or to the binding failure, and
+for a stream handler the time to open the stream; a fetch that fails before any content arrives
+is not timed. `file_resource_execution_duration_seconds` records the handler call itself, per
+`watched.path`, `handler.name` and `outcome`. Both are gauges with the 50th, 75th, 90th, 95th, and 99th percentiles over a
 five-minute window. An `onError` call is spanned (below) but not timed.
 
 ### 7.6 The Listener's Traces
@@ -1786,8 +1794,9 @@ runtime's span for the handler call is its child, with the same tags and `handle
 trace shows the message, the handler, and every client operation the handler made through the
 `Caller` or a `Client` in one tree. Each settlement runs in a `file-cleanup` child span tagged
 with `cleanup.action` and the outcome, and each `onError` call in a `file-error` child span
-tagged with the error's type and the call's outcome; the `onError` call for a failed poll,
-which belongs to no message, gets a root `file-error` span.
+tagged with the error's type and the call's outcome, the runtime's own span for the call
+carrying `event.type` `error`; the `onError` call for a failed poll, which belongs to no
+message, gets a root `file-error` span.
 
 ### 7.7 Enabling Observability
 

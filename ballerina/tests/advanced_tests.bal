@@ -233,6 +233,55 @@ function testLeases() returns error? {
     test:assertEquals(properties.leaseDuration, ());
 }
 
+// Every write of a leased blob carries the lease id, the tag and tier operations included; a
+// snapshot alone needs none, but checks one that is given.
+@test:Config {}
+function testLeasedWritesNeedTheLeaseId() returns error? {
+    Client blobClient = check readyClient("leased-writes");
+    check blobClient->upload("held", "held.txt");
+    check blobClient->upload("free", "free.txt");
+    string leaseId = check blobClient->acquireLease("held.txt", -1);
+    string wrongId = "00000000-0000-0000-0000-000000000001";
+
+    Error? tagsWithoutId = blobClient->setTags("held.txt", {k: "v"});
+    assertLeaseRequired(tagsWithoutId, "LeaseIdMissing");
+    Error? tagsWithWrongId = blobClient->setTags("held.txt", {k: "v"}, {leaseId: wrongId});
+    assertLeaseRequired(tagsWithWrongId, "LeaseIdMismatchWithBlobOperation");
+    Error? tierWithoutId = blobClient->setAccessTier("held.txt", COOL);
+    assertLeaseRequired(tierWithoutId, "LeaseIdMissing");
+    Error? uploadWithoutId = blobClient->upload("replaced", "held.txt");
+    assertLeaseRequired(uploadWithoutId, "LeaseIdMissing");
+    Error? uploadWithWrongId = blobClient->upload("replaced", "held.txt", {leaseId: wrongId});
+    assertLeaseRequired(uploadWithWrongId, "LeaseIdMismatchWithBlobOperation");
+    check blobClient->setTags("held.txt", {k: "v"}, {leaseId});
+    check blobClient->setAccessTier("held.txt", COOL, {leaseId});
+    check blobClient->upload("replaced", "held.txt", {leaseId});
+    string content = check blobClient->getBlob("held.txt");
+    test:assertEquals(content, "replaced");
+
+    string snapshot = check blobClient->createSnapshot("held.txt");
+    test:assertNotEquals(snapshot, "");
+    string|Error snapshotWithWrongId = blobClient->createSnapshot("held.txt", {leaseId: wrongId});
+    assertLeaseRequired(snapshotWithWrongId, "LeaseIdMismatchWithBlobOperation");
+
+    // A copy onto a leased destination needs the lease to be infinite; Azurite accepts a finite one.
+    if liveRun {
+        string shortLease = check blobClient->acquireLease("free.txt", 15);
+        CopyInfo|Error copyOntoShortLease = blobClient->copyBlob("held.txt", "free.txt", {leaseId: shortLease});
+        assertLeaseRequired(copyOntoShortLease, "InfiniteLeaseDurationRequired");
+        check blobClient->releaseLease("free.txt", shortLease);
+    }
+    check blobClient->releaseLease("held.txt", leaseId);
+}
+
+function assertLeaseRequired(any|Error result, string code) {
+    test:assertTrue(result is PreconditionFailedError, "expected " + code + ", got " + describe(result));
+    if result is PreconditionFailedError {
+        test:assertEquals(result.detail().errorCode, code);
+        test:assertEquals(result.detail().httpStatus, 412);
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Append blobs
 // ---------------------------------------------------------------------------
@@ -733,4 +782,59 @@ function testCopyBlobOverSas() returns error? {
     });
     string content = check blobClient->getBlob("dst.txt");
     test:assertEquals(content, "src");
+}
+
+// A same-account source URL given to a SAS client gets the client's SAS unless it carries one;
+// the service authorizes the source separately from the request.
+@test:Config {}
+function testCopyBlobFromUrlOverSasSignsASameAccountSource() returns error? {
+    Client blobClient = check readyClient("sascopyurl");
+    string container = testContainer("sascopyurl");
+    check blobClient->upload("src", "src.txt");
+    string sas = check blobClient.generateContainerSas({
+        expiryTime: time:utcAddSeconds(time:utcNow(), 600),
+        permissions: {read: true, write: true, create: true}
+    });
+    Client viaSas = check newSasContainerClient(container, sas);
+    string unsigned = string `${serviceUrl()}/${container}/src.txt`;
+    CopyInfo copied = check viaSas->copyBlobFromUrl(unsigned, "dst-unsigned.txt");
+    test:assertTrue(copied.copyId != "");
+    CopyInfo signedToo = check viaSas->copyBlobFromUrl(unsigned + "?" + sas, "dst-signed.txt");
+    test:assertTrue(signedToo.copyId != "");
+    check await(function() returns boolean|error {
+        BlobProperties first = check blobClient->getBlobProperties("dst-unsigned.txt");
+        BlobProperties second = check blobClient->getBlobProperties("dst-signed.txt");
+        return first.copyStatus?.copyStatus == SUCCESS && second.copyStatus?.copyStatus == SUCCESS;
+    });
+    string content = check blobClient->getBlob("dst-unsigned.txt");
+    test:assertEquals(content, "src");
+    content = check blobClient->getBlob("dst-signed.txt");
+    test:assertEquals(content, "src");
+}
+
+// An upload replaces a block blob at its path, never a blob of another type (spec 4.4). Azurite
+// overwrites across types, so this runs live only.
+@test:Config {enable: liveRun}
+function testUploadRefusesAnAppendOrPageBlobDestination() returns error? {
+    Client blobClient = check readyClient("upload-types");
+    check blobClient->createAppendBlob("log.txt");
+    check blobClient->createPageBlob("disk.vhd", 512);
+    Error? ontoAppend = blobClient->upload("x", "log.txt");
+    test:assertTrue(ontoAppend is InvalidBlobTypeError, "expected InvalidBlobTypeError, got " + describe(ontoAppend));
+    Error? ontoPage = blobClient->upload("x", "disk.vhd");
+    test:assertTrue(ontoPage is InvalidBlobTypeError, "expected InvalidBlobTypeError, got " + describe(ontoPage));
+    BlobProperties properties = check blobClient->getBlobProperties("log.txt");
+    test:assertEquals(properties.blobType, "AppendBlob");
+}
+
+// An upload never replaces an archived blob (spec 4.4).
+@test:Config {}
+function testUploadRefusesAnArchivedDestination() returns error? {
+    Client blobClient = check readyClient("upload-archived");
+    check blobClient->upload("cold", "cold.txt");
+    check blobClient->setAccessTier("cold.txt", ARCHIVE);
+    Error? replaced = blobClient->upload("warm", "cold.txt");
+    test:assertTrue(replaced is ArchivedBlobError, "expected ArchivedBlobError, got " + describe(replaced));
+    BlobProperties properties = check blobClient->getBlobProperties("cold.txt");
+    test:assertEquals(properties.accessTier, "Archive");
 }

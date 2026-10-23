@@ -340,6 +340,13 @@ public class ServiceValidationTest {
     }
 
     @Test
+    public void testInvalidOnErrorSecondParamOfAnotherType() {
+        DiagnosticResult result = loadPackage("invalid_on_error_second_string");
+        assertEquals(result.errorCount(), 1, describe(result));
+        assertError(result, 0, "AZURE_BLOB_113", "Optional second parameter must be 'BlobEvent?' or 'Caller?'");
+    }
+
+    @Test
     public void testInvalidOnErrorSecondNonNilableCaller() {
         DiagnosticResult result = loadPackage("invalid_on_error_second_non_nilable_caller");
         assertEquals(result.errorCount(), 1, describe(result));

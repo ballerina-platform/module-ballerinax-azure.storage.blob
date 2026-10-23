@@ -31,7 +31,7 @@ public function main() returns error? {
     blob:AdminClient admin = check new (auth = {accountName, accountKey});
     boolean exists = check admin->hasContainer(containerName);
     if !exists {
-        check admin->createContainer(containerName);
+        return error(string `the container '${containerName}' does not exist; create it first`);
     }
     blob:Client archive = check new (containerName, auth = {accountName, accountKey});
 

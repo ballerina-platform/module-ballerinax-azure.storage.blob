@@ -10,7 +10,7 @@ The `ballerinax/azure.storage.blob` connector provides practical examples illust
 
 ## Prerequisites
 
-Each example needs an Azure storage account and its access key; the connector's [setup guide](../README.md#setup-guide) walks through creating them. The event processor additionally needs the storage queue and Event Grid subscription its walkthrough describes, and the Service Bus example a Service Bus queue with its subscription. Each example's walkthrough documents the `Config.toml` to create in the example directory.
+Each example needs an Azure storage account and its access key; the connector's [setup guide](../README.md#setup-guide) walks through creating them. The folder archive, download link, and tag search examples need the container their `Config.toml` names to exist. The event processor additionally needs the storage queue and Event Grid subscription its walkthrough describes, and the Service Bus example a Service Bus queue with its subscription. Each example's walkthrough documents the `Config.toml` to create in the example directory.
 
 ## Running an example
 

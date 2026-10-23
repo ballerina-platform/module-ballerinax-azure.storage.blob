@@ -429,16 +429,15 @@ final class Dispatcher {
         if (handle != null) {
             handle.activity("onError call");
         }
-        BSpan span = MessageObservation.errorSpan(observation);
+        BSpan span = MessageObservation.errorSpan(observation, error);
         Invocation result = invoke(ctx, svc, Listener.ON_ERROR, args.toArray(),
                 MessageObservation.errorStrand(ctx, svc, span, error));
         if (result.panic() != null) {
             ctx.log.warn("onError panicked; the outcome is unchanged: " + result.panic().getErrorMessage(), fields);
-            BlobTracingUtil.finishSpan(span, BlobMetricsUtil.OUTCOME_FAILURE,
-                    BlobTracingUtil.errorTypeName(result.panic()));
+            BlobTracingUtil.finishSpan(span, BlobMetricsUtil.OUTCOME_FAILURE, null);
         } else if (result.value() instanceof BError returned) {
             ctx.log.warn("onError returned an error; the outcome is unchanged: " + returned.getErrorMessage(), fields);
-            BlobTracingUtil.finishSpan(span, BlobMetricsUtil.OUTCOME_FAILURE, BlobTracingUtil.errorTypeName(returned));
+            BlobTracingUtil.finishSpan(span, BlobMetricsUtil.OUTCOME_FAILURE, null);
         } else {
             BlobTracingUtil.finishSpan(span, BlobMetricsUtil.OUTCOME_SUCCESS, null);
         }

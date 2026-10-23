@@ -30,7 +30,7 @@ public type Error distinct error;
 # code that maps to no subtype stays this type.
 public type ServiceError distinct (Error & error<ServiceErrorDetail>);
 
-# The requested container or blob was not found (HTTP 404).
+# The requested container, blob, queue or message was not found (HTTP 404).
 public type NotFoundError distinct ServiceError;
 
 # The operation conflicts with the current state of the resource, e.g. creating a container

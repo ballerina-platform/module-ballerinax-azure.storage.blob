@@ -62,8 +62,8 @@ final class ListenerContext {
     final Credentials.Resolved credential;
     final String queueEndpoint;
     final TransportConfigMapper.Transport transport;
-    // The retry options of the queue clients: the configured ones without a secondary host, or
-    // the SDK's defaults when none are configured; and the single try of the interpreted calls.
+    // The retry options of the queue clients, the configured ones without a secondary host, and
+    // the single try of the interpreted calls.
     final RequestRetryOptions retrying;
     final RequestRetryOptions retryFree;
     final int maxConnections;

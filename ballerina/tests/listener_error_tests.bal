@@ -549,11 +549,12 @@ function testGracefulStopWaitsForOnError() returns error? {
     check await(() => approximateMessageCount(poisonQueue(queue)) == 1);
 }
 
-@test:Config {enable: liveRun}
+@test:Config {}
 function testArchivedBlobIsPoisonedAtOnce() returns error? {
     EventSource src = check setupEventSource("lsn-archived");
     Client srcBlobs = src.blobs;
-    check srcBlobs->upload("cold", "cold.bin", {accessTier: ARCHIVE});
+    check srcBlobs->upload("cold", "cold.bin");
+    check srcBlobs->setAccessTier("cold.bin", ARCHIVE);
     check enqueueEvent(src.queue, blobCreatedEvent(src.container, "cold.bin"));
 
     final Recorder recorder = new;

@@ -648,6 +648,32 @@ function testListenerOverAccountSas() returns error? {
     return assertListenerDispatches("lsn-sas", accountSasAuth(sas));
 }
 
+// A SAS listener's Caller copies the event's own URL: the listener's SAS is attached to the
+// same-account source, which the service authorizes separately from the request.
+@test:Config {}
+function testCallerCopiesTheEventUrlOverAccountSas() returns error? {
+    EventSource src = check setupEventSource("lsn-sas-copy");
+    Client srcBlobs = src.blobs;
+    check srcBlobs->upload("to archive", "in/report.txt");
+    check enqueueEvent(src.queue, blobCreatedEvent(src.container, "in/report.txt"));
+    final Recorder recorder = new;
+    Listener lsn = check newListenerWith(accountSasAuth(check queueSas()));
+    final string queue = src.queue;
+    Service svc = @ServiceConfig {queueName: queue} isolated service object {
+        isolated remote function onBlobText(string content, BlobEvent event, Caller caller) returns error? {
+            CopyInfo copy = check caller->copyBlobFromUrl(event.url, "archive/report.txt");
+            recorder.put("copy", copy.copyStatus);
+        }
+    };
+    check lsn.attach(svc);
+    check lsn.'start();
+    check await(() => recorder.count("copy") >= 1);
+    check lsn.gracefulStop();
+    test:assertEquals(recorder.payload("copy"), "success");
+    string archived = check srcBlobs->getBlob("archive/report.txt");
+    test:assertEquals(archived, "to archive");
+}
+
 @test:Config {}
 function testListenerOverConnectionString() returns error? {
     return assertListenerDispatches("lsn-connstr", connectionStringAuth());

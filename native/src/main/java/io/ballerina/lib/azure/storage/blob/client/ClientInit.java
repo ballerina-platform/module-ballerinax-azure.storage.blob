@@ -140,11 +140,9 @@ public final class ClientInit {
     public static BlobServiceClient buildServiceClient(BMap<BString, Object> config, HttpClient httpClient) {
         BMap<BString, Object> auth = (BMap<BString, Object>) config.getMapValue(AUTH);
         BlobServiceClientBuilder builder = new BlobServiceClientBuilder();
-        Object retryConfig = config.get(RETRY_CONFIG);
-        if (retryConfig != null) {
-            builder.retryOptions(TransportConfigMapper.retryOptions((BMap<BString, Object>) retryConfig));
-        }
-        // transportConfig is defaulted on the record, so the connector's pool values always apply.
+        // retryConfig and transportConfig are defaulted on the records, so the connector's values
+        // always apply.
+        builder.retryOptions(TransportConfigMapper.retryOptions((BMap<BString, Object>) config.get(RETRY_CONFIG)));
         builder.httpClient(httpClient != null ? httpClient
                 : TransportConfigMapper.httpClient((BMap<BString, Object>) config.get(TRANSPORT_CONFIG)));
 

@@ -103,7 +103,8 @@ public isolated client class AdminClient {
     } external;
 
     # Obtains a key for signing user-delegation SAS tokens. Requires a Microsoft Entra ID
-    # credential holding the `Storage Blob Delegator` role.
+    # credential whose identity holds the `generateUserDelegationKey` action at storage account
+    # scope or wider, which `Storage Blob Delegator` or any blob data role assigned there grants.
     #
     # + startTime - When the key becomes valid
     # + expiryTime - When the key expires; at most 7 days after `startTime`

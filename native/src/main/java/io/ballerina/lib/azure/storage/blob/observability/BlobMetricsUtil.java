@@ -262,14 +262,15 @@ public final class BlobMetricsUtil {
      *
      * @param url         the remote host
      * @param protocol    the wire protocol
+     * @param watchedPath the queue the message came from
      * @param handlerName the handler whose declared type the content was bound to
      * @param outcome     {@link #OUTCOME_SUCCESS} or {@link #OUTCOME_FAILURE}
      * @param durationMs  the duration in milliseconds
      */
-    public static void reportDatabindingDuration(String url, String protocol, String handlerName, String outcome,
-                                                 long durationMs) {
-        reportDuration(METRIC_DATABINDING_DURATION, METRIC_DATABINDING_DURATION_DESC, url, protocol, handlerName,
-                outcome, durationMs);
+    public static void reportDatabindingDuration(String url, String protocol, String watchedPath, String handlerName,
+                                                 String outcome, long durationMs) {
+        reportDuration(METRIC_DATABINDING_DURATION, METRIC_DATABINDING_DURATION_DESC, url, protocol, watchedPath,
+                handlerName, outcome, durationMs);
     }
 
     /**
@@ -277,23 +278,25 @@ public final class BlobMetricsUtil {
      *
      * @param url         the remote host
      * @param protocol    the wire protocol
+     * @param watchedPath the queue the message came from
      * @param handlerName the handler that ran
      * @param outcome     {@link #OUTCOME_SUCCESS} or {@link #OUTCOME_FAILURE}
      * @param durationMs  the duration in milliseconds
      */
-    public static void reportResourceExecutionDuration(String url, String protocol, String handlerName,
-                                                       String outcome, long durationMs) {
+    public static void reportResourceExecutionDuration(String url, String protocol, String watchedPath,
+                                                       String handlerName, String outcome, long durationMs) {
         reportDuration(METRIC_RESOURCE_EXECUTION_DURATION, METRIC_RESOURCE_EXECUTION_DURATION_DESC, url, protocol,
-                handlerName, outcome, durationMs);
+                watchedPath, handlerName, outcome, durationMs);
     }
 
     private static void reportDuration(String name, String description, String url, String protocol,
-                                       String handlerName, String outcome, long durationMs) {
+                                       String watchedPath, String handlerName, String outcome, long durationMs) {
         if (!ObserveUtils.isMetricsEnabled()) {
             return;
         }
         try {
             BlobObserverContext observerContext = new BlobObserverContext(CONTEXT_LISTENER, url, protocol);
+            observerContext.addTag(BlobObserverContext.TAG_WATCHED_PATH, requireNonNullElse(watchedPath, NONE));
             observerContext.addTag(BlobObserverContext.TAG_HANDLER_NAME, requireNonNullElse(handlerName, NONE));
             observerContext.addTag(BlobObserverContext.TAG_OUTCOME, requireNonNullElse(outcome, NONE));
             metricRegistry.gauge(new MetricId(name, description, observerContext.getAllTags()),

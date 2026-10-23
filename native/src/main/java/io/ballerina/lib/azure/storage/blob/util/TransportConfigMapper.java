@@ -194,12 +194,11 @@ public final class TransportConfigMapper {
      * The retry options of a retry-free call: one try with the configured try timeout, for the
      * calls whose failures the listener interprets itself.
      *
-     * @param retry the {@code RetryConfig} record, or {@code null} for the connector's defaults
+     * @param retry the {@code RetryConfig} record
      * @return the SDK retry options
      */
     public static RequestRetryOptions singleTry(BMap<BString, Object> retry) {
-        Duration tryTimeout = retry == null ? null : seconds(retry.get(TRY_TIMEOUT));
-        return new RequestRetryOptions(RetryPolicyType.FIXED, 1, tryTimeout, null, null, null);
+        return new RequestRetryOptions(RetryPolicyType.FIXED, 1, seconds(retry.get(TRY_TIMEOUT)), null, null, null);
     }
 
     private static ProxyOptions proxyOptions(BMap<BString, Object> proxy) {

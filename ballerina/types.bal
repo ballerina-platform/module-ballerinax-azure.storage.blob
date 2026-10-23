@@ -257,8 +257,8 @@ public type TransportConfig record {|
 public type ClientConfiguration record {|
     # The authentication configuration (see `AuthConfig`)
     AuthConfig auth;
-    # Retry behaviour for service requests; omit for the service defaults
-    RetryConfig retryConfig?;
+    # Retry behaviour for service requests; the connector's defaults apply when omitted
+    RetryConfig retryConfig = {};
     # HTTP transport settings (proxy, connection pool, TLS)
     TransportConfig transportConfig = {};
 |};
@@ -267,8 +267,7 @@ public type ClientConfiguration record {|
 // Enums
 // ---------------------------------------------------------------------------
 
-# The access tiers this module sets on a blob. The tier a blob reports is a plain `string`,
-# because the service's tier set is open-ended.
+# The access tiers this module sets on a blob. The tier a blob reports is a plain `string`.
 public enum AccessTier {
     # Optimised for frequent access
     HOT = "Hot",
@@ -640,7 +639,7 @@ public type BlobProperties record {|
     map<string> metadata;
     # The blob type (`BlockBlob`, `AppendBlob`, or `PageBlob`)
     string blobType;
-    # The access tier, as the wire's string, since the service's tier set is open-ended
+    # The access tier, as the wire's string
     string accessTier?;
     # Whether the tier was inferred rather than set explicitly; present whenever the blob has a tier
     boolean accessTierInferred?;

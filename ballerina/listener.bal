@@ -23,12 +23,13 @@ public type ListenerConfiguration record {|
     # every poison queue, and every `Caller` of the listener; a SAS credential must be an
     # account SAS covering both the queue and the blob services
     AuthConfig auth;
-    # Relaxed data binding for the typed content handlers: JSON, XML, and CSV record binding
-    # treat a null value as an optional field and an absent field as a nilable field
+    # Relaxed data binding for the typed content handlers: JSON and CSV record binding treat a
+    # null value as an optional field and an absent field as a nilable field, and XML record
+    # binding tolerates undeclared elements
     boolean laxDataBinding = false;
-    # Retry behaviour for service requests; omit to keep the connector's defaults. The
+    # Retry behaviour for service requests; the connector's defaults apply when omitted. The
     # secondary host, if given, serves the blob requests only
-    RetryConfig retryConfig?;
+    RetryConfig retryConfig = {};
     # HTTP transport settings (proxy, connection pool, TLS), shared by every service and
     # `Caller` of the listener
     TransportConfig transportConfig = {};
@@ -89,11 +90,11 @@ public isolated class Listener {
     # + config - The listener configuration (authentication, data binding, transport)
     # + return - An `Error` if the listener could not be initialized, otherwise `()`
     public isolated function init(*ListenerConfiguration config) returns Error? {
-        ClientConfiguration clientConfig = {auth: config.auth, transportConfig: config.transportConfig};
-        RetryConfig? retryConfig = config?.retryConfig;
-        if retryConfig is RetryConfig {
-            clientConfig.retryConfig = retryConfig;
-        }
+        ClientConfiguration clientConfig = {
+            auth: config.auth,
+            retryConfig: config.retryConfig,
+            transportConfig: config.transportConfig
+        };
         self.clientConfig = clientConfig.cloneReadOnly();
         return externInit(self, config);
     }

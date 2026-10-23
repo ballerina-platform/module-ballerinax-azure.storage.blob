@@ -98,7 +98,7 @@ public final class Listener {
             TransportConfigMapper.Transport transport = TransportConfigMapper.transport(transportConfig);
             BlobServiceClient serviceClient = ClientInit.buildServiceClient(clientConfig, transport.httpClient());
             BMap<BString, Object> retry = (BMap<BString, Object>) config.get(ClientInit.RETRY_CONFIG);
-            RequestRetryOptions retrying = retry == null ? null : TransportConfigMapper.retryOptions(retry, false);
+            RequestRetryOptions retrying = TransportConfigMapper.retryOptions(retry, false);
             RequestRetryOptions retryFree = TransportConfigMapper.singleTry(retry);
             BMap<BString, Object> pool = (BMap<BString, Object>) transportConfig.get(CONNECTION_POOL);
             int maxConnections = Math.toIntExact((Long) pool.get(MAX_CONNECTIONS));

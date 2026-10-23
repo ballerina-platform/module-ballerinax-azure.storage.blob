@@ -3,7 +3,7 @@
   "listeners": [
     {
       "id": "$listener",
-      "doc": "Consumes the Storage queues Event Grid subscriptions fill with blob events; each attached service names the queue it consumes in @blob:ServiceConfig and handles whatever that queue carries.",
+      "doc": "Polls the queue each attached service names and dispatches the blob events it carries to that service.",
       "type": {
         "name": "Listener"
       },
@@ -17,7 +17,7 @@
   "serviceTypes": [
     {
       "id": "$service",
-      "doc": "Consumes the blob events delivered to the queue named in its @blob:ServiceConfig annotation, dispatching each created blob to the handler matching its name or content type.",
+      "doc": "Consumes the blob events of its queue, dispatching each created blob to the handler matching its name or content type.",
       "type": {
         "name": "Service"
       },
@@ -33,7 +33,7 @@
             "id": "$service.onBlob",
             "name": "onBlob",
             "kind": "remote",
-            "doc": "Invoked for any created blob no typed handler takes, and as the fallback when no typed handler is declared. Content arrives as raw bytes. Returning a DeadLetterError moves the message to the poison queue at once, a RetryError redelivers it after the delay it names, and any other error redelivers it.",
+            "doc": "Invoked for any created blob no typed handler matched, and as the fallback when no typed handler is declared. Content arrives as raw bytes.",
             "presence": "optional",
             "annotations": [
               "$functionConfig"
@@ -77,7 +77,7 @@
               {
                 "id": "$service.onBlob.event",
                 "name": "event",
-                "doc": "The event: whether the blob was created or deleted, its storage account, container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer.",
+                "doc": "The blob event: its account, container, path, and URL, the kind of change, and its time.",
                 "type": {
                   "name": "BlobEvent"
                 },
@@ -86,7 +86,7 @@
               {
                 "id": "$service.onBlob.caller",
                 "name": "caller",
-                "doc": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags.",
+                "doc": "The container connection, for reading or writing blobs while this event is handled.",
                 "type": {
                   "name": "Caller"
                 },
@@ -111,7 +111,7 @@
             "id": "$service.onBlobText",
             "name": "onBlobText",
             "kind": "remote",
-            "doc": "Invoked for each created .txt blob, or a blob whose content type is text, or any created blob matching the patterns set on @blob:FunctionConfig. Falls through to onBlob when not declared. Returning a DeadLetterError moves the message to the poison queue at once, a RetryError redelivers it after the delay it names, and any other error redelivers it.",
+            "doc": "Invoked for each created .txt blob, or any created blob matching the patterns set on @blob:FunctionConfig. Falls through to onBlob when not declared.",
             "presence": "optional",
             "annotations": [
               "$functionConfig"
@@ -130,7 +130,7 @@
               {
                 "id": "$service.onBlobText.event",
                 "name": "event",
-                "doc": "The event: whether the blob was created or deleted, its storage account, container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer.",
+                "doc": "The blob event: its account, container, path, and URL, the kind of change, and its time.",
                 "type": {
                   "name": "BlobEvent"
                 },
@@ -139,7 +139,7 @@
               {
                 "id": "$service.onBlobText.caller",
                 "name": "caller",
-                "doc": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags.",
+                "doc": "The container connection, for reading or writing blobs while this event is handled.",
                 "type": {
                   "name": "Caller"
                 },
@@ -164,7 +164,7 @@
             "id": "$service.onBlobJson",
             "name": "onBlobJson",
             "kind": "remote",
-            "doc": "Invoked for each created .json blob, or a blob whose content type is JSON, or any created blob matching the patterns set on @blob:FunctionConfig. Falls through to onBlob when not declared. Returning a DeadLetterError moves the message to the poison queue at once, a RetryError redelivers it after the delay it names, and any other error redelivers it.",
+            "doc": "Invoked for each created .json blob, or any created blob matching the patterns set on @blob:FunctionConfig. Falls through to onBlob when not declared.",
             "presence": "optional",
             "annotations": [
               "$functionConfig"
@@ -173,7 +173,7 @@
               {
                 "id": "$service.onBlobJson.content",
                 "name": "content",
-                "doc": "The parsed content; bind a record type to project an object root. Binding is strict unless the listener relaxes it.",
+                "doc": "The parsed content; bind a record type to project it.",
                 "type": {
                   "name": "json",
                   "builtin": true
@@ -209,7 +209,7 @@
               {
                 "id": "$service.onBlobJson.event",
                 "name": "event",
-                "doc": "The event: whether the blob was created or deleted, its storage account, container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer.",
+                "doc": "The blob event: its account, container, path, and URL, the kind of change, and its time.",
                 "type": {
                   "name": "BlobEvent"
                 },
@@ -218,7 +218,7 @@
               {
                 "id": "$service.onBlobJson.caller",
                 "name": "caller",
-                "doc": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags.",
+                "doc": "The container connection, for reading or writing blobs while this event is handled.",
                 "type": {
                   "name": "Caller"
                 },
@@ -243,7 +243,7 @@
             "id": "$service.onBlobXml",
             "name": "onBlobXml",
             "kind": "remote",
-            "doc": "Invoked for each created .xml blob, or a blob whose content type is XML, or any created blob matching the patterns set on @blob:FunctionConfig. Falls through to onBlob when not declared. Returning a DeadLetterError moves the message to the poison queue at once, a RetryError redelivers it after the delay it names, and any other error redelivers it.",
+            "doc": "Invoked for each created .xml blob, or any created blob matching the patterns set on @blob:FunctionConfig. Falls through to onBlob when not declared.",
             "presence": "optional",
             "annotations": [
               "$functionConfig"
@@ -252,7 +252,7 @@
               {
                 "id": "$service.onBlobXml.content",
                 "name": "content",
-                "doc": "The parsed document; bind a record type to project it from the document's elements. Binding is strict unless the listener relaxes it.",
+                "doc": "The parsed document; bind a record type to project it from its elements.",
                 "type": {
                   "name": "xml",
                   "builtin": true
@@ -288,7 +288,7 @@
               {
                 "id": "$service.onBlobXml.event",
                 "name": "event",
-                "doc": "The event: whether the blob was created or deleted, its storage account, container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer.",
+                "doc": "The blob event: its account, container, path, and URL, the kind of change, and its time.",
                 "type": {
                   "name": "BlobEvent"
                 },
@@ -297,7 +297,7 @@
               {
                 "id": "$service.onBlobXml.caller",
                 "name": "caller",
-                "doc": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags.",
+                "doc": "The container connection, for reading or writing blobs while this event is handled.",
                 "type": {
                   "name": "Caller"
                 },
@@ -322,7 +322,7 @@
             "id": "$service.onBlobCsv",
             "name": "onBlobCsv",
             "kind": "remote",
-            "doc": "Invoked for each created .csv blob, or a blob whose content type is CSV, or any created blob matching the patterns set on @blob:FunctionConfig. Falls through to onBlob when not declared. Declaring a stream parameter reads the blob in chunks instead of loading it into memory. Returning a DeadLetterError moves the message to the poison queue at once, a RetryError redelivers it after the delay it names, and any other error redelivers it.",
+            "doc": "Invoked for each created .csv blob, or any created blob matching the patterns set on @blob:FunctionConfig. Declaring a stream parameter reads the blob in chunks instead of loading it into memory. Falls through to onBlob when not declared.",
             "presence": "optional",
             "annotations": [
               "$functionConfig"
@@ -331,7 +331,7 @@
               {
                 "id": "$service.onBlobCsv.content",
                 "name": "content",
-                "doc": "The parsed rows, as batched or streamed string rows or records; the field names of a record row come from the header row. Binding is strict unless the listener relaxes it.",
+                "doc": "The parsed rows, as batched or streamed string rows or records; a record row's field names come from the header row.",
                 "type": [
                   {
                     "shape": "array",
@@ -452,7 +452,7 @@
               {
                 "id": "$service.onBlobCsv.event",
                 "name": "event",
-                "doc": "The event: whether the blob was created or deleted, its storage account, container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer.",
+                "doc": "The blob event: its account, container, path, and URL, the kind of change, and its time.",
                 "type": {
                   "name": "BlobEvent"
                 },
@@ -461,7 +461,7 @@
               {
                 "id": "$service.onBlobCsv.caller",
                 "name": "caller",
-                "doc": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags.",
+                "doc": "The container connection, for reading or writing blobs while this event is handled.",
                 "type": {
                   "name": "Caller"
                 },
@@ -486,13 +486,13 @@
             "id": "$service.onBlobDelete",
             "name": "onBlobDelete",
             "kind": "remote",
-            "doc": "Invoked for each deleted blob. Returning a DeadLetterError moves the message to the poison queue at once, a RetryError redelivers it after the delay it names, and any other error redelivers it.",
+            "doc": "Invoked for each deleted blob. There is no content, because the blob is already gone.",
             "presence": "optional",
             "params": [
               {
                 "id": "$service.onBlobDelete.event",
                 "name": "event",
-                "doc": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer.",
+                "doc": "The blob event: its account, container, path, and URL, the kind of change, and its time.",
                 "type": {
                   "name": "BlobEvent"
                 },
@@ -501,7 +501,7 @@
               {
                 "id": "$service.onBlobDelete.caller",
                 "name": "caller",
-                "doc": "The storage account connection, for acting on blobs while the event is handled: read, download, upload, delete, copy from a URL, and set tags.",
+                "doc": "The container connection, for reading or writing blobs while this event is handled.",
                 "type": {
                   "name": "Caller"
                 },
@@ -526,7 +526,7 @@
             "id": "$service.onError",
             "name": "onError",
             "kind": "remote",
-            "doc": "Invoked when a poll of the service's queue fails, a message cannot be parsed, a blob's content cannot be fetched or bound, a move to the poison queue fails, or a message arrives past its delivery limit. It runs before the message is disposed of and never settles it. Errors returned by the other handlers are not sent here; they settle the message.",
+            "doc": "Invoked when a poll, a message parse, a content fetch or binding, or a poison move fails.",
             "presence": "optional",
             "params": [
               {
@@ -541,7 +541,7 @@
               {
                 "id": "$service.onError.event",
                 "name": "event",
-                "doc": "The event the failure belongs to, or () for a failed poll, an unparseable message, or a message past its delivery limit that is not this listener's to handle.",
+                "doc": "The event the failure belongs to, or () when there is none.",
                 "type": [
                   {
                     "name": "BlobEvent"
@@ -556,7 +556,7 @@
               {
                 "id": "$service.onError.caller",
                 "name": "caller",
-                "doc": "A Caller bound to the event's container, or () when the failure carries no event or the Caller could not be built.",
+                "doc": "The container connection, or () when the failure carries no event.",
                 "type": [
                   {
                     "name": "Caller"

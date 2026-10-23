@@ -151,8 +151,8 @@ public isolated client class Client {
         'class: "io.ballerina.lib.azure.storage.blob.client.BlobOps"
     } external;
 
-    # Replaces a blob's complete content-header set. The wire applies the set as a whole, so
-    # any header omitted from the record is cleared on the blob. Metadata is untouched.
+    # Replaces a blob's complete content-header set; any header omitted from the record is
+    # cleared on the blob. Metadata is untouched.
     #
     # + path - The container-relative path of the blob
     # + headers - The new complete content-header set
@@ -190,8 +190,9 @@ public isolated client class Client {
     # check blobClient->upload(metrics, "2026/q1/metrics.json");
     # ```
     #
-    # + content - The content to upload. A record, a record array, or another `json` value is
-    #             serialized per the resolved format; `byte[]` and `string` are written as-is
+    # + content - The content to upload. `byte[]`, `string` and a byte stream are written as-is;
+    #             `json`, `xml`, a record, a record array and a record stream are serialized per
+    #             the resolved format
     # + destinationPath - The container-relative path, including the blob name
     # + options - Optional upload options (headers, metadata, format override)
     # + return - An `Error` if the upload failed, otherwise `()`
@@ -393,8 +394,9 @@ public isolated client class Client {
     # Copies into the bound container from any Azure Storage URL the service can read. The copy
     # is asynchronous.
     #
-    # + sourceUrl - The URL of the source. A source outside this storage account carries its own
-    #               authorization, typically a SAS token
+    # + sourceUrl - The URL of the source. A source in this storage account is authorized by the
+    #               client's credential, a SAS being attached to the URL unless it already carries
+    #               one; a source elsewhere carries its own authorization, typically a SAS token
     # + destinationPath - The container-relative path of the destination blob
     # + options - Optional copy options (destination metadata, tags, tier, lease id)
     # + return - The `CopyInfo` for the accepted copy, or an `Error`
@@ -434,8 +436,7 @@ public isolated client class Client {
     // Blob index tag operations
     // -----------------------------------------------------------------------
 
-    # Replaces a blob's complete index-tag set, at most ten tags. Note the wire's exception to
-    # the usual lease rule: a missing lease id here fails with an `AuthorizationError`.
+    # Replaces a blob's complete index-tag set, at most ten tags.
     #
     # + path - The container-relative path of the blob
     # + tags - The new complete tag set; pass `{}` to clear it

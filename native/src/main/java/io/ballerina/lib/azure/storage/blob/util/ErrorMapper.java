@@ -81,7 +81,7 @@ public final class ErrorMapper {
         return BlobErrorCreator.storageError(typeName(code), message, e.getStatusCode(), code, e);
     }
 
-    private static String typeName(String code) {
+    static String typeName(String code) {
         if (NOT_FOUND_CODES.contains(code)) {
             return "NotFoundError";
         }

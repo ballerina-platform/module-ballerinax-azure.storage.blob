@@ -162,6 +162,34 @@ public final class BallerinaAzureClient {
     }
 
     /**
+     * Attaches the client's SAS to a copy source under the client's own blob endpoint, since the
+     * service authorizes the source separately from the request; a source elsewhere, one already
+     * carrying a signature, or any source of a client without a SAS is returned unchanged.
+     *
+     * @param self      the container-bound client object
+     * @param sourceUrl the source URL
+     * @return the URL to send as the copy source
+     */
+    public static String signSameAccountSource(BObject self, String sourceUrl) {
+        String signature = (String) self.getNativeData(NATIVE_SAS_SIGNATURE);
+        if (signature == null || !isOwnBlobEndpoint(self, sourceUrl) || carriesSignature(sourceUrl)) {
+            return sourceUrl;
+        }
+        return sourceUrl + (sourceUrl.contains("?") ? "&" : "?") + signature;
+    }
+
+    private static boolean isOwnBlobEndpoint(BObject self, String url) {
+        String accountUrl = getContainerClient(self).getAccountUrl();
+        return url.length() > accountUrl.length() && url.charAt(accountUrl.length()) == '/'
+                && url.regionMatches(true, 0, accountUrl, 0, accountUrl.length());
+    }
+
+    private static boolean carriesSignature(String url) {
+        int query = url.indexOf('?');
+        return query >= 0 && (url.substring(query).contains("?sig=") || url.substring(query).contains("&sig="));
+    }
+
+    /**
      * Maps a failure to the module's typed error: Azure service failures go through the
      * code-keyed mapper, Ballerina errors pass through, and anything else becomes the
      * generic client-side {@code Error}.

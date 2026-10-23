@@ -167,6 +167,7 @@ function testTransfersCountBytesByOperationType() returns error? {
     check blobs->download("bytes.bin", local);
     check blobs->uploadFromFile(local, "bytes-copy.bin");
     _ = check blobs->getBlobProperties("bytes.bin");
+    check blobs->setBlobMetadata("bytes.bin", {k: "v"});
     Series[] after = check scrapeMetrics();
 
     test:assertEquals(fetched.length(), size);
@@ -183,6 +184,8 @@ function testTransfersCountBytesByOperationType() returns error? {
             "every put operation's own span carries the connector's tags");
     test:assertEquals(delta(before, after, REQUESTS, withLabels(operation, {operation_type: "get"})), 4.0,
             "every get operation's own span carries the connector's tags, property reads included");
+    test:assertEquals(delta(before, after, REQUESTS, withLabels(operation, {operation_type: "manage"})), 1.0,
+            "a metadata write is a manage operation");
     test:assertTrue(after.filter(s => s.name == REQUESTS && s.labels["module"] == "azure_blob")
             .every(s => s.labels.hasKey("host")), "every client operation series carries the host");
 }
@@ -207,19 +210,31 @@ function testListenerCountsEveryStageOfAMessage() returns error? {
     int size = 5;
     byte[] payload = [];
     payload.setLength(size);
+    string badJson = "{not json";
     check srcBlobs->upload(payload, "ok.bin");
     check srcBlobs->upload(payload, "poison.bin");
+    check srcBlobs->upload(payload, "retry.bin");
+    check srcBlobs->upload(badJson, "bad.json");
+    check srcBlobs->upload(payload, "cold.bin");
+    check srcBlobs->setAccessTier("cold.bin", ARCHIVE);
     final string queue = src.queue;
     final Recorder recorder = new;
 
     Series[] beforeListener = check scrapeMetrics();
     Listener lsn = check newListener();
-    Service svc = @ServiceConfig {queueName: queue} isolated service object {
+    Service svc = @ServiceConfig {queueName: queue, maxDeliveryCount: 2} isolated service object {
         isolated remote function onBlob(byte[] content, BlobEvent event) returns error? {
             recorder.add("handled", event.path);
             if event.path == "poison.bin" {
                 return error DeadLetterError("give up");
             }
+            if event.path == "retry.bin" {
+                return error("try again");
+            }
+        }
+
+        isolated remote function onBlobJson(Invoice content, BlobEvent event) returns error? {
+            recorder.add("handled", event.path);
         }
 
         isolated remote function onError(Error err) returns error? {
@@ -232,10 +247,15 @@ function testListenerCountsEveryStageOfAMessage() returns error? {
 
     check enqueueEvent(queue, blobCreatedEvent(src.container, "ok.bin"));
     check enqueueEvent(queue, blobCreatedEvent(src.container, "poison.bin"));
+    check enqueueEvent(queue, blobCreatedEvent(src.container, "retry.bin"));
+    check enqueueEvent(queue, blobCreatedEvent(src.container, "missing.bin"));
+    check enqueueEvent(queue, blobCreatedEvent(src.container, "bad.json", "application/json"));
+    check enqueueEvent(queue, blobCreatedEvent(src.container, "cold.bin"));
     check enqueueMessage(queue, "not an event");
     check enqueueEvent(queue, blobCreatedEvent(src.container, "ok.bin", topic = storageTopic("someoneelse")));
     check enqueueEvent(queue, blobDeletedEvent(src.container, "ok.bin"));
-    check await(() => approximateMessageCount(queue) == 0 && approximateMessageCount(poisonQueue(queue)) == 2);
+    check enqueueEvent(queue, blobTierChangedEvent(src.container, "ok.bin"));
+    check await(() => approximateMessageCount(queue) == 0 && approximateMessageCount(poisonQueue(queue)) == 5);
     Series[] afterEvents = check scrapeMetrics();
 
     // A deleted queue fails the next receive, which counts as a failed poll cycle.
@@ -248,8 +268,8 @@ function testListenerCountsEveryStageOfAMessage() returns error? {
     check lsn.gracefulStop();
     Series[] afterStop = check scrapeMetrics();
 
-    test:assertEquals(recorder.list("handled").sort(), ["ok.bin", "poison.bin"],
-            "both created events reached the handler");
+    test:assertEquals(recorder.list("handled").sort(), ["ok.bin", "poison.bin", "retry.bin", "retry.bin"],
+            "the created events of readable blobs reached the handler, the retried one twice");
     map<string> listenerIdentity = identity("listener");
     test:assertEquals(delta(beforeListener, beforeEvents, CONNECTIONS, listenerIdentity), 1.0,
             "the listener's init raises the connection gauge");
@@ -260,18 +280,23 @@ function testListenerCountsEveryStageOfAMessage() returns error? {
 
     map<string> event = withLabels(listenerIdentity, {action_type: "file_event", watched_path: labelValue(queue)});
     map<string> found = withLabels(event, {file_stage: "found"});
-    test:assertEquals(delta(beforeEvents, afterEvents, EVENTS, withLabels(found, {outcome: "success"})), 2.0,
-            "a message routed to a handler is found once");
+    test:assertEquals(delta(beforeEvents, afterEvents, EVENTS, withLabels(found, {outcome: "success"})), 7.0,
+            "every delivery of a message routed to a handler is found once");
     test:assertEquals(delta(beforeEvents, afterEvents, EVENTS,
             withLabels(found, {outcome: "failure", error_type: "unparseable_message"})), 1.0);
     test:assertEquals(delta(beforeEvents, afterEvents, EVENTS,
             withLabels(found, {outcome: "skipped", error_type: "foreign_account"})), 1.0);
     test:assertEquals(delta(beforeEvents, afterEvents, EVENTS,
             withLabels(found, {outcome: "skipped", error_type: "no_handler_matched", event_type: "delete"})), 1.0);
+    test:assertEquals(delta(beforeEvents, afterEvents, EVENTS,
+            withLabels(found, {outcome: "skipped", error_type: "event_type_not_dispatched"})), 1.0,
+            "a tier change is not a dispatched event type");
     test:assertEquals(delta(beforeEvents, afterEvents, EVENTS, withLabels(event,
-            {file_stage: "dispatched", handler_name: "onBlob", event_type: "create", outcome: "success"})), 2.0);
+            {file_stage: "dispatched", handler_name: "onBlob", event_type: "create", outcome: "success"})), 6.0);
+    test:assertEquals(delta(beforeEvents, afterEvents, EVENTS, withLabels(event,
+            {file_stage: "dispatched", handler_name: "onBlobJson", event_type: "create", outcome: "success"})), 1.0);
     test:assertEquals(delta(beforeEvents, afterEvents, REQUESTS,
-            withLabels(event, {handler_name: "onBlob", event_type: "create", src_function_name: "onBlob"})), 2.0,
+            withLabels(event, {handler_name: "onBlob", event_type: "create", src_function_name: "onBlob"})), 4.0,
             "the runtime's span for the handler call carries the connector's tags");
     test:assertEquals(delta(beforeEvents, afterEvents, REQUESTS,
             withLabels(event, {handler_name: "onError", event_type: "error", error_type: "Error"})), 1.0,
@@ -281,14 +306,25 @@ function testListenerCountsEveryStageOfAMessage() returns error? {
     test:assertEquals(delta(beforeEvents, afterEvents, EVENTS,
             withLabels(handled, {outcome: "failure", error_type: "DeadLetterError"})), 1.0,
             "a returned error's type name is the handled stage's error type");
+    test:assertEquals(delta(beforeEvents, afterEvents, EVENTS,
+            withLabels(handled, {outcome: "skipped", error_type: "blob_not_found"})), 1.0,
+            "a created blob already gone is skipped");
+    test:assertEquals(delta(beforeEvents, afterEvents, EVENTS,
+            withLabels(handled, {outcome: "failure", error_type: "archived_blob"})), 1.0);
+    test:assertEquals(delta(beforeEvents, afterEvents, EVENTS, withLabels(event,
+            {file_stage: "handled", handler_name: "onBlobJson", outcome: "failure", error_type: "binding_failed"})),
+            1.0, "content that does not bind fails the handled stage");
     map<string> cleanedUp = withLabels(event, {file_stage: "cleaned_up", outcome: "success"});
     test:assertEquals(delta(beforeEvents, afterEvents, EVENTS,
-            withLabels(cleanedUp, {cleanup_action: "acknowledge"})), 3.0,
-            "the handled, the foreign, and the unrouted messages are acknowledged");
-    test:assertEquals(delta(beforeEvents, afterEvents, EVENTS, withLabels(cleanedUp, {cleanup_action: "poison"})),
-            2.0, "the dead-lettered and the unparseable messages are poisoned");
+            withLabels(cleanedUp, {cleanup_action: "acknowledge"})), 5.0,
+            "the handled, the gone, the foreign, and the two unrouted messages are acknowledged");
     test:assertEquals(delta(beforeEvents, afterEvents, EVENTS,
-            withLabels(cleanedUp, {cleanup_action: "poison", event_type: "create"})), 1.0,
+            withLabels(cleanedUp, {cleanup_action: "redeliver"})), 1.0,
+            "the failed handler's message is redelivered once before the limit");
+    test:assertEquals(delta(beforeEvents, afterEvents, EVENTS, withLabels(cleanedUp, {cleanup_action: "poison"})),
+            5.0, "the dead-lettered, the exhausted, the unbound, the archived and the unparseable messages are poisoned");
+    test:assertEquals(delta(beforeEvents, afterEvents, EVENTS,
+            withLabels(cleanedUp, {cleanup_action: "poison", event_type: "create"})), 4.0,
             "a settlement carries the event type when the message parsed");
     test:assertEquals(delta(beforeEvents, afterEvents, EVENTS,
             withLabels(cleanedUp, {cleanup_action: "acknowledge", event_type: "delete"})), 1.0);
@@ -298,15 +334,17 @@ function testListenerCountsEveryStageOfAMessage() returns error? {
     assertLabelKeys(afterEvents, BYTES, ["host", "module", "operation_type", "protocol", "remote_url", "type"]);
     assertLabelKeys(afterEvents, CONNECTIONS, ["host", "module", "protocol", "remote_url", "type"]);
     assertLabelKeys(afterEvents, DATABINDING_DURATION, ["handler_name", "host", "module", "outcome", "protocol",
-            "remote_url", "type"]);
+            "remote_url", "type", "watched_path"]);
     assertLabelKeys(afterEvents, EXECUTION_DURATION, ["handler_name", "host", "module", "outcome", "protocol",
-            "remote_url", "type"]);
+            "remote_url", "type", "watched_path"]);
     test:assertEquals(delta(beforeEvents, afterEvents, BYTES, withLabels(listenerIdentity, {operation_type: "get"})),
-            <float>(2 * size), "the content fetched for the handlers counts as listener get bytes");
+            <float>(4 * size + badJson.toBytes().length()),
+            "the content fetched for the handlers counts as listener get bytes, the unbound content included");
+    map<string> ownService = withLabels(listenerIdentity, {watched_path: labelValue(queue)});
     test:assertTrue(total(afterEvents, DATABINDING_DURATION,
-            withLabels(listenerIdentity, {handler_name: "onBlob", outcome: "success"})) > 0.0,
-            "the fetch and bind time is recorded under the handler's name");
+            withLabels(ownService, {handler_name: "onBlob", outcome: "success"})) > 0.0,
+            "the fetch and bind time is recorded under the service's queue and the handler's name");
     test:assertTrue(afterEvents.some(s => s.name == EXECUTION_DURATION && s.labels["handler_name"] == "onBlob"
-            && s.labels["outcome"] == "failure" && s.labels["module"] == "azure_blob"),
-            "the handler's run time is recorded with its outcome");
+            && s.labels["outcome"] == "failure" && s.labels["watched_path"] == labelValue(queue)),
+            "the handler's run time is recorded with its outcome under the service's queue");
 }

@@ -350,9 +350,9 @@ public type AccountSasPermissions record {|
     boolean delete = false;
     # List containers and their blobs
     boolean list = false;
-    # Add content (append-style operations)
+    # Add content to append blobs and send queue messages; required by the `Listener`
     boolean add = false;
-    # Create new resources
+    # Create new resources, queues included; required by the `Listener`
     boolean create = false;
     # Update a queued message; required by the `Listener`
     boolean update = false;

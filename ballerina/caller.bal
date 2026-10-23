@@ -67,8 +67,9 @@ public isolated client class Caller {
 
     # Uploads in-memory content to the event's container.
     #
-    # + content - The content to upload. A record, a record array, or another `json` value is
-    #             serialized per the resolved format; `byte[]` and `string` are written as-is
+    # + content - The content to upload. `byte[]`, `string` and a byte stream are written as-is;
+    #             `json`, `xml`, a record, a record array and a record stream are serialized per
+    #             the resolved format
     # + destinationPath - The container-relative path, including the blob name
     # + options - Optional upload options (headers, metadata, format override)
     # + return - An `Error` if the upload failed, otherwise `()`
@@ -89,7 +90,10 @@ public isolated client class Caller {
     # Starts a copy from any readable blob URL, such as `BlobEvent.url`, to a path in the
     # event's container. The copy is asynchronous; read its state through `getBlobProperties`.
     #
-    # + sourceUrl - The URL of the blob to copy, including any SAS it needs
+    # + sourceUrl - The URL of the blob to copy. A source in this storage account, such as
+    #               `BlobEvent.url`, is authorized by the listener's credential, a SAS being
+    #               attached to the URL unless it already carries one; a source elsewhere carries
+    #               its own authorization
     # + destinationPath - The container-relative path to write
     # + options - Optional copy options (metadata, tags, tier, lease id)
     # + return - The `CopyInfo` of the accepted copy, or an `Error`

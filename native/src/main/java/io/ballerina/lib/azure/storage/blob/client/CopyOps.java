@@ -39,29 +39,26 @@ public final class CopyOps {
     private CopyOps() {
     }
 
-    /**
-     * Starts a copy of a blob in the bound container to another path in it. The service
-     * authorizes the copy source separately from the request, so a SAS credential is attached
-     * to the source URL; a shared key authorizes a same-account source on its own.
-     */
+    /** Starts a copy of a blob in the bound container to another path in it. */
     public static Object copyBlob(Environment env, BObject self, BString sourcePath, BString destinationPath,
                                   Object options) {
         return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE,
                 sourcePath.getValue(), destinationPath.getValue(), () -> {
             String sourceUrl = BlobOps.blobClient(self, sourcePath).getBlobUrl();
-            String signature = (String) self.getNativeData(BallerinaAzureClient.NATIVE_SAS_SIGNATURE);
-            if (signature != null) {
-                sourceUrl = sourceUrl + (sourceUrl.contains("?") ? "&" : "?") + signature;
-            }
-            return beginCopy(self, sourceUrl, destinationPath, options);
+            return beginCopy(self, BallerinaAzureClient.signSameAccountSource(self, sourceUrl), destinationPath,
+                    options);
         });
     }
 
-    /** Starts a copy from any readable blob URL to a path in the bound container. */
+    /**
+     * Starts a copy from any readable blob URL to a path in the bound container; a same-account
+     * source gets the client's SAS, as the source of {@code copyBlob} does.
+     */
     public static Object copyBlobFromUrl(Environment env, BObject self, BString sourceUrl, BString destinationPath,
                                          Object options) {
         return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_MANAGE, destinationPath.getValue(),
-                null, () -> beginCopy(self, sourceUrl.getValue(), destinationPath, options));
+                null, () -> beginCopy(self, BallerinaAzureClient.signSameAccountSource(self, sourceUrl.getValue()),
+                destinationPath, options));
     }
 
     /** Aborts a pending copy by its id. */

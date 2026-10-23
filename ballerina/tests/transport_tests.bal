@@ -157,3 +157,15 @@ function assertRefused(Client|Error result, string messagePart) {
                 string `expected "${messagePart}" in: ${result.message()}`);
     }
 }
+
+// An omitted retry configuration is the connector's own: each try is bounded (spec 2.3).
+@test:Config {}
+function testRetryDefaultsApplyWhenOmitted() {
+    ClientConfiguration clientConfig = {auth: sharedKeyAuth()};
+    test:assertEquals(clientConfig.retryConfig.tryTimeout, 60d);
+    test:assertEquals(clientConfig.retryConfig.maxTries, 4);
+    test:assertEquals(clientConfig.retryConfig.retryPolicyType, EXPONENTIAL);
+    ListenerConfiguration listenerConfig = {auth: sharedKeyAuth()};
+    test:assertEquals(listenerConfig.retryConfig.tryTimeout, 60d);
+    test:assertEquals(listenerConfig.retryConfig.maxTries, 4);
+}

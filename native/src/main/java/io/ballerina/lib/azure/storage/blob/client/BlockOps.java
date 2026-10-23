@@ -70,7 +70,8 @@ public final class BlockOps {
             BMap<BString, Object> record = OptionsReader.record(options);
             BlobRange sourceRange = record == null ? null : OptionsReader.range(record.get(OptionsReader.SOURCE_RANGE));
             blockClient(self, path).stageBlockFromUrlWithResponse(
-                    new BlockBlobStageBlockFromUrlOptions(validBlockId(blockId.getValue()), sourceUrl.getValue())
+                    new BlockBlobStageBlockFromUrlOptions(validBlockId(blockId.getValue()),
+                            BallerinaAzureClient.signSameAccountSource(self, sourceUrl.getValue()))
                             .setSourceRange(sourceRange == null ? new BlobRange(0) : sourceRange)
                             .setLeaseId(OptionsReader.leaseId(options)), null, null);
             return null;

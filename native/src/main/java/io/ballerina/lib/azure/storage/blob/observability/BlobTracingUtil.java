@@ -132,10 +132,11 @@ public final class BlobTracingUtil {
      * @param fileStage     the stage the span covers, or {@code null}
      * @param cleanupAction the settlement, or {@code null}
      * @param handlerName   the handler involved, or {@code null}
+     * @param errorType     the type of the error an {@code onError} call reports, or {@code null}
      * @return the span, or {@code null} while observability is disabled
      */
     public static BSpan createChildSpan(BlobObserverContext parentCtx, String operation, String fileStage,
-                                        String cleanupAction, String handlerName) {
+                                        String cleanupAction, String handlerName, String errorType) {
         if (!ObserveUtils.isObservabilityEnabled()) {
             return null;
         }
@@ -156,6 +157,9 @@ public final class BlobTracingUtil {
             span.addTag(BlobObserverContext.TAG_FILE_STAGE, requireNonNullElse(fileStage, NONE));
             span.addTag(BlobObserverContext.TAG_CLEANUP_ACTION, requireNonNullElse(cleanupAction, NONE));
             span.addTag(BlobObserverContext.TAG_HANDLER_NAME, requireNonNullElse(handlerName, NONE));
+            if (errorType != null) {
+                span.addTag(BlobObserverContext.TAG_ERROR_TYPE, errorType);
+            }
             return span;
         } catch (Throwable t) {
             log.debug("Failed to create the {} span", operation, t);

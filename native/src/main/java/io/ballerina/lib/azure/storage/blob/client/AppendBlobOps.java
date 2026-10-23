@@ -72,7 +72,8 @@ public final class AppendBlobOps {
         return BallerinaAzureClient.invoke(env, self, BlobMetricsUtil.OPERATION_TYPE_PUT,
                 path.getValue(), null, () -> {
             appendClient(self, path).appendBlockFromUrlWithResponse(
-                    new AppendBlobAppendBlockFromUrlOptions(sourceUrl.getValue())
+                    new AppendBlobAppendBlockFromUrlOptions(
+                            BallerinaAzureClient.signSameAccountSource(self, sourceUrl.getValue()))
                             .setSourceRange(new BlobRange(0))
                             .setDestinationRequestConditions(conditions(options)), null, null);
             return null;

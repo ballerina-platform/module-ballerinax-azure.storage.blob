@@ -41,17 +41,15 @@ final class QueueClients {
      *
      * @param ctx       the listener
      * @param queueName the queue
-     * @param retry     the retry options, or {@code null} for the SDK's defaults
+     * @param retry     the retry options
      * @return the client
      */
     static QueueClient build(ListenerContext ctx, String queueName, RequestRetryOptions retry) {
         QueueClientBuilder builder = new QueueClientBuilder()
                 .queueName(queueName)
                 .messageEncoding(QueueMessageEncoding.NONE)
-                .httpClient(ctx.transport.httpClient());
-        if (retry != null) {
-            builder.retryOptions(retry);
-        }
+                .httpClient(ctx.transport.httpClient())
+                .retryOptions(retry);
         Credentials.Resolved credential = ctx.credential;
         if (credential.connectionString() != null) {
             // The SDK's parser supplies the credential; the endpoint set after it is the one

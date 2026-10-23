@@ -170,7 +170,7 @@
         },
         "metadata": {
           "label": "New Batch Threshold",
-          "description": "The number of events still being handled at which the next batch is fetched, 0 to the batch size (default half the batch size)"
+          "description": "Fetch the next batch when this many events are still being handled; 0 to the batch size, default half of it"
         },
         "source": {
           "construct": {
@@ -611,7 +611,7 @@
                   "default": "",
                   "metadata": {
                     "label": "SAS URL",
-                    "description": "A full blob-service SAS URL, including the scheme and the SAS query string of an account SAS spanning the queue and blob services"
+                    "description": "A blob-service SAS URL carrying an account SAS that spans the queue and blob services"
                   },
                   "source": {
                     "argument": {
@@ -734,7 +734,7 @@
                       "default": "DEFAULT",
                       "metadata": {
                         "label": "Default Credential Chain",
-                        "description": "Authenticate through the default credential chain: the environment, a managed identity, then developer sign-ins (Azure CLI, IDE accounts), in turn"
+                        "description": "Authenticate through the default chain: the environment, a managed identity, then developer sign-ins"
                       },
                       "properties": {
                         "accountName": {
@@ -1447,7 +1447,7 @@
           "default": "",
           "metadata": {
             "label": "Relaxed Data Binding",
-            "description": "Treat a null value as an optional field and an absent field as a nilable field when binding JSON, CSV and XML content to records"
+            "description": "Relaxed record binding: null and absent fields in JSON and CSV, undeclared elements in XML"
           },
           "source": {
             "argument": {
@@ -1582,7 +1582,7 @@
               },
               "metadata": {
                 "label": "Routing",
-                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+                "description": "Route created blobs to this handler by a name pattern or a content type pattern instead of the extension."
               },
               "state": {
                 "advanced": true,
@@ -1606,7 +1606,7 @@
               "properties": {
                 "namePattern": {
                   "key": "namePattern",
-                  "placeholder": ".*\\.csv",
+                  "placeholder": ".*",
                   "default": "",
                   "metadata": {
                     "label": "Blob Name Pattern",
@@ -1825,7 +1825,7 @@
               "target": "$service.onBlob.event",
               "metadata": {
                 "label": "Blob Event (event)",
-                "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                "description": "The blob event: its account, container, path, and URL, the kind of change, and its time."
               },
               "state": {
                 "advanced": true,
@@ -1868,7 +1868,7 @@
                   },
                   "metadata": {
                     "label": "event",
-                    "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                    "description": "The blob event: its account, container, path, and URL, the kind of change, and its time."
                   },
                   "state": {
                     "enabled": true,
@@ -1895,7 +1895,7 @@
               "target": "$service.onBlob.caller",
               "metadata": {
                 "label": "Azure Blob Storage Connection (caller)",
-                "description": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                "description": "The container connection, for reading or writing blobs while this event is handled."
               },
               "state": {
                 "advanced": true,
@@ -1938,7 +1938,7 @@
                   },
                   "metadata": {
                     "label": "caller",
-                    "description": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                    "description": "The container connection, for reading or writing blobs while this event is handled."
                   },
                   "state": {
                     "enabled": true,
@@ -2008,7 +2008,7 @@
             "routing": {
               "metadata": {
                 "label": "Routing",
-                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+                "description": "Route created blobs to this handler by a name pattern or a content type pattern instead of the extension."
               },
               "state": {
                 "advanced": true,
@@ -2032,7 +2032,7 @@
               "properties": {
                 "namePattern": {
                   "key": "namePattern",
-                  "placeholder": ".*\\.csv",
+                  "placeholder": ".*",
                   "default": "",
                   "metadata": {
                     "label": "Blob Name Pattern",
@@ -2132,7 +2132,7 @@
               },
               "metadata": {
                 "label": "Routing",
-                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+                "description": "Route created blobs to this handler by a name pattern or a content type pattern instead of the extension."
               },
               "state": {
                 "advanced": true,
@@ -2156,7 +2156,7 @@
               "properties": {
                 "namePattern": {
                   "key": "namePattern",
-                  "placeholder": ".*\\.csv",
+                  "placeholder": ".*\\.txt",
                   "default": "",
                   "metadata": {
                     "label": "Blob Name Pattern",
@@ -2341,7 +2341,7 @@
               "target": "$service.onBlobText.event",
               "metadata": {
                 "label": "Blob Event (event)",
-                "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                "description": "The blob event: its account, container, path, and URL, the kind of change, and its time."
               },
               "state": {
                 "advanced": true,
@@ -2384,7 +2384,7 @@
                   },
                   "metadata": {
                     "label": "event",
-                    "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                    "description": "The blob event: its account, container, path, and URL, the kind of change, and its time."
                   },
                   "state": {
                     "enabled": true,
@@ -2411,7 +2411,7 @@
               "target": "$service.onBlobText.caller",
               "metadata": {
                 "label": "Azure Blob Storage Connection (caller)",
-                "description": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                "description": "The container connection, for reading or writing blobs while this event is handled."
               },
               "state": {
                 "advanced": true,
@@ -2454,7 +2454,7 @@
                   },
                   "metadata": {
                     "label": "caller",
-                    "description": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                    "description": "The container connection, for reading or writing blobs while this event is handled."
                   },
                   "state": {
                     "enabled": true,
@@ -2524,7 +2524,7 @@
             "routing": {
               "metadata": {
                 "label": "Routing",
-                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+                "description": "Route created blobs to this handler by a name pattern or a content type pattern instead of the extension."
               },
               "state": {
                 "advanced": true,
@@ -2548,7 +2548,7 @@
               "properties": {
                 "namePattern": {
                   "key": "namePattern",
-                  "placeholder": ".*\\.csv",
+                  "placeholder": ".*\\.txt",
                   "default": "",
                   "metadata": {
                     "label": "Blob Name Pattern",
@@ -2648,7 +2648,7 @@
               },
               "metadata": {
                 "label": "Routing",
-                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+                "description": "Route created blobs to this handler by a name pattern or a content type pattern instead of the extension."
               },
               "state": {
                 "advanced": true,
@@ -2672,7 +2672,7 @@
               "properties": {
                 "namePattern": {
                   "key": "namePattern",
-                  "placeholder": ".*\\.csv",
+                  "placeholder": ".*\\.json",
                   "default": "",
                   "metadata": {
                     "label": "Blob Name Pattern",
@@ -2871,7 +2871,7 @@
               "target": "$service.onBlobJson.event",
               "metadata": {
                 "label": "Blob Event (event)",
-                "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                "description": "The blob event: its account, container, path, and URL, the kind of change, and its time."
               },
               "state": {
                 "advanced": true,
@@ -2914,7 +2914,7 @@
                   },
                   "metadata": {
                     "label": "event",
-                    "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                    "description": "The blob event: its account, container, path, and URL, the kind of change, and its time."
                   },
                   "state": {
                     "enabled": true,
@@ -2941,7 +2941,7 @@
               "target": "$service.onBlobJson.caller",
               "metadata": {
                 "label": "Azure Blob Storage Connection (caller)",
-                "description": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                "description": "The container connection, for reading or writing blobs while this event is handled."
               },
               "state": {
                 "advanced": true,
@@ -2984,7 +2984,7 @@
                   },
                   "metadata": {
                     "label": "caller",
-                    "description": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                    "description": "The container connection, for reading or writing blobs while this event is handled."
                   },
                   "state": {
                     "enabled": true,
@@ -3054,7 +3054,7 @@
             "routing": {
               "metadata": {
                 "label": "Routing",
-                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+                "description": "Route created blobs to this handler by a name pattern or a content type pattern instead of the extension."
               },
               "state": {
                 "advanced": true,
@@ -3078,7 +3078,7 @@
               "properties": {
                 "namePattern": {
                   "key": "namePattern",
-                  "placeholder": ".*\\.csv",
+                  "placeholder": ".*\\.json",
                   "default": "",
                   "metadata": {
                     "label": "Blob Name Pattern",
@@ -3178,7 +3178,7 @@
               },
               "metadata": {
                 "label": "Routing",
-                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+                "description": "Route created blobs to this handler by a name pattern or a content type pattern instead of the extension."
               },
               "state": {
                 "advanced": true,
@@ -3202,7 +3202,7 @@
               "properties": {
                 "namePattern": {
                   "key": "namePattern",
-                  "placeholder": ".*\\.csv",
+                  "placeholder": ".*\\.xml",
                   "default": "",
                   "metadata": {
                     "label": "Blob Name Pattern",
@@ -3391,7 +3391,7 @@
               "target": "$service.onBlobXml.event",
               "metadata": {
                 "label": "Blob Event (event)",
-                "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                "description": "The blob event: its account, container, path, and URL, the kind of change, and its time."
               },
               "state": {
                 "advanced": true,
@@ -3434,7 +3434,7 @@
                   },
                   "metadata": {
                     "label": "event",
-                    "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                    "description": "The blob event: its account, container, path, and URL, the kind of change, and its time."
                   },
                   "state": {
                     "enabled": true,
@@ -3461,7 +3461,7 @@
               "target": "$service.onBlobXml.caller",
               "metadata": {
                 "label": "Azure Blob Storage Connection (caller)",
-                "description": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                "description": "The container connection, for reading or writing blobs while this event is handled."
               },
               "state": {
                 "advanced": true,
@@ -3504,7 +3504,7 @@
                   },
                   "metadata": {
                     "label": "caller",
-                    "description": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                    "description": "The container connection, for reading or writing blobs while this event is handled."
                   },
                   "state": {
                     "enabled": true,
@@ -3574,7 +3574,7 @@
             "routing": {
               "metadata": {
                 "label": "Routing",
-                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+                "description": "Route created blobs to this handler by a name pattern or a content type pattern instead of the extension."
               },
               "state": {
                 "advanced": true,
@@ -3598,7 +3598,7 @@
               "properties": {
                 "namePattern": {
                   "key": "namePattern",
-                  "placeholder": ".*\\.csv",
+                  "placeholder": ".*\\.xml",
                   "default": "",
                   "metadata": {
                     "label": "Blob Name Pattern",
@@ -3698,7 +3698,7 @@
               },
               "metadata": {
                 "label": "Routing",
-                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+                "description": "Route created blobs to this handler by a name pattern or a content type pattern instead of the extension."
               },
               "state": {
                 "advanced": true,
@@ -3956,7 +3956,7 @@
               "target": "$service.onBlobCsv.event",
               "metadata": {
                 "label": "Blob Event (event)",
-                "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                "description": "The blob event: its account, container, path, and URL, the kind of change, and its time."
               },
               "state": {
                 "advanced": true,
@@ -3999,7 +3999,7 @@
                   },
                   "metadata": {
                     "label": "event",
-                    "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                    "description": "The blob event: its account, container, path, and URL, the kind of change, and its time."
                   },
                   "state": {
                     "enabled": true,
@@ -4026,7 +4026,7 @@
               "target": "$service.onBlobCsv.caller",
               "metadata": {
                 "label": "Azure Blob Storage Connection (caller)",
-                "description": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                "description": "The container connection, for reading or writing blobs while this event is handled."
               },
               "state": {
                 "advanced": true,
@@ -4069,7 +4069,7 @@
                   },
                   "metadata": {
                     "label": "caller",
-                    "description": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                    "description": "The container connection, for reading or writing blobs while this event is handled."
                   },
                   "state": {
                     "enabled": true,
@@ -4139,7 +4139,7 @@
             "routing": {
               "metadata": {
                 "label": "Routing",
-                "description": "Override the extension-based routing of created blobs for this handler. A blob matches when its name and its content type satisfy the patterns set here."
+                "description": "Route created blobs to this handler by a name pattern or a content type pattern instead of the extension."
               },
               "state": {
                 "advanced": true,
@@ -4258,7 +4258,7 @@
               "target": "$service.onBlobDelete.event",
               "metadata": {
                 "label": "Blob Event (event)",
-                "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                "description": "The blob event: its account, container, path, and URL, the kind of change, and its time."
               },
               "state": {
                 "hidden": true,
@@ -4300,7 +4300,7 @@
                   },
                   "metadata": {
                     "label": "event",
-                    "description": "The event: whether the blob was created or deleted, its container, path, URL, time, the API that fired it, content type and length, ETag, and sequencer."
+                    "description": "The blob event: its account, container, path, and URL, the kind of change, and its time."
                   },
                   "state": {
                     "enabled": true,
@@ -4327,7 +4327,7 @@
               "target": "$service.onBlobDelete.caller",
               "metadata": {
                 "label": "Azure Blob Storage Connection (caller)",
-                "description": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                "description": "The container connection, for reading or writing blobs while this event is handled."
               },
               "state": {
                 "advanced": true,
@@ -4370,7 +4370,7 @@
                   },
                   "metadata": {
                     "label": "caller",
-                    "description": "A Caller bound to the event's container, for acting on the blob while the event is handled: read, download, upload, delete, copy from a URL, and set tags."
+                    "description": "The container connection, for reading or writing blobs while this event is handled."
                   },
                   "state": {
                     "enabled": true,
@@ -4436,7 +4436,7 @@
           "target": "$service.onError",
           "metadata": {
             "label": "On Error",
-            "description": "Invoked when a poll fails, a message cannot be parsed, a blob's content cannot be fetched or bound, or a move to the poison queue fails. It runs before the message is disposed of; errors returned by the other handlers are not sent here, they settle the message.",
+            "description": "Invoked when a poll, a message parse, a content fetch or binding, or a poison move fails.",
             "addLabel": "Add On Error Handler",
             "badge": "onError"
           },
@@ -4445,7 +4445,7 @@
               "target": "$service.onError.err",
               "metadata": {
                 "label": "Azure Blob Storage Error",
-                "description": "The failure the listener reports: a failed poll, an unparseable message, content that could not be fetched or bound, or a failed move to the poison queue."
+                "description": "The failure the listener reports."
               },
               "state": {
                 "hidden": true,
@@ -4584,7 +4584,7 @@
               "target": "$service.onError.caller",
               "metadata": {
                 "label": "Azure Blob Storage Connection (caller)",
-                "description": "A Caller bound to the event's container, or () when the failure carries no event."
+                "description": "The container connection, or () when the failure carries no event."
               },
               "state": {
                 "advanced": true,
@@ -4627,7 +4627,7 @@
                   },
                   "metadata": {
                     "label": "caller",
-                    "description": "A Caller bound to the event's container, or () when the failure carries no event."
+                    "description": "The container connection, or () when the failure carries no event."
                   },
                   "state": {
                     "enabled": true,

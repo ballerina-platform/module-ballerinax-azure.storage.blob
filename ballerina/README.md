@@ -59,7 +59,7 @@ Restoring deleted blobs and containers needs soft delete. Under **Data managemen
 
 ### Step 5: Wire the event queue (listener only)
 
-The connector's `Listener` consumes blob events from a storage queue that an Event Grid subscription fills. Create both once per storage account:
+The connector's `Listener` consumes blob events from a storage queue that an Event Grid subscription fills. Create one queue and one subscription per listener service:
 
 1. In the storage account, navigate to **Data storage** > **Queues**, click **+ Queue**, and provide a name (for example `invoice-events`). Each listener service names the queue it consumes in its `@blob:ServiceConfig` annotation; create one queue, and one subscription, per service.
 
