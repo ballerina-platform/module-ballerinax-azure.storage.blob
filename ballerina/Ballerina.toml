@@ -20,7 +20,7 @@ graalvmCompatible = true
 groupId = "io.ballerina.lib"
 artifactId = "azure.storage.blob-native"
 version = "1.0.0"
-path = "../native/build/libs/azure.storage.blob-native-1.0.0-SNAPSHOT.jar"
+path = "../native/build/libs/azure.storage.blob-native-1.0.0.jar"
 
 [[platform.java25.dependency]]
 groupId = "com.azure"
