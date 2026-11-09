@@ -4,6 +4,12 @@ This file documents all notable changes to the Ballerina Azure Blob Storage pack
 
 ## [Unreleased]
 
+### Changed
+
+- The package is tagged `Type/Trigger`, so the WSO2 Integrator's artifact search lists it among the integrations on Ballerina Central
+
+## [1.0.0] - 2026-10-23
+
 ### Added
 
 - Container-scoped `Client` and account-level `AdminClient`: container lifecycle, listing, and access policies, service configuration, account information, and the user delegation key
@@ -22,7 +28,6 @@ This file documents all notable changes to the Ballerina Azure Blob Storage pack
 
 ### Changed
 
-- The package is tagged `Type/Trigger`, so the WSO2 Integrator's artifact search lists it among the integrations on Ballerina Central
 - The `file_databinding_duration_seconds` and `file_resource_execution_duration_seconds` gauges carry `watched.path`, the service's queue name, and the `file-error` span carries the type of the error `onError` is called with
 
 ### Fixed
