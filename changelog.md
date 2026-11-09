@@ -4,6 +4,12 @@ This file documents all notable changes to the Ballerina Azure Blob Storage pack
 
 ## [Unreleased]
 
+### Changed
+
+- The package is tagged `Type/Trigger`, so the WSO2 Integrator's artifact search lists it among the integrations on Ballerina Central
+
+## [1.0.0] - 2026-10-23
+
 ### Added
 
 - Container-scoped `Client` and account-level `AdminClient`: container lifecycle, listing, and access policies, service configuration, account information, and the user delegation key
