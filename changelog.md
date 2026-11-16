@@ -4,6 +4,8 @@ This file documents all notable changes to the Ballerina Azure Blob Storage pack
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-09
+
 ### Changed
 
 - The package is tagged `Type/Trigger`, so the WSO2 Integrator's artifact search lists it among the integrations on Ballerina Central
