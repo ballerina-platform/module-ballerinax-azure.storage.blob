@@ -3,7 +3,7 @@ distribution = "2201.14.0"
 include = ["metadata/**"]
 org = "ballerinax"
 name = "azure.storage.blob"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["Ballerina"]
 keywords = ["Type/Connector", "Type/Trigger", "Area/Storage & File Management", "Cost/Paid", "Vendor/Microsoft"]
 icon = "icon.png"
@@ -19,8 +19,8 @@ graalvmCompatible = true
 [[platform.java25.dependency]]
 groupId = "io.ballerina.lib"
 artifactId = "azure.storage.blob-native"
-version = "1.0.0"
-path = "../native/build/libs/azure.storage.blob-native-1.0.0.jar"
+version = "1.0.1"
+path = "../native/build/libs/azure.storage.blob-native-1.0.1.jar"
 
 [[platform.java25.dependency]]
 groupId = "com.azure"
