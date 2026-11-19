@@ -4,7 +4,7 @@
     "kind": "file"
   },
   "trigger": {
-    "displayName": "Azure Blob Storage Integration",
+    "displayName": "Azure Blobs Integration",
     "shortDisplayName": "Azure Blobs",
     "description": "Create a service that handles the blob events an Event Grid subscription delivers to an Azure Storage queue.",
     "type": "blob"
@@ -357,7 +357,7 @@
         },
         "listenerConfig": {
           "label": "Listener Configurations",
-          "description": "Configure the Azure Blob Storage listener."
+          "description": "Configure the Azure Blobs listener."
         },
         "useExisting": {
           "label": "Use existing",
@@ -1510,7 +1510,7 @@
     {
       "target": "$service",
       "metadata": {
-        "label": "Azure Blob Storage Service",
+        "label": "Azure Blobs Service",
         "description": "Consumes the blob events delivered to the queue it names. Declare at least one handler."
       },
       "state": {
@@ -1894,7 +1894,7 @@
             {
               "target": "$service.onBlob.caller",
               "metadata": {
-                "label": "Azure Blob Storage Connection (caller)",
+                "label": "Azure Blobs Connection (caller)",
                 "description": "The container connection, for reading or writing blobs while this event is handled."
               },
               "state": {
@@ -1912,7 +1912,7 @@
                     "path": "type"
                   },
                   "metadata": {
-                    "label": "Include Azure Blob Storage Connection (caller)",
+                    "label": "Include Azure Blobs Connection (caller)",
                     "description": "Tick to include the caller parameter in the handler signature."
                   },
                   "state": {
@@ -2410,7 +2410,7 @@
             {
               "target": "$service.onBlobText.caller",
               "metadata": {
-                "label": "Azure Blob Storage Connection (caller)",
+                "label": "Azure Blobs Connection (caller)",
                 "description": "The container connection, for reading or writing blobs while this event is handled."
               },
               "state": {
@@ -2428,7 +2428,7 @@
                     "path": "type"
                   },
                   "metadata": {
-                    "label": "Include Azure Blob Storage Connection (caller)",
+                    "label": "Include Azure Blobs Connection (caller)",
                     "description": "Tick to include the caller parameter in the handler signature."
                   },
                   "state": {
@@ -2940,7 +2940,7 @@
             {
               "target": "$service.onBlobJson.caller",
               "metadata": {
-                "label": "Azure Blob Storage Connection (caller)",
+                "label": "Azure Blobs Connection (caller)",
                 "description": "The container connection, for reading or writing blobs while this event is handled."
               },
               "state": {
@@ -2958,7 +2958,7 @@
                     "path": "type"
                   },
                   "metadata": {
-                    "label": "Include Azure Blob Storage Connection (caller)",
+                    "label": "Include Azure Blobs Connection (caller)",
                     "description": "Tick to include the caller parameter in the handler signature."
                   },
                   "state": {
@@ -3460,7 +3460,7 @@
             {
               "target": "$service.onBlobXml.caller",
               "metadata": {
-                "label": "Azure Blob Storage Connection (caller)",
+                "label": "Azure Blobs Connection (caller)",
                 "description": "The container connection, for reading or writing blobs while this event is handled."
               },
               "state": {
@@ -3478,7 +3478,7 @@
                     "path": "type"
                   },
                   "metadata": {
-                    "label": "Include Azure Blob Storage Connection (caller)",
+                    "label": "Include Azure Blobs Connection (caller)",
                     "description": "Tick to include the caller parameter in the handler signature."
                   },
                   "state": {
@@ -4025,7 +4025,7 @@
             {
               "target": "$service.onBlobCsv.caller",
               "metadata": {
-                "label": "Azure Blob Storage Connection (caller)",
+                "label": "Azure Blobs Connection (caller)",
                 "description": "The container connection, for reading or writing blobs while this event is handled."
               },
               "state": {
@@ -4043,7 +4043,7 @@
                     "path": "type"
                   },
                   "metadata": {
-                    "label": "Include Azure Blob Storage Connection (caller)",
+                    "label": "Include Azure Blobs Connection (caller)",
                     "description": "Tick to include the caller parameter in the handler signature."
                   },
                   "state": {
@@ -4326,7 +4326,7 @@
             {
               "target": "$service.onBlobDelete.caller",
               "metadata": {
-                "label": "Azure Blob Storage Connection (caller)",
+                "label": "Azure Blobs Connection (caller)",
                 "description": "The container connection, for reading or writing blobs while this event is handled."
               },
               "state": {
@@ -4344,7 +4344,7 @@
                     "path": "type"
                   },
                   "metadata": {
-                    "label": "Include Azure Blob Storage Connection (caller)",
+                    "label": "Include Azure Blobs Connection (caller)",
                     "description": "Tick to include the caller parameter in the handler signature."
                   },
                   "state": {
@@ -4444,7 +4444,7 @@
             {
               "target": "$service.onError.err",
               "metadata": {
-                "label": "Azure Blob Storage Error",
+                "label": "Azure Blobs Error",
                 "description": "The failure the listener reports."
               },
               "state": {
@@ -4583,7 +4583,7 @@
             {
               "target": "$service.onError.caller",
               "metadata": {
-                "label": "Azure Blob Storage Connection (caller)",
+                "label": "Azure Blobs Connection (caller)",
                 "description": "The container connection, or () when the failure carries no event."
               },
               "state": {
@@ -4601,7 +4601,7 @@
                     "path": "type"
                   },
                   "metadata": {
-                    "label": "Include Azure Blob Storage Connection (caller)",
+                    "label": "Include Azure Blobs Connection (caller)",
                     "description": "Tick to include the caller parameter in the handler signature."
                   },
                   "state": {
@@ -4746,7 +4746,7 @@
     }
   ],
   "artifactInfo": {
-    "displayLabel": "Azure Blob Storage Integration",
+    "displayLabel": "Azure Blobs Integration",
     "icon": {
       "lightPath": "icons/light.svg",
       "darkPath": "icons/dark.svg"

@@ -4,6 +4,10 @@ This file documents all notable changes to the Ballerina Azure Blob Storage pack
 
 ## [Unreleased]
 
+### Changed
+
+- The WSO2 Integrator names the trigger Azure Blobs, as it names Azure Files: the integration title, the listener, service and error labels, and the Azure Blobs Connection caller
+
 ## [1.0.1] - 2026-11-09
 
 ### Changed
