@@ -589,7 +589,7 @@
         {
           "id": "$atLeastOneHandler",
           "rule": "structure.atLeastOne",
-          "message": "An Azure Blob Storage service must declare at least one of onBlob, onBlobText, onBlobJson, onBlobXml, onBlobCsv, or onBlobDelete. onError alone never receives an event, so the service would do nothing.",
+          "message": "An Azure Blobs service must declare at least one of onBlob, onBlobText, onBlobJson, onBlobXml, onBlobCsv, or onBlobDelete. onError alone never receives an event, so the service would do nothing.",
           "subjects": [
             {
               "kind": "handler",
