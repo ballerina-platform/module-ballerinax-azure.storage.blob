@@ -99,22 +99,22 @@ version = "1.2.1"
 [[platform.java25.dependency]]
 groupId = "com.fasterxml.jackson.core"
 artifactId = "jackson-annotations"
-version = "2.18.7"
+version = "2.18.11"
 
 [[platform.java25.dependency]]
 groupId = "com.fasterxml.jackson.core"
 artifactId = "jackson-core"
-version = "2.18.7"
+version = "2.18.11"
 
 [[platform.java25.dependency]]
 groupId = "com.fasterxml.jackson.core"
 artifactId = "jackson-databind"
-version = "2.18.7"
+version = "2.18.11"
 
 [[platform.java25.dependency]]
 groupId = "com.fasterxml.jackson.datatype"
 artifactId = "jackson-datatype-jsr310"
-version = "2.18.7"
+version = "2.18.11"
 
 [[platform.java25.dependency]]
 groupId = "io.projectreactor"

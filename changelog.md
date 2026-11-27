@@ -4,6 +4,10 @@ This file documents all notable changes to the Ballerina Azure Blob Storage pack
 
 ## [Unreleased]
 
+### Changed
+
+- [Update jackson to 2.18.11 to fix known vulnerabilities](https://github.com/ballerina-platform/ballerina-library/issues/9645)
+
 ## [1.0.1] - 2026-11-09
 
 ### Changed
